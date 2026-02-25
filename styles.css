@@ -1,8 +1,43 @@
-/*
+.sidekick-view-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.sidekick-response-container {
+	flex: 1;
+	overflow-y: auto;
+	padding: 10px;
+}
 
-If your plugin does not need CSS, delete this file.
+.sidekick-input-container {
+	padding: 10px;
+	border-top: 1px solid var(--divider-color);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
 
-*/
+.sidekick-input {
+	width: 100%;
+	height: 100px;
+	resize: none;
+}
+
+.sidekick-send-button {
+	align-self: flex-end;
+}
+
+.sidekick-message {
+	margin-bottom: 10px;
+	padding: 5px;
+	border-radius: 5px;
+}
+
+.user-message {
+	background-color: var(--background-secondary-alt);
+}
+
+.agent-message {
+	background-color: var(--background-primary-alt);
+}
