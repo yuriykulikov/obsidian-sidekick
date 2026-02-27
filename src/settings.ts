@@ -23,8 +23,8 @@ export class SidekickSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Gemini API Key')
-			.setDesc('Enter your Gemini API key from Google AI Studio')
+			.setName('Gemini API key')
+			.setDesc('Enter API key')
 			.addText(text => text
 				.setPlaceholder('Enter your API key')
 				.setValue(this.plugin.settings.geminiApiKey)

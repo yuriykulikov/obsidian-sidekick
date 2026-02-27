@@ -159,6 +159,10 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - Store or transmit vault contents unless essential and consented.
 - **Do not modify `main.js` directly**. It is a compiled build artifact. Always modify source files in the `src/` directory instead.
 
+**Before finishing a task**
+- **Run linting**: Run `npm run lint` and fix all errors and warnings.
+- **Run build**: Run `npm run build` to ensure the project compiles and bundles correctly.
+
 ## Common tasks
 
 ### Organize code across multiple files

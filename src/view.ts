@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
 import SidekickPlugin from "./main";
 import { GoogleGenAI } from "@google/genai";
 
@@ -49,7 +49,7 @@ export class SidekickView extends ItemView {
 
 			const apiKey = this.plugin.settings.geminiApiKey;
 			if (!apiKey) {
-				new Notice("Please configure your Gemini API key in settings.");
+				new Notice("Configure API key in settings");
 				return;
 			}
 
@@ -59,7 +59,7 @@ export class SidekickView extends ItemView {
 			
 			// Display placeholder for agent message
 			const agentMsg = responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-			agentMsg.setText("Agent: Thinking...");
+			agentMsg.setText("Agent: thinking...");
 			
 			inputEl.value = "";
 			responseContainer.scrollTo(0, responseContainer.scrollHeight);
@@ -91,11 +91,13 @@ export class SidekickView extends ItemView {
 			responseContainer.scrollTo(0, responseContainer.scrollHeight);
 		};
 
-		sendButton.addEventListener("click", sendMessage);
+		sendButton.addEventListener("click", () => {
+			void sendMessage();
+		});
 		inputEl.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
-				sendMessage();
+				void sendMessage();
 			}
 		});
 	}

@@ -1,4 +1,4 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, WorkspaceLeaf} from 'obsidian';
+import {Plugin, WorkspaceLeaf} from 'obsidian';
 import {DEFAULT_SETTINGS, SidekickPluginSettings, SidekickSettingTab} from "./settings";
 import {SidekickView, VIEW_TYPE_SIDEKICK} from "./view";
 
@@ -14,7 +14,7 @@ export default class SidekickPlugin extends Plugin {
 		);
 
 		this.addRibbonIcon('bot', 'Sidekick', (evt: MouseEvent) => {
-			this.activateView();
+			void this.activateView();
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
@@ -49,12 +49,12 @@ export default class SidekickPlugin extends Plugin {
 		}
 
 		if (leaf) {
-			await leaf.setViewState({
+			void leaf.setViewState({
 				type: VIEW_TYPE_SIDEKICK,
 				active: true,
 			});
 
-			workspace.revealLeaf(leaf);
+			void workspace.revealLeaf(leaf);
 		}
 	}
 }
