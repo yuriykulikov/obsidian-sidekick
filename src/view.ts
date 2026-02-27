@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer } from "obsidian";
 import SidekickPlugin from "./main";
 import { GoogleGenAI } from "@google/genai";
 
@@ -55,11 +55,11 @@ export class SidekickView extends ItemView {
 
 			// Display user message
 			const userMsg = responseContainer.createDiv({ cls: "sidekick-message user-message" });
-			userMsg.setText("You: " + prompt);
+			await MarkdownRenderer.render(this.app, "**You:** " + prompt, userMsg, "", this);
 			
 			// Display placeholder for agent message
 			const agentMsg = responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-			agentMsg.setText("Agent: thinking...");
+			agentMsg.createEl("em", { text: "Agent: thinking..." });
 			
 			inputEl.value = "";
 			responseContainer.scrollTo(0, responseContainer.scrollHeight);
@@ -69,7 +69,7 @@ export class SidekickView extends ItemView {
 				const file = this.app.workspace.getActiveFile();
 				const noteContent = file ? await this.app.vault.read(file) : "";
 
-				const systemPrompt = "You are a helpful assistant for Obsidian. Use the following note as context for the user's request.\n\n" +
+				const systemPrompt = "You are a helpful assistant for Obsidian. Use the following note as context for the user's request. Always respond in markdown format.\n\n" +
 					"--- NOTE CONTENT ---\n" +
 					noteContent + "\n" +
 					"--- END NOTE CONTENT ---\n";
@@ -80,12 +80,16 @@ export class SidekickView extends ItemView {
 					contents: systemPrompt + prompt
 				});
 
-				const text = result.text;
+				const text = result.text || "";
 				
-				agentMsg.setText("Agent: " + text);
+				agentMsg.empty();
+				agentMsg.createDiv({ text: "Agent:" });
+				await MarkdownRenderer.render(this.app, text, agentMsg, "", this);
 			} catch (error) {
 				console.error("Gemini API Error:", error);
-				agentMsg.setText("Agent: Error calling Gemini API. " + (error instanceof Error ? error.message : ""));
+				agentMsg.empty();
+				agentMsg.createDiv({ text: "Agent:" });
+				await MarkdownRenderer.render(this.app, "Error calling Gemini API. " + (error instanceof Error ? error.message : ""), agentMsg, "", this);
 			}
 			
 			responseContainer.scrollTo(0, responseContainer.scrollHeight);
