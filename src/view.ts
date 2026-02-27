@@ -1,11 +1,13 @@
-import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent } from "obsidian";
 import SidekickPlugin from "./main";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Chat } from "@google/genai";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
 export class SidekickView extends ItemView {
 	plugin: SidekickPlugin;
+	chatSession: Chat | null = null;
+	responseContainer: HTMLElement;
 
 	constructor(leaf: WorkspaceLeaf, plugin: SidekickPlugin) {
 		super(leaf);
@@ -30,7 +32,14 @@ export class SidekickView extends ItemView {
 		container.empty();
 		container.addClass("sidekick-view-container");
 
-		const responseContainer = container.createDiv({ cls: "sidekick-response-container" });
+		const headerContainer = container.createDiv({ cls: "sidekick-header" });
+		new ButtonComponent(headerContainer)
+			.setButtonText("New task")
+			.onClick(() => {
+				this.resetChat();
+			});
+
+		this.responseContainer = container.createDiv({ cls: "sidekick-response-container" });
 		
 		const inputContainer = container.createDiv({ cls: "sidekick-input-container" });
 		const inputEl = inputContainer.createEl("textarea", {
@@ -54,33 +63,38 @@ export class SidekickView extends ItemView {
 			}
 
 			// Display user message
-			const userMsg = responseContainer.createDiv({ cls: "sidekick-message user-message" });
+			const userMsg = this.responseContainer.createDiv({ cls: "sidekick-message user-message" });
 			await MarkdownRenderer.render(this.app, "**You:** " + prompt, userMsg, "", this);
 			
 			// Display placeholder for agent message
-			const agentMsg = responseContainer.createDiv({ cls: "sidekick-message agent-message" });
+			const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
 			agentMsg.createEl("em", { text: "Agent: thinking..." });
 			
 			inputEl.value = "";
-			responseContainer.scrollTo(0, responseContainer.scrollHeight);
+			this.responseContainer.scrollTo(0, this.responseContainer.scrollHeight);
 
 			try {
-				// Get current note content
-				const file = this.app.workspace.getActiveFile();
-				const noteContent = file ? await this.app.vault.read(file) : "";
+				if (!this.chatSession) {
+					// Get current note content for the first message in the session
+					const file = this.app.workspace.getActiveFile();
+					const noteContent = file ? await this.app.vault.read(file) : "";
 
-				const systemPrompt = "You are a helpful assistant for Obsidian. Use the following note as context for the user's request. Always respond in markdown format.\n\n" +
-					"--- NOTE CONTENT ---\n" +
-					noteContent + "\n" +
-					"--- END NOTE CONTENT ---\n";
+					const systemPrompt = "You are a helpful assistant for Obsidian. Use the following note as context for the user's request. Always respond in markdown format.\n\n" +
+						"--- NOTE CONTENT ---\n" +
+						noteContent + "\n" +
+						"--- END NOTE CONTENT ---\n";
 
-				const ai = new GoogleGenAI({ apiKey });
-				const response = await ai.models.generateContent({
-					model: "gemini-3-flash-preview",
-					contents: prompt,
-					config: {
-						systemInstruction: systemPrompt,
-					}
+					const ai = new GoogleGenAI({ apiKey });
+					this.chatSession = ai.chats.create({
+						model: "gemini-3-flash-preview",
+						config: {
+							systemInstruction: systemPrompt,
+						}
+					});
+				}
+
+				const response = await this.chatSession.sendMessage({
+					message: prompt,
 				});
 				const text = response.text ?? "";
 				
@@ -94,7 +108,7 @@ export class SidekickView extends ItemView {
 				await MarkdownRenderer.render(this.app, "Error calling Gemini API. " + (error instanceof Error ? error.message : ""), agentMsg, "", this);
 			}
 			
-			responseContainer.scrollTo(0, responseContainer.scrollHeight);
+			this.responseContainer.scrollTo(0, this.responseContainer.scrollHeight);
 		};
 
 		sendButton.addEventListener("click", () => {
@@ -110,5 +124,12 @@ export class SidekickView extends ItemView {
 
 	async onClose() {
 		// Nothing to clean up.
+	}
+
+	resetChat() {
+		this.chatSession = null;
+		if (this.responseContainer) {
+			this.responseContainer.empty();
+		}
 	}
 }

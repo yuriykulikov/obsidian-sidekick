@@ -1,3 +1,10 @@
+.sidekick-header {
+	padding: 5px 10px;
+	border-bottom: 1px solid var(--divider-color);
+	display: flex;
+	justify-content: flex-end;
+}
+
 .sidekick-view-container {
 	display: flex;
 	flex-direction: column;
