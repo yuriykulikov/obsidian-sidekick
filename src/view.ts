@@ -1,10 +1,15 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
+import SidekickPlugin from "./main";
+import { GoogleGenAI } from "@google/genai";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
 export class SidekickView extends ItemView {
-	constructor(leaf: WorkspaceLeaf) {
+	plugin: SidekickPlugin;
+
+	constructor(leaf: WorkspaceLeaf, plugin: SidekickPlugin) {
 		super(leaf);
+		this.plugin = plugin;
 	}
 
 	getViewType() {
@@ -20,7 +25,8 @@ export class SidekickView extends ItemView {
 	}
 
 	async onOpen() {
-		const container = this.containerEl.children[1];
+		const container = this.containerEl.children[1] as HTMLElement;
+		if (!container) return;
 		container.empty();
 		container.addClass("sidekick-view-container");
 
@@ -37,18 +43,52 @@ export class SidekickView extends ItemView {
 			text: "Send"
 		});
 
-		const sendMessage = () => {
+		const sendMessage = async () => {
 			const prompt = inputEl.value.trim();
-			if (prompt) {
-				const userMsg = responseContainer.createDiv({ cls: "sidekick-message user-message" });
-				userMsg.setText("You: " + prompt);
-				
-				const agentMsg = responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-				agentMsg.setText("Agent: " + prompt);
-				
-				inputEl.value = "";
-				responseContainer.scrollTo(0, responseContainer.scrollHeight);
+			if (!prompt) return;
+
+			const apiKey = this.plugin.settings.geminiApiKey;
+			if (!apiKey) {
+				new Notice("Please configure your Gemini API key in settings.");
+				return;
 			}
+
+			// Display user message
+			const userMsg = responseContainer.createDiv({ cls: "sidekick-message user-message" });
+			userMsg.setText("You: " + prompt);
+			
+			// Display placeholder for agent message
+			const agentMsg = responseContainer.createDiv({ cls: "sidekick-message agent-message" });
+			agentMsg.setText("Agent: Thinking...");
+			
+			inputEl.value = "";
+			responseContainer.scrollTo(0, responseContainer.scrollHeight);
+
+			try {
+				// Get current note content
+				const file = this.app.workspace.getActiveFile();
+				const noteContent = file ? await this.app.vault.read(file) : "";
+
+				const systemPrompt = "You are a helpful assistant for Obsidian. Use the following note as context for the user's request.\n\n" +
+					"--- NOTE CONTENT ---\n" +
+					noteContent + "\n" +
+					"--- END NOTE CONTENT ---\n";
+
+				const ai = new GoogleGenAI({ apiKey });
+				const result = await ai.models.generateContent({
+					model: "gemini-3-flash-preview",
+					contents: systemPrompt + prompt
+				});
+
+				const text = result.text;
+				
+				agentMsg.setText("Agent: " + text);
+			} catch (error) {
+				console.error("Gemini API Error:", error);
+				agentMsg.setText("Agent: Error calling Gemini API. " + (error instanceof Error ? error.message : ""));
+			}
+			
+			responseContainer.scrollTo(0, responseContainer.scrollHeight);
 		};
 
 		sendButton.addEventListener("click", sendMessage);

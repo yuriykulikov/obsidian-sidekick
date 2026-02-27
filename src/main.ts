@@ -10,7 +10,7 @@ export default class SidekickPlugin extends Plugin {
 
 		this.registerView(
 			VIEW_TYPE_SIDEKICK,
-			(leaf) => new SidekickView(leaf)
+			(leaf) => new SidekickView(leaf, this)
 		);
 
 		this.addRibbonIcon('bot', 'Sidekick', (evt: MouseEvent) => {
@@ -35,20 +35,26 @@ export default class SidekickPlugin extends Plugin {
 	async activateView() {
 		const { workspace } = this.app;
 
-		let leaf: WorkspaceLeaf | null;
+		let leaf: WorkspaceLeaf | null = null;
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_SIDEKICK);
 
 		if (leaves.length > 0) {
 			// A leaf with our view already exists, use that
-			leaf = leaves[0];
+			const existingLeaf = leaves[0];
+			if (existingLeaf) {
+				leaf = existingLeaf;
+			}
 		} else {
 			leaf = workspace.getRightLeaf(false);
+		}
+
+		if (leaf) {
 			await leaf.setViewState({
 				type: VIEW_TYPE_SIDEKICK,
 				active: true,
 			});
-		}
 
-		workspace.revealLeaf(leaf);
+			workspace.revealLeaf(leaf);
+		}
 	}
 }

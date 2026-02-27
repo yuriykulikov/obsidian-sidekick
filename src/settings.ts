@@ -2,11 +2,11 @@ import {App, PluginSettingTab, Setting} from "obsidian";
 import SidekickPlugin from "./main";
 
 export interface SidekickPluginSettings {
-	mySetting: string;
+	geminiApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: SidekickPluginSettings = {
-	mySetting: 'default'
+	geminiApiKey: ''
 }
 
 export class SidekickSettingTab extends PluginSettingTab {
@@ -23,13 +23,13 @@ export class SidekickSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
+			.setName('Gemini API Key')
+			.setDesc('Enter your Gemini API key from Google AI Studio')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setPlaceholder('Enter your API key')
+				.setValue(this.plugin.settings.geminiApiKey)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.geminiApiKey = value;
 					await this.plugin.saveSettings();
 				}));
 	}
