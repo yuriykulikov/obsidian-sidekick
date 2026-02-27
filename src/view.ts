@@ -75,12 +75,14 @@ export class SidekickView extends ItemView {
 					"--- END NOTE CONTENT ---\n";
 
 				const ai = new GoogleGenAI({ apiKey });
-				const result = await ai.models.generateContent({
+				const response = await ai.models.generateContent({
 					model: "gemini-3-flash-preview",
-					contents: systemPrompt + prompt
+					contents: prompt,
+					config: {
+						systemInstruction: systemPrompt,
+					}
 				});
-
-				const text = result.text || "";
+				const text = response.text ?? "";
 				
 				agentMsg.empty();
 				agentMsg.createDiv({ text: "Agent:" });
