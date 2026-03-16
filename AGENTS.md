@@ -2,6 +2,7 @@
 
 ## Project overview
 
+- [Sidekick Design Document](docs/design-doc.md)
 - Target: Obsidian Community Plugin (TypeScript → bundled JavaScript).
 - Entry point: `main.ts` compiled to `main.js` and loaded by Obsidian. **Note: `main.js` is a compiled file; do not modify it directly.**
 - Required release artifacts: `main.js`, `manifest.json`, and optional `styles.css`.

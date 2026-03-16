@@ -6,6 +6,8 @@ unique relationships within your Obsidian vault.
 
 ## Design Philosophy
 
+For more information, see the [Design Document](docs/design-doc.md).
+
 - **Structure-Based Context**: Sidekick treats Markdown as structured text. Instead of relying on embeddings or vector
   databases, it builds context through the natural architecture of your vault: links, backlinks, tags, tasks, and
   directory hierarchy.
