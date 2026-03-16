@@ -1,6 +1,9 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import SidekickPlugin from "./main";
 
+/**
+ * Settings configuration for the Sidekick plugin.
+ */
 export interface SidekickPluginSettings {
 	geminiApiKey: string;
 }
@@ -9,6 +12,9 @@ export const DEFAULT_SETTINGS: SidekickPluginSettings = {
 	geminiApiKey: ''
 }
 
+/**
+ * The settings tab in Obsidian's configuration where the user enters the API key.
+ */
 export class SidekickSettingTab extends PluginSettingTab {
 	plugin: SidekickPlugin;
 
@@ -17,6 +23,9 @@ export class SidekickSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	/**
+	 * Renders the settings tab UI.
+	 */
 	display(): void {
 		const {containerEl} = this;
 

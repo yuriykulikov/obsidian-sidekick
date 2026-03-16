@@ -5,6 +5,10 @@ import {SidekickView, VIEW_TYPE_SIDEKICK} from "./view";
 export default class SidekickPlugin extends Plugin {
 	settings: SidekickPluginSettings;
 
+	/**
+	 * Called when the plugin is loaded by Obsidian.
+	 * Registers the sidekick view, adds the ribbon icon, and initializes settings.
+	 */
 	async onload() {
 		await this.loadSettings();
 
@@ -24,14 +28,23 @@ export default class SidekickPlugin extends Plugin {
 	onunload() {
 	}
 
+	/**
+	 * Loads plugin settings from Obsidian's data storage.
+	 */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<SidekickPluginSettings>);
 	}
 
+	/**
+	 * Saves plugin settings to Obsidian's data storage.
+	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
 
+	/**
+	 * Opens or reveals the Sidekick view in the workspace.
+	 */
 	async activateView() {
 		const { workspace } = this.app;
 
