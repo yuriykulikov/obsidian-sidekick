@@ -1,15 +1,19 @@
 import {Plugin, WorkspaceLeaf} from 'obsidian';
 import {DEFAULT_SETTINGS, SidekickPluginSettings, SidekickSettingTab} from "./settings";
 import {SidekickView, VIEW_TYPE_SIDEKICK} from "./view";
+import {SidekickLogger} from "./logger";
+import {SidekickLogView, VIEW_TYPE_SIDEKICK_LOG} from "./log-view";
 
 export default class SidekickPlugin extends Plugin {
 	settings: SidekickPluginSettings;
+	logger: SidekickLogger;
 
 	/**
 	 * Called when the plugin is loaded by Obsidian.
 	 * Registers the sidekick view, adds the ribbon icon, and initializes settings.
 	 */
 	async onload() {
+		this.logger = new SidekickLogger();
 		await this.loadSettings();
 
 		this.registerView(
@@ -17,8 +21,19 @@ export default class SidekickPlugin extends Plugin {
 			(leaf) => new SidekickView(leaf, this)
 		);
 
+		this.registerView(
+			VIEW_TYPE_SIDEKICK_LOG,
+			(leaf) => new SidekickLogView(leaf, this.logger)
+		);
+
 		this.addRibbonIcon('bot', 'Sidekick', (evt: MouseEvent) => {
 			void this.activateView();
+		});
+
+		this.addCommand({
+			id: "open-sidekick-log",
+			name: "Open log",
+			callback: () => this.activateLogView(),
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
@@ -64,6 +79,34 @@ export default class SidekickPlugin extends Plugin {
 		if (leaf) {
 			void leaf.setViewState({
 				type: VIEW_TYPE_SIDEKICK,
+				active: true,
+			});
+
+			void workspace.revealLeaf(leaf);
+		}
+	}
+
+	/**
+	 * Opens or reveals the Sidekick Log view in the workspace.
+	 */
+	async activateLogView() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_SIDEKICK_LOG);
+
+		if (leaves.length > 0) {
+			const existingLeaf = leaves[0];
+			if (existingLeaf) {
+				leaf = existingLeaf;
+			}
+		} else {
+			leaf = workspace.getRightLeaf(false);
+		}
+
+		if (leaf) {
+			void leaf.setViewState({
+				type: VIEW_TYPE_SIDEKICK_LOG,
 				active: true,
 			});
 

@@ -1,12 +1,14 @@
 import { App } from "obsidian";
-import { GoogleGenAI, Chat } from "@google/genai";
+import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { SidekickAgentState, AgentResponse, Note } from "./types";
+import { SidekickLogger } from "./logger";
 
 export class SidekickAgent {
     private genAI: GoogleGenAI;
     private chatSession: Chat | null = null;
     app: App;
     state: SidekickAgentState;
+    logger: SidekickLogger;
 
     /**
      * Returns the default system prompt for the agent.
@@ -23,11 +25,13 @@ Always respond in markdown format. When answering, focus on the user's request.`
      * @param app - The Obsidian App instance.
      * @param apiKey - The Google Gemini API key.
      * @param state - The initial agent state.
+     * @param logger - The logger instance.
      */
-    constructor(app: App, apiKey: string, state: SidekickAgentState) {
+    constructor(app: App, apiKey: string, state: SidekickAgentState, logger: SidekickLogger) {
         this.app = app;
         this.genAI = new GoogleGenAI({ apiKey });
         this.state = state;
+        this.logger = logger;
     }
 
     /**
@@ -56,6 +60,7 @@ Always respond in markdown format. When answering, focus on the user's request.`
         if (activeFile) {
             const filename = activeFile.basename;
             if (!this.state.notes.has(filename)) {
+                this.logger.info(`Adding current note [[${filename}]]`);
                 const content = await this.app.vault.read(activeFile);
                 const newNote: Note = {
                     filename: filename,
@@ -78,6 +83,7 @@ Always respond in markdown format. When answering, focus on the user's request.`
 	 */
 	private createChatSession() {
 		if (!this.chatSession) {
+			this.logger.info(`Creating new chat session with ${history.length} history entries`);
 			this.chatSession = this.genAI.chats.create({
 				model: "gemini-3-flash-preview",
 				config: {
@@ -109,10 +115,12 @@ Always respond in markdown format. When answering, focus on the user's request.`
 
         const enhancedPrompt = `Context of notes:\n${contextStr}\n\nUser Question: ${userPrompt}`;
 
+        this.logger.info("Sending message to LLM...");
         const response = await this.chatSession!.sendMessage({
             message: enhancedPrompt,
         });
         const text = response.text ?? "";
+		this.logResponse(response);
 
         // Final answer
         this.state = {
@@ -125,5 +133,24 @@ Always respond in markdown format. When answering, focus on the user's request.`
             content: text,
             newState: this.state
         };
+    }
+
+    /**
+     * Logs detailed information about the LLM response.
+     * @param response - The GenerateContentResponse from the model.
+     */
+    private logResponse(response: GenerateContentResponse): void {
+        const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
+        const finishReason = response.candidates?.[0]?.finishReason ?? "unknown";
+        this.logger.info(`Received response from LLM. Tokens: ${tokens}, Finish reason: ${finishReason}`);
+		if (response.promptFeedback) {
+			this.logger.info(`Prompt feedback: ${JSON.stringify(response.promptFeedback)}`);
+		}
+		if (response.functionCalls && response.functionCalls.length > 0) {
+			this.logger.info(`Function calls: ${JSON.stringify(response.functionCalls)}`);
+		}
+		if (response.data) {
+			this.logger.info(`Response data: ${response.data}`);
+		}
     }
 }

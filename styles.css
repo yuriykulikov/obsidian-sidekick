@@ -48,3 +48,38 @@
 .agent-message {
 	background-color: var(--background-primary-alt);
 }
+
+/* Log View Styles */
+.sidekick-log-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+
+.sidekick-log-messages {
+	flex: 1;
+	overflow-y: auto;
+	padding: 10px;
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	white-space: pre-wrap;
+}
+
+.sidekick-log-entry {
+	margin-bottom: 4px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: 2px;
+}
+
+.sidekick-log-time {
+	color: var(--text-muted);
+}
+
+.sidekick-log-info .sidekick-log-level {
+	color: var(--text-accent);
+}
+
+.sidekick-log-error .sidekick-log-level {
+	color: var(--text-error);
+}

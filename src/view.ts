@@ -87,7 +87,7 @@ export class SidekickView extends ItemView {
 			return false;
 		}
 
-		this.agent = new SidekickAgent(this.app, apiKey, this.state);
+		this.agent = new SidekickAgent(this.app, apiKey, this.state, this.plugin.logger);
 		return true;
 	}
 
@@ -111,6 +111,7 @@ export class SidekickView extends ItemView {
 			const response = await this.agent!.next(prompt);
 			this.state = response.newState;
 		} catch (error) {
+			this.plugin.logger.error(`Agent Error: ${error instanceof Error ? error.message : String(error)}`);
 			console.error("Agent Error:", error);
 		} finally {
 			this.isThinking = false;
@@ -157,6 +158,7 @@ export class SidekickView extends ItemView {
 	 * Resets the current chat session, clearing the agent instance and message history.
 	 */
 	resetChat() {
+		this.plugin.logger.info("Resetting chat");
 		this.agent = null;
 		this.state = createInitialState();
 		this.isThinking = false;
