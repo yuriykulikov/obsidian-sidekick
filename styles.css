@@ -2,24 +2,67 @@
 	padding: 5px 10px;
 	display: flex;
 	justify-content: flex-end;
+	align-items: center;
 	position: absolute;
 	top: 0;
 	right: 0;
 	z-index: 10;
+	gap: 4px;
 }
 
-.sidekick-new-task-button {
+.sidekick-header-button {
 	background-color: transparent !important;
 	box-shadow: none !important;
 	border: none !important;
 	color: var(--text-muted) !important;
-	font-size: 0.8em;
-	padding: 4px 8px;
+	padding: 4px;
 	height: auto;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
-.sidekick-new-task-button:hover {
+.sidekick-header-button:hover {
 	color: var(--interactive-accent) !important;
+}
+
+.sidekick-new-task-button {
+	font-size: 0.8em;
+	padding: 4px 8px;
+}
+
+.sidekick-notes-context {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	padding: 5px 10px;
+	align-items: center;
+}
+
+.sidekick-notes-context-label {
+	font-size: 0.75em;
+	color: var(--text-muted);
+	font-weight: bold;
+}
+
+.sidekick-note-tag {
+	font-size: 0.75em;
+	background-color: var(--background-secondary);
+	padding: 2px 6px;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+}
+
+.sidekick-note-remove {
+	margin-left: 4px;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+
+.sidekick-note-remove:hover {
+	color: var(--text-error);
 }
 
 .sidekick-view-container {
@@ -48,10 +91,9 @@
 	resize: none;
 }
 
-.sidekick-send-button {
+.sidekick-send-button, .sidekick-add-note-button {
 	position: absolute;
 	bottom: 15px;
-	right: 15px;
 	padding: 4px;
 	height: 30px;
 	width: 30px;
@@ -66,11 +108,19 @@
 	cursor: pointer;
 }
 
-.sidekick-send-button:hover, .sidekick-stop-button:hover {
+.sidekick-send-button {
+	right: 15px;
+}
+
+.sidekick-add-note-button {
+	right: 50px;
+}
+
+.sidekick-send-button:hover, .sidekick-stop-button:hover, .sidekick-add-note-button:hover {
 	color: var(--interactive-accent);
 }
 
-.sidekick-send-button svg, .sidekick-stop-button svg {
+.sidekick-send-button svg, .sidekick-stop-button svg, .sidekick-add-note-button svg {
 	width: 18px;
 	height: 18px;
 }

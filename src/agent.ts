@@ -1,6 +1,6 @@
 import { App } from "obsidian";
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { SidekickAgentState, AgentResponse, Note } from "./types";
+import { SidekickAgentState, AgentResponse } from "./types";
 import { SidekickLogger } from "./logger";
 
 export class SidekickAgent {
@@ -46,36 +46,7 @@ Always respond in markdown format. When answering, focus on the user's request.`
             history: [...this.state.history, { type: "text", role: "user", content: userPrompt }]
         };
 
-        await this.addCurrentNote();
-
         return await this.agentLoop(userPrompt);
-    }
-
-    /**
-     * Adds the currently active file in Obsidian to the agent's context if not already present.
-     * @returns A promise that resolves when the operation is complete.
-     */
-    private async addCurrentNote(): Promise<void> {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (activeFile) {
-            const filename = activeFile.basename;
-            if (!this.state.notes.has(filename)) {
-                this.logger.info(`Adding current note [[${filename}]]`);
-                const content = await this.app.vault.read(activeFile);
-                const newNote: Note = {
-                    filename: filename,
-                    content: content
-                };
-
-                const newNotes = new Map(this.state.notes);
-                newNotes.set(filename, newNote);
-
-                this.state = {
-                    ...this.state,
-                    notes: newNotes
-                };
-            }
-        }
     }
 
 	/**

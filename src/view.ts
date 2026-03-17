@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, set
 import SidekickPlugin from "./main";
 import { SidekickAgent } from "./agent";
 import { SidekickAgentState, createInitialState } from "./types";
+import { addNote } from "./utils/notes";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -14,6 +15,7 @@ export class SidekickView extends ItemView {
 	state: SidekickAgentState;
 	isThinking: boolean = false;
 	responseContainer: HTMLElement;
+	notesContainer: HTMLElement;
 	inputEl: HTMLTextAreaElement;
 
 	constructor(leaf: WorkspaceLeaf, plugin: SidekickPlugin) {
@@ -45,17 +47,35 @@ export class SidekickView extends ItemView {
 		container.addClass("sidekick-view-container");
 
 		const headerContainer = container.createDiv({ cls: "sidekick-header" });
+
 		const newTaskButton = new ButtonComponent(headerContainer)
 			.setButtonText("New task")
 			.setTooltip("New task")
 			.onClick(() => {
-				this.resetChat();
+				void this.resetChat();
 			});
 		newTaskButton.buttonEl.addClass("sidekick-new-task-button");
+		newTaskButton.buttonEl.addClass("sidekick-header-button");
 
 		this.responseContainer = container.createDiv({ cls: "sidekick-response-container" });
-
+		this.notesContainer = container.createDiv({ cls: "sidekick-notes-context-container" });
 		const inputContainer = container.createDiv({ cls: "sidekick-input-container" });
+
+		const addNoteButton = new ButtonComponent(inputContainer)
+			.setIcon("plus")
+			.setTooltip("Add current note to context")
+			.onClick(async () => {
+				const activeFile = this.app.workspace.getActiveFile();
+				if (activeFile) {
+					this.state = await addNote(this.app, this.state, activeFile.basename);
+					if (this.agent) {
+						this.agent.state = this.state;
+					}
+					this.render();
+				}
+			});
+		addNoteButton.buttonEl.addClass("sidekick-add-note-button");
+
 		this.inputEl = inputContainer.createEl("textarea", {
 			cls: "sidekick-input",
 			attr: { placeholder: "Type a prompt..." }
@@ -77,7 +97,7 @@ export class SidekickView extends ItemView {
 		});
 
 		this.initAgent();
-		this.render();
+		await this.resetChat();
 	}
 
 	/**
@@ -121,13 +141,17 @@ export class SidekickView extends ItemView {
 		}
 	}
 
+
 	/**
 	 * Re-renders the chat history and current status.
 	 * Uses MarkdownRenderer to display messages and indicates if the agent is thinking.
 	 */
 	render() {
-		if (!this.responseContainer) return;
+		if (!this.responseContainer || !this.notesContainer) return;
 		this.responseContainer.empty();
+		this.notesContainer.empty();
+
+		this.renderNotes();
 
 		const history = this.state.history;
 		for (const msg of history) {
@@ -151,6 +175,30 @@ export class SidekickView extends ItemView {
 		}, 0);
 	}
 
+	/**
+	 * Renders the list of added notes that will be used as context.
+	 */
+	private renderNotes() {
+		const notesWrapper = this.notesContainer.createDiv({ cls: "sidekick-notes-context" });
+
+		for (const [filename] of this.state.notes) {
+			const noteTag = notesWrapper.createEl("span", { cls: "sidekick-note-tag", text: filename });
+			const removeBtn = noteTag.createEl("span", { cls: "sidekick-note-remove", text: " ×" });
+			removeBtn.addEventListener("click", () => {
+				const newNotes = new Map(this.state.notes);
+				newNotes.delete(filename);
+				this.state = {
+					...this.state,
+					notes: newNotes
+				};
+				if (this.agent) {
+					this.agent.state = this.state;
+				}
+				this.render();
+			});
+		}
+	}
+
 	async onClose() {
 		// Nothing to clean up.
 	}
@@ -158,7 +206,7 @@ export class SidekickView extends ItemView {
 	/**
 	 * Resets the current chat session, clearing the agent instance and message history.
 	 */
-	resetChat() {
+	async resetChat() {
 		this.plugin.logger.info("Resetting chat");
 		this.agent = null;
 		this.state = createInitialState();
@@ -166,6 +214,12 @@ export class SidekickView extends ItemView {
 		if (this.inputEl) {
 			this.inputEl.value = "";
 		}
+
+		const activeFile = this.app.workspace.getActiveFile();
+		if (activeFile) {
+			this.state = await addNote(this.app, this.state, activeFile.basename);
+		}
+
 		this.render();
 	}
 }
