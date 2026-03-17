@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, setIcon } from "obsidian";
 import SidekickPlugin from "./main";
 import { SidekickAgent } from "./agent";
 import { SidekickAgentState, createInitialState } from "./types";
@@ -45,11 +45,13 @@ export class SidekickView extends ItemView {
 		container.addClass("sidekick-view-container");
 
 		const headerContainer = container.createDiv({ cls: "sidekick-header" });
-		new ButtonComponent(headerContainer)
+		const newTaskButton = new ButtonComponent(headerContainer)
 			.setButtonText("New task")
+			.setTooltip("New task")
 			.onClick(() => {
 				this.resetChat();
 			});
+		newTaskButton.buttonEl.addClass("sidekick-new-task-button");
 
 		this.responseContainer = container.createDiv({ cls: "sidekick-response-container" });
 
@@ -60,9 +62,9 @@ export class SidekickView extends ItemView {
 		});
 
 		const sendButton = inputContainer.createEl("button", {
-			cls: "sidekick-send-button",
-			text: "Send"
+			cls: "sidekick-send-button"
 		});
+		setIcon(sendButton, "paper-plane");
 
 		sendButton.addEventListener("click", () => {
 			void this.sendMessage();
@@ -131,17 +133,16 @@ export class SidekickView extends ItemView {
 		for (const msg of history) {
 			if (msg.role === "user") {
 				const userMsg = this.responseContainer.createDiv({ cls: "sidekick-message user-message" });
-				void MarkdownRenderer.render(this.app, "**You:** " + msg.content, userMsg, "", this);
+				void MarkdownRenderer.render(this.app, msg.content, userMsg, "", this);
 			} else if (msg.role === "model") {
 				const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-				agentMsg.createDiv({ text: "Agent:" });
 				void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
 			}
 		}
 
 		if (this.isThinking) {
 			const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-			agentMsg.createEl("em", { text: "Agent: thinking..." });
+			agentMsg.createEl("em", { text: "Thinking..." });
 		}
 
 		// Scroll to bottom after render
