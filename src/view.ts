@@ -197,6 +197,11 @@ export class SidekickView extends ItemView {
 				void MarkdownRenderer.render(this.app, msg.content, userMsg, "", this);
 			} else if (msg.role === "model") {
 				const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
+				const copyBtn = agentMsg.createDiv({ cls: "sidekick-copy-button" });
+				setIcon(copyBtn, "copy");
+				copyBtn.addEventListener("click", () => {
+					void navigator.clipboard.writeText(msg.content);
+				});
 				void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
 			}
 		}
