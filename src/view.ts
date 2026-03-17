@@ -1,8 +1,9 @@
-import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, setIcon, TFile } from "obsidian";
 import SidekickPlugin from "./main";
 import { SidekickAgent } from "./agent";
 import { SidekickAgentState, createInitialState } from "./types";
 import { addNote } from "./utils/notes";
+import { NoteSuggestionModal } from "./ui/note-suggestion-modal";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -63,22 +64,26 @@ export class SidekickView extends ItemView {
 
 		const addNoteButton = new ButtonComponent(inputContainer)
 			.setIcon("plus")
-			.setTooltip("Add current note to context")
-			.onClick(async () => {
-				const activeFile = this.app.workspace.getActiveFile();
-				if (activeFile) {
-					this.state = await addNote(this.app, this.state, activeFile.basename);
-					if (this.agent) {
-						this.agent.state = this.state;
-					}
-					this.render();
-				}
+			.setTooltip("Add note to context")
+			.onClick(() => {
+				this.openNoteModal();
 			});
 		addNoteButton.buttonEl.addClass("sidekick-add-note-button");
 
 		this.inputEl = inputContainer.createEl("textarea", {
 			cls: "sidekick-input",
-			attr: { placeholder: "Type a prompt..." }
+			attr: { placeholder: "Type a prompt... (use @, #, or [[ to add notes)" }
+		});
+
+		this.inputEl.addEventListener("input", () => {
+			const value = this.inputEl.value;
+			const cursor = this.inputEl.selectionStart;
+			const lastChar = value.charAt(cursor - 1);
+			const lastTwoChars = value.substring(cursor - 2, cursor);
+
+			if (lastChar === "@" || lastChar === "#" || lastTwoChars === "[[") {
+				this.openNoteModal();
+			}
 		});
 
 		const sendButton = inputContainer.createEl("button", {
@@ -98,6 +103,38 @@ export class SidekickView extends ItemView {
 
 		this.initAgent();
 		await this.resetChat();
+	}
+
+	/**
+	 * Opens the note suggestion modal and adds the selected note to context and input.
+	 */
+	private openNoteModal() {
+		new NoteSuggestionModal(this.app, (file: TFile) => {
+			void (async () => {
+				// Add to context
+				this.state = await addNote(this.app, this.state, file.basename);
+				if (this.agent) {
+					this.agent.state = this.state;
+				}
+				this.render();
+
+				// Add to input text
+				const cursor = this.inputEl.selectionStart;
+				const value = this.inputEl.value;
+				const before = value.substring(0, cursor);
+				const after = value.substring(cursor);
+
+				// If triggered by [[, we might want to postfix it with ]]
+				let insertion = file.basename + " ";
+				if (before.endsWith("[[")) {
+					insertion = file.basename + "]] ";
+				}
+				
+				this.inputEl.value = before + insertion + after;
+				this.inputEl.selectionStart = this.inputEl.selectionEnd = cursor + insertion.length;
+				this.inputEl.focus();
+			})();
+		}).open();
 	}
 
 	/**
