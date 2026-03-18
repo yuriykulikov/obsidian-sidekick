@@ -4,7 +4,7 @@ This tool allows the agent to discover context on demand by fetching notes relat
 
 ## Tool definition
 
-### `get_notes`
+### `read_note`
 
 Fetches a note and its surroundings (links and backlinks) with a specified level of detail and depth.
 

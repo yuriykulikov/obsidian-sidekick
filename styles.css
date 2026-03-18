@@ -91,7 +91,7 @@
 	resize: none;
 }
 
-.sidekick-send-button, .sidekick-add-note-button {
+.sidekick-send-button, .sidekick-add-note-button, .sidekick-stop-button {
 	position: absolute;
 	bottom: 15px;
 	padding: 4px;
@@ -108,7 +108,7 @@
 	cursor: pointer;
 }
 
-.sidekick-send-button {
+.sidekick-send-button, .sidekick-stop-button {
 	right: 15px;
 }
 
@@ -123,6 +123,10 @@
 .sidekick-send-button svg, .sidekick-stop-button svg, .sidekick-add-note-button svg {
 	width: 18px;
 	height: 18px;
+}
+
+.sidekick-hidden {
+	display: none !important;
 }
 
 .sidekick-message {
@@ -163,6 +167,21 @@
 .sidekick-copy-button svg {
 	width: 16px;
 	height: 16px;
+}
+
+.tool-message {
+	background-color: var(--background-secondary);
+	border-left: 3px solid var(--text-accent);
+	font-size: 0.85em;
+	padding: 4px 8px;
+	margin-bottom: 4px;
+	color: var(--text-muted);
+}
+
+
+.sidekick-tool-result-summary {
+	font-family: var(--font-monospace);
+	color: var(--text-success);
 }
 
 /* Log View Styles */

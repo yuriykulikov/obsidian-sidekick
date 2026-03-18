@@ -19,11 +19,11 @@ Each tool must be defined with:
 - **Parameters**: JSON schema defining the required and optional inputs.
 - **Returns**: Description of the data the tool provides back to the agent.
 
-### Example: `get_notes`
+### Example: `read_note`
 
-The following definition is used to inform the agent about the `get_notes` tool:
+The following definition is used to inform the agent about the `read_note` tool:
 
-- **Name**: `get_notes`
+- **Name**: `read_note`
 - **Description**: Fetches a note and its surroundings (links and backlinks) with a specified level of detail.
 - **Parameters**:
 	- `noteTitle` (string, required): The title or path of the note.
@@ -47,7 +47,7 @@ The agent invokes the tool by providing a structured JSON response:
 
 ```json
 {
-	"toolName": "get_notes",
+	"toolName": "read_note",
 	"toolInput": {
 		"noteTitle": "Project Sidekick",
 		"detail": "structure"

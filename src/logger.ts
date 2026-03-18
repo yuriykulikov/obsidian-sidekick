@@ -30,6 +30,10 @@ export class SidekickLogger {
 		this.log(LogLevel.INFO, message);
 	}
 
+	warn(message: string) {
+		this.log(LogLevel.INFO, message);
+	}
+
 	error(message: string) {
 		this.log(LogLevel.ERROR, message);
 	}

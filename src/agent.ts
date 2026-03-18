@@ -1,6 +1,6 @@
 import { App } from "obsidian";
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { SidekickAgentState, AgentResponse } from "./types";
+import { GoogleGenAI, Chat, GenerateContentResponse, CreateChatParameters, FunctionCall, FunctionResponse } from "@google/genai";
+import { SidekickAgentState, SidekickTool, ToolResult, TextHistoryEntry, ToolCallHistoryEntry } from "./types";
 import { SidekickLogger } from "./logger";
 
 export class SidekickAgent {
@@ -9,15 +9,32 @@ export class SidekickAgent {
     app: App;
     state: SidekickAgentState;
     logger: SidekickLogger;
+    tools: SidekickTool[];
+    private onStateChange: (state: SidekickAgentState) => void;
+    private stopRequested: boolean = false;
 
     /**
      * Returns the default system prompt for the agent.
      * @returns The system prompt string.
      */
     static getSystemPrompt(): string {
-        return `You are a helpful assistant for Obsidian. 
-Answer the question or ask user a follow-up question based on the provided notes context.
-Always respond in markdown format. When answering, focus on the user's request.`;
+        let prompt = `You are a helpful assistant for Obsidian. 
+Answer the user's question or ask follow-up questions based on the provided context.
+
+**Guidelines for using tools:**
+1. **Explore context first:** Before requesting more notes, carefully analyze the current context provided to you. Use the tools ONLY when you truly need more information to answer the user's request.
+2. **Explain your reasoning:** If you decide to use a tool, briefly state why it is necessary (e.g., "I need to check the 'Project Goals' note to see the specific requirements").
+3. **Be judicious:** Avoid requesting the same note multiple times.
+4. **Tool-based operation:** You must ONLY use the tools provided to you. If a task cannot be completed with the available tools, inform the user about the limitation.
+5. **Format:** Always respond in markdown format. When answering, focus on the user's request.
+
+**Strategy for multi-step tasks:**
+- If the user's prompt is broad, start by fetching the most relevant notes.
+- Use links and backlinks information from the notes to discover other relevant notes.
+- If you have enough information, synthesize a final answer instead of making more tool calls.
+`;
+
+        return prompt;
     }
 
     /**
@@ -26,27 +43,40 @@ Always respond in markdown format. When answering, focus on the user's request.`
      * @param apiKey - The Google Gemini API key.
      * @param state - The initial agent state.
      * @param logger - The logger instance.
+     * @param tools - The list of tools available to the agent.
+     * @param onStateChange - Callback function to notify when the state changes.
      */
-    constructor(app: App, apiKey: string, state: SidekickAgentState, logger: SidekickLogger) {
+    constructor(app: App, apiKey: string, state: SidekickAgentState, logger: SidekickLogger, tools: SidekickTool[] = [], onStateChange: (state: SidekickAgentState) => void) {
         this.app = app;
         this.genAI = new GoogleGenAI({ apiKey });
         this.state = state;
         this.logger = logger;
+        this.tools = tools;
+        this.onStateChange = onStateChange;
+    }
+
+    /**
+     * Updates the internal state and notifies via onStateChange callback.
+     * @param newState - The new state to apply.
+     */
+    private setState(newState: SidekickAgentState): void {
+        this.state = newState;
+        this.onStateChange(this.state);
     }
 
     /**
      * Processes the next user prompt by updating the state and running the agent loop.
      * @param userPrompt - The user's input message.
-     * @returns A promise that resolves to the agent's response.
+     * @returns A promise that resolves when the agent finishes processing.
      */
-    async next(userPrompt: string): Promise<AgentResponse> {
+    async next(userPrompt: string): Promise<void> {
         // Add current user message to state history
-        this.state = {
+        this.setState({
             ...this.state,
             history: [...this.state.history, { type: "text", role: "user", content: userPrompt }]
-        };
+        });
 
-        return await this.agentLoop(userPrompt);
+        await this.agentLoop();
     }
 
 	/**
@@ -54,71 +84,212 @@ Always respond in markdown format. When answering, focus on the user's request.`
 	 */
 	private createChatSession() {
 		if (!this.chatSession) {
-			this.logger.info(`Creating new chat session with ${history.length} history entries`);
-			this.chatSession = this.genAI.chats.create({
+			if (this.state.history.length == 1) {
+				this.logger.info(`Creating new chat session`);
+			} else  {
+				this.logger.info(`Creating new chat session with ${this.state.history.length} history entries`);
+			}
+
+			const systemInstruction = SidekickAgent.getSystemPrompt();
+			this.logger.info(`System Prompt:\n${systemInstruction}`);
+
+			const params: CreateChatParameters = {
 				model: "gemini-3-flash-preview",
 				config: {
-					systemInstruction: SidekickAgent.getSystemPrompt(),
+					systemInstruction: systemInstruction,
+					tools: this.tools.length > 0 ? [{
+						functionDeclarations: this.tools.map(t => t.getDeclaration())
+					}] : undefined
 				},
-				history: this.state.history.filter(m => m.role === "user" || m.role === "model").map(m => ({
-					role: m.role,
-					parts: [{ text: m.content }]
-				}))
-			});
+				history: this.state.history
+					.filter((m): m is TextHistoryEntry => m.type === "text")
+					.map(m => ({
+						role: m.role,
+						parts: [{ text: m.content }]
+					}))
+			};
+			this.chatSession = this.genAI.chats.create(params);
 		}
 	}
 
-    /**
-     * Internal agent loop that manages the chat session and generates a response.
-     * @param userPrompt - The user's input message.
-     * @returns A promise that resolves to the agent's response.
-     */
-    private async agentLoop(userPrompt: string): Promise<AgentResponse> {
+    private async agentLoop(): Promise<void> {
         this.createChatSession();
+        this.stopRequested = false;
+        let iterations = 0;
+        const maxIterations = 15;
+
+        while (true) {
+            iterations++;
+
+			let iterationResponse = await this.promtLLM();
+
+            const functionCalls = iterationResponse.functionCalls;
+
+            if (this.stopRequested || iterations >= maxIterations || !functionCalls || functionCalls.length === 0) {
+                await this.finalizeLoop(iterationResponse.text ?? "", iterations, maxIterations);
+                return;
+            }
+
+            iterationResponse = await this.handleFunctionCalls(iterationResponse);
+        }
+    }
+
+	private async finalizeLoop(finalContent: string, iterations: number, maxIterations: number): Promise<void> {
+		let postfix = "";
+		if (this.stopRequested) {
+			this.logger.warn("Agent loop stopped by user.");
+			postfix = "\n\nAgent loop stopped by user."
+		} else if (iterations >= maxIterations) {
+			this.logger.warn(`Max iterations (${maxIterations}) reached. Breaking loop.`);
+			postfix = "\n\nMax iterations (${maxIterations}) reached. Breaking loop."
+		}
+
+		this.setState({
+			...this.state,
+			history: [...this.state.history, {type: "text", role: "model", content: finalContent + postfix}]
+		});
+	}
+
+	/**
+     * Sends a message to the LLM with the current note context and history.
+     * @returns A promise that resolves to the LLM response.
+     */
+    private async promtLLM(): Promise<GenerateContentResponse> {
+        // Find the last user prompt in history
+        const userEntries = this.state.history.filter((h): h is TextHistoryEntry => h.type === "text" && h.role === "user");
+        const lastUserEntry = userEntries[userEntries.length - 1];
+        const prompt = lastUserEntry ? lastUserEntry.content : "";
 
         // Prepare context for the prompt from notes
-        let contextStr = "";
-        for (const [noteName, note] of this.state.notes) {
-            contextStr += `--- START NOTE: ${noteName} ---\n`;
-            if (note.content) contextStr += `Content:\n${note.content}\n\n`;
-            contextStr += `--- END NOTE: ${noteName} ---\n\n`;
+        const contextStr = this.state.notes.size > 0
+            ? `Context of notes:\n${JSON.stringify(Array.from(this.state.notes.values()), null, 2)}\n\n`
+            : "";
+
+        // Prepare history for the prompt to make it clear we are in a loop
+        const loopHistory = this.state.history.filter((h): h is ToolCallHistoryEntry => h.type === "function_call");
+        const historyStr = loopHistory.length > 0
+            ? `Current tool execution history in this loop:\n${JSON.stringify(loopHistory.map(h => ({
+                call: h.call,
+                result: "output" in h.result ? h.result.output : h.result.error
+            })), null, 2)}\n\n`
+            : "";
+
+        const message = `${contextStr}${historyStr}User Question: ${prompt}`;
+        this.logger.info(`Sending message: ${message}`);
+
+        const response = await this.chatSession!.sendMessage({
+            message: message,
+        });
+
+        this.logResponse(response, "to prompt the LLM");
+        return response;
+    }
+
+    /**
+     * Handles function calls from the model by executing tools and returning results.
+     * @param iterationResponse - The model response containing function calls and potentially text.
+     * @returns A promise that resolves to the tool results.
+     */
+    private async handleFunctionCalls(iterationResponse: GenerateContentResponse): Promise<GenerateContentResponse> {
+		const functionCalls = iterationResponse.functionCalls;
+		if (!functionCalls || functionCalls.length === 0) {
+			return iterationResponse;
+		}
+        if (iterationResponse.text) {
+            this.logger.info(`LLM Response: ${iterationResponse.text}`);
+            this.setState({
+                ...this.state,
+                history: [...this.state.history, { type: "text", role: "model", content: iterationResponse.text }]
+            });
         }
 
-        const enhancedPrompt = `Context of notes:\n${contextStr}\n\nUser Question: ${userPrompt}`;
+        const results: FunctionResponse[] = [];
+        for (const call of functionCalls) {
+            const tool = this.tools.find(t => t.getDeclaration().name === call.name);
+            let result: ToolResult;
+            if (tool) {
+                const [newState, res] = await tool.execute(this.state, (call.args as Record<string, unknown>) ?? {});
+                this.setState(newState);
+                result = res;
+                const resultText = result.verbose_result ?? ("output" in res ? res.output : res.error);
+                this.logger.info(`${call.name}(${JSON.stringify(call.args)}) => ${resultText}`);
+            } else {
+                this.logger.warn(`Tool ${call.name} not found.`);
+                result = { error: `Tool ${call.name} not found.` };
+            }
 
-        this.logger.info("Sending message to LLM...");
+            results.push({
+                name: call.name,
+                id: call.id,
+                response: result
+            });
+
+            // Add this function call and its result to history immediately
+            this.setState({
+                ...this.state,
+                history: [
+                    ...this.state.history,
+                    {
+                        type: "function_call",
+                        role: "model",
+                        call: {
+                            name: call.name!,
+                            args: call.args as Record<string, unknown>
+                        },
+                        result: result
+                    }
+                ]
+            });
+        }
+		
         const response = await this.chatSession!.sendMessage({
-            message: enhancedPrompt,
+            message: [
+                ...results.map(r => {
+                    const responseBody: Record<string, unknown> = { ...r.response as Record<string, unknown> };
+                    // verbose_result is for logging and LLM context, but not for the history rendering (handled in view.ts)
+                    // The LLM should see the verbose result if provided.
+                    // If verbose_result is present, we might want to prioritize it for the LLM.
+                    return {
+                        functionResponse: {
+                            name: r.name,
+                            id: r.id,
+                            response: responseBody
+                        } as FunctionResponse
+                    };
+                }),
+            ]
         });
-        const text = response.text ?? "";
-		this.logResponse(response);
 
-        // Final answer
-        this.state = {
-            ...this.state,
-            history: [...this.state.history, { type: "text", role: "model", content: text }]
-        };
+        this.logResponse(response, "to send function responses");
+        if (response.text) {
+            this.logger.info(`Final model response after function calls: ${response.text}`);
+        }
 
-        return {
-            type: "final",
-            content: text,
-            newState: this.state
-        };
+        return response;
+    }
+
+    /**
+     * Signals the agent to stop its current loop.
+     */
+    stop() {
+        this.stopRequested = true;
     }
 
     /**
      * Logs detailed information about the LLM response.
      * @param response - The GenerateContentResponse from the model.
+     * @param forWhat - Optional description of what the response was for.
      */
-    private logResponse(response: GenerateContentResponse): void {
+    private logResponse(response: GenerateContentResponse, forWhat?: string): void {
         const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
-        const finishReason = response.candidates?.[0]?.finishReason ?? "unknown";
-        this.logger.info(`Received response from LLM. Tokens: ${tokens}, Finish reason: ${finishReason}`);
+        const logMsg = forWhat ? `Sent ${forWhat}, used ${tokens} tokens` : `Used ${tokens} LLM tokens`;
+        this.logger.info(logMsg);
 		if (response.promptFeedback) {
 			this.logger.info(`Prompt feedback: ${JSON.stringify(response.promptFeedback)}`);
 		}
 		if (response.functionCalls && response.functionCalls.length > 0) {
-			this.logger.info(`Function calls: ${JSON.stringify(response.functionCalls)}`);
+            const formattedCalls = response.functionCalls.map(call => `${call.name}(${JSON.stringify(call.args)})`).join(", ");
+			this.logger.info(`LLM requested: [${formattedCalls}]`);
 		}
 		if (response.data) {
 			this.logger.info(`Response data: ${response.data}`);

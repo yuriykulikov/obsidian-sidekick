@@ -4,6 +4,7 @@ import { SidekickAgent } from "./agent";
 import { SidekickAgentState, createInitialState } from "./types";
 import { addNote } from "./utils/notes";
 import { NoteSuggestionModal } from "./ui/note-suggestion-modal";
+import { GetNotesTool } from "./tools/get-notes";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -18,6 +19,8 @@ export class SidekickView extends ItemView {
 	responseContainer: HTMLElement;
 	notesContainer: HTMLElement;
 	inputEl: HTMLTextAreaElement;
+	sendButton: HTMLButtonElement;
+	stopButton: HTMLButtonElement;
 
 	constructor(leaf: WorkspaceLeaf, plugin: SidekickPlugin) {
 		super(leaf);
@@ -86,13 +89,24 @@ export class SidekickView extends ItemView {
 			}
 		});
 
-		const sendButton = inputContainer.createEl("button", {
+		this.sendButton = inputContainer.createEl("button", {
 			cls: "sidekick-send-button"
 		});
-		setIcon(sendButton, "paper-plane");
+		setIcon(this.sendButton, "paper-plane");
 
-		sendButton.addEventListener("click", () => {
+		this.stopButton = inputContainer.createEl("button", {
+			cls: "sidekick-stop-button sidekick-hidden"
+		});
+		setIcon(this.stopButton, "circle-stop");
+
+		this.sendButton.addEventListener("click", () => {
 			void this.sendMessage();
+		});
+
+		this.stopButton.addEventListener("click", () => {
+			if (this.agent) {
+				this.agent.stop();
+			}
 		});
 		this.inputEl.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" && !e.shiftKey) {
@@ -129,7 +143,7 @@ export class SidekickView extends ItemView {
 				if (before.endsWith("[[")) {
 					insertion = file.basename + "]] ";
 				}
-				
+
 				this.inputEl.value = before + insertion + after;
 				this.inputEl.selectionStart = this.inputEl.selectionEnd = cursor + insertion.length;
 				this.inputEl.focus();
@@ -146,7 +160,17 @@ export class SidekickView extends ItemView {
 			return false;
 		}
 
-		this.agent = new SidekickAgent(this.app, apiKey, this.state, this.plugin.logger);
+		this.agent = new SidekickAgent(
+			this.app,
+			apiKey,
+			this.state,
+			this.plugin.logger,
+			[new GetNotesTool(this.app, this.plugin.logger)],
+			(state) => {
+				this.state = state;
+				this.render();
+			}
+		);
 		return true;
 	}
 
@@ -167,8 +191,7 @@ export class SidekickView extends ItemView {
 		this.render();
 
 		try {
-			const response = await this.agent!.next(prompt);
-			this.state = response.newState;
+			await this.agent!.next(prompt);
 		} catch (error) {
 			this.plugin.logger.error(`Agent Error: ${error instanceof Error ? error.message : String(error)}`);
 			console.error("Agent Error:", error);
@@ -190,19 +213,34 @@ export class SidekickView extends ItemView {
 
 		this.renderNotes();
 
+		if (this.sendButton && this.stopButton) {
+			if (this.isThinking) {
+				this.sendButton.addClass("sidekick-hidden");
+				this.stopButton.removeClass("sidekick-hidden");
+			} else {
+				this.sendButton.removeClass("sidekick-hidden");
+				this.stopButton.addClass("sidekick-hidden");
+			}
+		}
+
 		const history = this.state.history;
 		for (const msg of history) {
-			if (msg.role === "user") {
-				const userMsg = this.responseContainer.createDiv({ cls: "sidekick-message user-message" });
-				void MarkdownRenderer.render(this.app, msg.content, userMsg, "", this);
-			} else if (msg.role === "model") {
-				const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-				const copyBtn = agentMsg.createDiv({ cls: "sidekick-copy-button" });
+			if (msg.type === "text") {
+				if (msg.role === "user") {
+					const userMsg = this.responseContainer.createDiv({ cls: "sidekick-message user-message" });
+					void MarkdownRenderer.render(this.app,  msg.content, userMsg, "", this);
+				} else {
+					const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
+					const copyBtn = agentMsg.createDiv({ cls: "sidekick-copy-button" });
 				setIcon(copyBtn, "copy");
 				copyBtn.addEventListener("click", () => {
-					void navigator.clipboard.writeText(msg.content);
-				});
-				void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
+					void navigator.clipboard.writeText(msg.content); });
+					void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
+				}
+			} else if (msg.type === "function_call") {
+				const toolMsg = this.responseContainer.createDiv({ cls: "sidekick-message tool-message" });
+				const resultText = "output" in msg.result ? msg.result.output : msg.result.error;
+				toolMsg.createSpan({ text: resultText, cls: "sidekick-tool-result-summary" });
 			}
 		}
 
@@ -249,7 +287,9 @@ export class SidekickView extends ItemView {
 	 * Resets the current chat session, clearing the agent instance and message history.
 	 */
 	async resetChat() {
-		this.plugin.logger.info("Resetting chat");
+		if (this.agent) {
+			this.agent.stop();
+		}
 		this.agent = null;
 		this.state = createInitialState();
 		this.isThinking = false;
