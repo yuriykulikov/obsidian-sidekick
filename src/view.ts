@@ -5,6 +5,7 @@ import { SidekickAgentState, createInitialState } from "./types";
 import { addNote, setActiveNote } from "./utils/notes";
 import { NoteSuggestionModal } from "./ui/note-suggestion-modal";
 import { GetNotesTool } from "./tools/get-notes";
+import { SearchNotesTool } from "./tools/search-notes";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -178,7 +179,10 @@ export class SidekickView extends ItemView {
 			apiKey,
 			this.state,
 			this.plugin.logger,
-			[new GetNotesTool(this.app, this.plugin.logger)],
+			[
+				new GetNotesTool(this.app, this.plugin.logger),
+				new SearchNotesTool(this.app, this.plugin.logger)
+			],
 			(state) => {
 				this.state = state;
 				this.render();

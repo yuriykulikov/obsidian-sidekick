@@ -7,19 +7,21 @@ Tool entry provides clear definitions and descriptions for the LLM to understand
 Examples include:
 
 - [tool-context-discovery.md](tool-context-discovery.md) to find the context of a note.
+- Search by name
 - Search by text
 - Search by tags
 
-## Tool definition
+## Tool definitions
 
-Each tool must be defined with:
+### `search_notes`
 
-- **Name**: Unique identifier for the LLM to call.
-- **Description**: Clear explanation of what the tool does and when to use it.
-- **Parameters**: JSON schema defining the required and optional inputs.
-- **Returns**: Description of the data the tool provides back to the agent.
+- **Name**: `search_notes`
+- **Description**: Searches for notes by name/title. Returns a list of matching note titles.
+- **Parameters**:
+	- `query` (string, required): The search query (part of the note title).
+- **Returns**: A list of matching note titles as internal links (e.g., `[[Note Title]]`).
 
-### Example: `read_note`
+### `read_note`
 
 The following definition is used to inform the agent about the `read_note` tool:
 
