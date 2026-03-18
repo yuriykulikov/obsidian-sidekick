@@ -10,13 +10,18 @@ export class GetNotesTool implements SidekickTool {
     getDeclaration(): FunctionDeclaration {
         return {
             name: "read_note",
-            description: "Fetches a note's content, links, and backlinks. The agent can only request links and backlinks of notes already known to it.",
+            description: "Fetches a note's structure, links, and backlinks. Content is also available upon request. Prioritize 'structure-only' to save tokens and quickly understand organization. Only use 'full' if the structure confirms high relevance.",
             parameters: {
                 type: Type.OBJECT,
                 properties: {
                     noteTitle: {
                         type: Type.STRING,
                         description: "The title or path of the note to fetch. Must be a note mentioned in the context (e.g., in links or backlinks of already read notes)."
+                    },
+                    detailLevel: {
+                        type: Type.STRING,
+                        description: "The level of detail to fetch. 'structure-only' fetches only the structure (headings, links) without content. 'full' fetches everything.",
+                        enum: ["structure-only", "full"]
                     }
                 },
                 required: ["noteTitle"]
@@ -26,6 +31,7 @@ export class GetNotesTool implements SidekickTool {
 
     async execute(state: SidekickAgentState, params: Record<string, unknown>): Promise<[SidekickAgentState, ToolResult]> {
         const noteTitle = params.noteTitle as string;
+        const detailLevel = (params.detailLevel as "structure-only" | "full") || "full";
         const file = this.app.metadataCache.getFirstLinkpathDest(noteTitle, "");
         if (!file) {
             this.logger.warn(`Note [[${noteTitle}]] not found.`);
@@ -33,12 +39,7 @@ export class GetNotesTool implements SidekickTool {
         }
 
         const filename = file.basename;
-        if (state.notes.has(filename)) {
-            this.logger.info(`Note [[${filename}]] already in context.`);
-            return [state, { output: `Note [[${filename}]] already in context.` }];
-        }
-
-        const newNote = await readNote(this.app, file);
+        const newNote = await readNote(this.app, file, detailLevel);
 
         const newNotes = new Map(state.notes);
         newNotes.set(filename, newNote);
@@ -49,8 +50,8 @@ export class GetNotesTool implements SidekickTool {
         };
 
         return [newState, { 
-            output: `Read contents of [[${filename}]]`, 
-            verbose_result: `Successfully read contents of note [[${filename}]] and added it to the context for the next agent loop iteration.`
+            output: `Read ${detailLevel} contents of [[${filename}]]`, 
+            verbose_result: `Successfully read ${detailLevel} contents of note [[${filename}]] and added it to the context for the next agent loop iteration.`
         }];
     }
 }

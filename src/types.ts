@@ -49,7 +49,8 @@ export interface ToolCallHistoryEntry {
 
 export interface Note {
     filename: string;
-    content: string;
+	structure?: string | null;
+    content: string | null;
     links: string[];
     backlinks: string[];
     active?: boolean;

@@ -4,7 +4,7 @@ import { SidekickAgentState, Note } from "../types";
 /**
  * Reads a note's content, links, and backlinks.
  */
-export async function readNote(app: App, file: TFile): Promise<Note> {
+export async function readNote(app: App, file: TFile, detailLevel: "structure-only" | "full" = "full"): Promise<Note> {
 	const filename = file.basename;
 	const content = await app.vault.read(file);
 
@@ -28,12 +28,32 @@ export async function readNote(app: App, file: TFile): Promise<Note> {
 		}
 	}
 
+	const structure = content.split('\n').map(line => {
+		const trimmed = line.trim();
+		if (trimmed.startsWith("# ") || trimmed.startsWith("## ") || trimmed.startsWith("### ")) {
+			return trimmed;
+		}
+		if (trimmed.includes("[[")) {
+			const linkRegex = /\[\[(.*?)(?:\|.*?)?]]/g;
+			const linksFound = [];
+			let match;
+			while ((match = linkRegex.exec(trimmed)) !== null) {
+				linksFound.push(match[1]);
+			}
+			if (linksFound.length > 0) {
+				return `Links: ${linksFound.join(", ")}`;
+			}
+		}
+		return null;
+	}).filter((line): line is string => line !== null);
+
 	return {
 		filename: filename,
-		content: content,
+		content: detailLevel === "full" ? content : null,
 		links: [...new Set(links)],
 		backlinks: [...new Set(backlinks)],
-		active: false
+		active: false,
+		structure: structure.join('\n'),
 	};
 }
 
