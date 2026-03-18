@@ -2,7 +2,7 @@ import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, set
 import SidekickPlugin from "./main";
 import { SidekickAgent } from "./agent";
 import { SidekickAgentState, createInitialState } from "./types";
-import { addNote } from "./utils/notes";
+import { addNote, setActiveNote } from "./utils/notes";
 import { NoteSuggestionModal } from "./ui/note-suggestion-modal";
 import { GetNotesTool } from "./tools/get-notes";
 
@@ -116,6 +116,19 @@ export class SidekickView extends ItemView {
 		});
 
 		this.initAgent();
+
+		this.registerEvent(this.app.workspace.on("file-open", async (file) => {
+			if (file instanceof TFile) {
+				const newState = await setActiveNote(this.app, this.state, file.basename);
+				if (this.agent) {
+					this.agent.setState(newState);
+				} else {
+					this.state = newState;
+					this.render();
+				}
+			}
+		}));
+
 		await this.resetChat();
 	}
 
@@ -261,8 +274,11 @@ export class SidekickView extends ItemView {
 	private renderNotes() {
 		const notesWrapper = this.notesContainer.createDiv({ cls: "sidekick-notes-context" });
 
-		for (const [filename] of this.state.notes) {
+		for (const [filename, note] of this.state.notes) {
 			const noteTag = notesWrapper.createEl("span", { cls: "sidekick-note-tag", text: filename });
+			if (note.active) {
+				noteTag.addClass("sidekick-note-active");
+			}
 			const removeBtn = noteTag.createEl("span", { cls: "sidekick-note-remove", text: " ×" });
 			removeBtn.addEventListener("click", () => {
 				const newNotes = new Map(this.state.notes);
@@ -299,7 +315,7 @@ export class SidekickView extends ItemView {
 
 		const activeFile = this.app.workspace.getActiveFile();
 		if (activeFile) {
-			this.state = await addNote(this.app, this.state, activeFile.basename);
+			this.state = await setActiveNote(this.app, this.state, activeFile.basename);
 		}
 
 		this.render();

@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { GoogleGenAI, Chat, GenerateContentResponse, CreateChatParameters, FunctionCall, FunctionResponse } from "@google/genai";
+import { GoogleGenAI, Chat, GenerateContentResponse, CreateChatParameters, FunctionResponse } from "@google/genai";
 import { SidekickAgentState, SidekickTool, ToolResult, TextHistoryEntry, ToolCallHistoryEntry } from "./types";
 import { SidekickLogger } from "./logger";
 
@@ -59,7 +59,7 @@ Answer the user's question or ask follow-up questions based on the provided cont
      * Updates the internal state and notifies via onStateChange callback.
      * @param newState - The new state to apply.
      */
-    private setState(newState: SidekickAgentState): void {
+    public setState(newState: SidekickAgentState): void {
         this.state = newState;
         this.onStateChange(this.state);
     }

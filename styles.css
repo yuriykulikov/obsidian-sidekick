@@ -53,6 +53,11 @@
 	border-radius: 4px;
 	display: flex;
 	align-items: center;
+	border: 1px solid transparent;
+}
+
+.sidekick-note-active {
+	font-weight: bold;
 }
 
 .sidekick-note-remove {

@@ -52,6 +52,7 @@ export interface Note {
     content: string;
     links: string[];
     backlinks: string[];
+    active?: boolean;
 }
 
 
