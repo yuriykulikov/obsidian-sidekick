@@ -10,13 +10,13 @@ export class GetNotesTool implements SidekickTool {
     getDeclaration(): FunctionDeclaration {
         return {
             name: "read_note",
-            description: "Fetches a note's content, links, and backlinks.",
+            description: "Fetches a note's content, links, and backlinks. The agent can only request links and backlinks of notes already known to it.",
             parameters: {
                 type: Type.OBJECT,
                 properties: {
                     noteTitle: {
                         type: Type.STRING,
-                        description: "The title or path of the note to fetch."
+                        description: "The title or path of the note to fetch. Must be a note mentioned in the context (e.g., in links or backlinks of already read notes)."
                     }
                 },
                 required: ["noteTitle"]
