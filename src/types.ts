@@ -1,32 +1,23 @@
 import { FunctionDeclaration } from "@google/genai";
 
-export interface SidekickAgentState {
+export interface AgentState {
     readonly history: readonly HistoryEntry[];
     readonly notes: ReadonlyMap<string, Note>;
 }
 
-export type ToolResult = { output: string; verbose_result?: string } | { error: string; verbose_result?: string };
+export interface Tool {
+	/**
+	 * Returns the Gemini API function declaration for this tool.
+	 */
+	getDeclaration(): FunctionDeclaration;
 
-export interface SidekickTool {
-    /**
-     * Returns the Gemini API function declaration for this tool.
-     */
-    getDeclaration(): FunctionDeclaration;
-
-    /**
-     * Executes the tool and returns the updated agent state and the tool execution result.
-     * @param state The current agent state.
-     * @param params The parameters provided by the LLM.
-     * @returns A promise that resolves to a tuple [newState, result].
-     */
-    execute(state: SidekickAgentState, params: Record<string, unknown>): Promise<[SidekickAgentState, ToolResult]>;
-}
-
-export function createInitialState(): SidekickAgentState {
-    return {
-        history: [],
-        notes: new Map(),
-    };
+	/**
+	 * Executes the tool and returns the updated agent state and the tool execution result.
+	 * @param state The current agent state.
+	 * @param params The parameters provided by the LLM.
+	 * @returns A promise that resolves to a tuple [newState, result].
+	 */
+	execute(state: AgentState, params: Record<string, unknown>): Promise<[AgentState, ToolResult]>;
 }
 
 export type HistoryEntry = TextHistoryEntry | ToolCallHistoryEntry;
@@ -47,6 +38,8 @@ export interface ToolCallHistoryEntry {
     result: ToolResult;
 }
 
+export type ToolResult = { output: string; verbose_result?: string } | { error: string; verbose_result?: string };
+
 export interface Note {
     filename: string;
 	structure?: string | null;
@@ -54,6 +47,13 @@ export interface Note {
     links: string[];
     backlinks: string[];
     active?: boolean;
+}
+
+export function createInitialState(): AgentState {
+    return {
+        history: [],
+        notes: new Map()
+    };
 }
 
 

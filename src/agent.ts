@@ -1,16 +1,16 @@
 import { App } from "obsidian";
 import { GoogleGenAI, Chat, GenerateContentResponse, CreateChatParameters, FunctionResponse } from "@google/genai";
-import { SidekickAgentState, SidekickTool, ToolResult, TextHistoryEntry, ToolCallHistoryEntry } from "./types";
-import { SidekickLogger } from "./logger";
+import { AgentState, ToolResult, TextHistoryEntry, ToolCallHistoryEntry, Tool } from "./types";
+import { Logger } from "./utils/logger";
 
 export class SidekickAgent {
     private genAI: GoogleGenAI;
     private chatSession: Chat | null = null;
     app: App;
-    state: SidekickAgentState;
-    logger: SidekickLogger;
-    tools: SidekickTool[];
-    private onStateChange: (state: SidekickAgentState) => void;
+    state: AgentState;
+    logger: Logger;
+    tools: Tool[];
+    private onStateChange: (state: AgentState) => void;
     private stopRequested: boolean = false;
 
     /**
@@ -46,7 +46,7 @@ Answer the user's question or ask follow-up questions based on the provided cont
      * @param tools - The list of tools available to the agent.
      * @param onStateChange - Callback function to notify when the state changes.
      */
-    constructor(app: App, apiKey: string, state: SidekickAgentState, logger: SidekickLogger, tools: SidekickTool[] = [], onStateChange: (state: SidekickAgentState) => void) {
+    constructor(app: App, apiKey: string, state: AgentState, logger: Logger, tools: Tool[] = [], onStateChange: (state: AgentState) => void) {
         this.app = app;
         this.genAI = new GoogleGenAI({ apiKey });
         this.state = state;
@@ -59,7 +59,7 @@ Answer the user's question or ask follow-up questions based on the provided cont
      * Updates the internal state and notifies via onStateChange callback.
      * @param newState - The new state to apply.
      */
-    public setState(newState: SidekickAgentState): void {
+    public setState(newState: AgentState): void {
         this.state = newState;
         this.onStateChange(this.state);
     }
@@ -246,7 +246,7 @@ Answer the user's question or ask follow-up questions based on the provided cont
             message: [
                 ...results.map(r => {
                     const responseBody: Record<string, unknown> = { ...r.response as Record<string, unknown> };
-                    // verbose_result is for logging and LLM context, but not for the history rendering (handled in view.ts)
+                    // verbose_result is for logging and LLM context, but not for the history rendering (handled in chat-view.ts)
                     // The LLM should see the verbose result if provided.
                     // If verbose_result is present, we might want to prioritize it for the LLM.
                     return {

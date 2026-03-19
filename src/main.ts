@@ -1,24 +1,24 @@
-import {Plugin, WorkspaceLeaf} from 'obsidian';
-import {DEFAULT_SETTINGS, SidekickPluginSettings, SidekickSettingTab} from "./settings";
-import {SidekickView, VIEW_TYPE_SIDEKICK} from "./view";
-import {SidekickLogger} from "./logger";
-import {SidekickLogView, VIEW_TYPE_SIDEKICK_LOG} from "./log-view";
+import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { DEFAULT_SETTINGS, SidekickPluginSettings, SidekickSettingTab } from "./settings";
+import { ChatView, VIEW_TYPE_SIDEKICK } from "./ui/chat-view";
+import { Logger } from "./utils/logger";
+import { SidekickLogView, VIEW_TYPE_SIDEKICK_LOG } from "./ui/log-view";
 
 export default class SidekickPlugin extends Plugin {
 	settings: SidekickPluginSettings;
-	logger: SidekickLogger;
+	logger: Logger;
 
 	/**
 	 * Called when the plugin is loaded by Obsidian.
 	 * Registers the sidekick view, adds the ribbon icon, and initializes settings.
 	 */
 	async onload() {
-		this.logger = new SidekickLogger();
+		this.logger = new Logger();
 		await this.loadSettings();
 
 		this.registerView(
 			VIEW_TYPE_SIDEKICK,
-			(leaf) => new SidekickView(leaf, this)
+			(leaf) => new ChatView(leaf, this)
 		);
 
 		this.registerView(

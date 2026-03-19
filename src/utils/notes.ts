@@ -1,5 +1,5 @@
 import { App, Notice, TFile } from "obsidian";
-import { SidekickAgentState, Note } from "../types";
+import { AgentState, Note } from "../types";
 
 /**
  * Reads a note's content, links, and backlinks.
@@ -63,7 +63,7 @@ export async function readNote(app: App, file: TFile, detailLevel: "structure-on
  * 2. If prompts in history, just deactivate the old active note(s)
  * 3. Add/set the new note to active
  */
-export async function setActiveNote(app: App, state: SidekickAgentState, basename: string): Promise<SidekickAgentState> {
+export async function setActiveNote(app: App, state: AgentState, basename: string): Promise<AgentState> {
 	const hasPrompts = state.history.some(entry => entry.role === "user");
 	const notesCopy = new Map<string, Note>(state.notes);
 
@@ -97,7 +97,7 @@ export async function setActiveNote(app: App, state: SidekickAgentState, basenam
 /**
  * Adds a note to the agent's context by its basename.
  */
-export async function addNote(app: App, state: SidekickAgentState, basename: string): Promise<SidekickAgentState> {
+export async function addNote(app: App, state: AgentState, basename: string): Promise<AgentState> {
 	if (state.notes.has(basename)) {
 		return state;
 	}

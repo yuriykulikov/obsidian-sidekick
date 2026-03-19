@@ -1,13 +1,13 @@
 import { ItemView, WorkspaceLeaf, Menu } from "obsidian";
-import { LogEntry, SidekickLogger } from "./logger";
+import { LogEntry, Logger } from "../utils/logger";
 
 export const VIEW_TYPE_SIDEKICK_LOG = "sidekick-log-view";
 
 export class SidekickLogView extends ItemView {
-	private logger: SidekickLogger;
+	private logger: Logger;
 	private logContainer: HTMLElement;
 
-	constructor(leaf: WorkspaceLeaf, logger: SidekickLogger) {
+	constructor(leaf: WorkspaceLeaf, logger: Logger) {
 		super(leaf);
 		this.logger = logger;
 	}

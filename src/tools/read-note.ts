@@ -1,11 +1,11 @@
 import { App } from "obsidian";
 import { FunctionDeclaration, Type } from "@google/genai";
-import { SidekickAgentState, SidekickTool, ToolResult } from "../types";
-import { SidekickLogger } from "../logger";
+import { AgentState, ToolResult, Tool } from "../types";
+import { Logger } from "../utils/logger";
 import { readNote } from "../utils/notes";
 
-export class GetNotesTool implements SidekickTool {
-    constructor(private app: App, private logger: SidekickLogger) {}
+export class ReadNoteTool implements Tool {
+    constructor(private app: App, private logger: Logger) {}
 
     getDeclaration(): FunctionDeclaration {
         return {
@@ -29,7 +29,7 @@ export class GetNotesTool implements SidekickTool {
         };
     }
 
-    async execute(state: SidekickAgentState, params: Record<string, unknown>): Promise<[SidekickAgentState, ToolResult]> {
+    async execute(state: AgentState, params: Record<string, unknown>): Promise<[AgentState, ToolResult]> {
         const noteTitle = params.noteTitle as string;
         const detailLevel = (params.detailLevel as "structure-only" | "full") || "full";
         const file = this.app.metadataCache.getFirstLinkpathDest(noteTitle, "");

@@ -11,7 +11,7 @@ export interface LogEntry {
 
 export type LogListener = (entry: LogEntry) => void;
 
-export class SidekickLogger {
+export class Logger {
 	private logs: LogEntry[] = [];
 	private listeners: LogListener[] = [];
 

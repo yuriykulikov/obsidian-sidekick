@@ -55,7 +55,7 @@ npm run build
       command2.ts
     ui/              # UI components, modals, views
       modal.ts
-      view.ts
+      chat-view.ts
     utils/           # Utility functions, helpers
       helpers.ts
       constants.ts

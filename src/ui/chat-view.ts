@@ -1,21 +1,21 @@
 import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, setIcon, TFile } from "obsidian";
-import SidekickPlugin from "./main";
-import { SidekickAgent } from "./agent";
-import { SidekickAgentState, createInitialState } from "./types";
-import { addNote, setActiveNote } from "./utils/notes";
-import { NoteSuggestionModal } from "./ui/note-suggestion-modal";
-import { GetNotesTool } from "./tools/get-notes";
-import { SearchNotesTool } from "./tools/search-notes";
+import SidekickPlugin from "../main";
+import { SidekickAgent } from "../agent";
+import { AgentState, createInitialState } from "../types";
+import { addNote, setActiveNote } from "../utils/notes";
+import { NoteSuggestionModal } from "./note-suggestion-modal";
+import { ReadNoteTool } from "../tools/read-note";
+import { SearchNotesTool } from "../tools/search-notes";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
 /**
  * The SidekickView class provides a custom sidebar view for interacting with the AI agent.
  */
-export class SidekickView extends ItemView {
+export class ChatView extends ItemView {
 	plugin: SidekickPlugin;
 	agent: SidekickAgent | null = null;
-	state: SidekickAgentState;
+	state: AgentState;
 	isThinking: boolean = false;
 	responseContainer: HTMLElement;
 	notesContainer: HTMLElement;
@@ -180,7 +180,7 @@ export class SidekickView extends ItemView {
 			this.state,
 			this.plugin.logger,
 			[
-				new GetNotesTool(this.app, this.plugin.logger),
+				new ReadNoteTool(this.app, this.plugin.logger),
 				new SearchNotesTool(this.app, this.plugin.logger)
 			],
 			(state) => {
