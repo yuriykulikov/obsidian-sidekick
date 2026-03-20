@@ -4,7 +4,7 @@ import { AgentState, Note } from "../types";
 /**
  * Reads a note's content, links, and backlinks.
  */
-export async function readNote(app: App, file: TFile, detailLevel: "structure-only" | "full" = "full"): Promise<Note> {
+export async function readNote(app: App, file: TFile, detail: "structure" | "text" = "text"): Promise<Note> {
 	const filename = file.basename;
 	const content = await app.vault.read(file);
 
@@ -49,11 +49,11 @@ export async function readNote(app: App, file: TFile, detailLevel: "structure-on
 
 	return {
 		filename: filename,
-		content: detailLevel === "full" ? content : null,
+		content: detail === "text" ? content : null,
 		links: [...new Set(links)],
 		backlinks: [...new Set(backlinks)],
 		active: false,
-		structure: structure.join('\n'),
+		structure: (detail === "structure") ? structure.join('\n') : null,
 	};
 }
 

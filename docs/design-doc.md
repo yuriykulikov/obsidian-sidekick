@@ -47,7 +47,7 @@ Agent architecture is described in detail in further documents.
 
 - [agent-context-and-loop.md](agent-context-and-loop.md)
 - [tools-registry.md](tools-registry.md)
-- [tool-context-discovery.md](tool-context-discovery.md)
+- [context-discovery.md](context-discovery.md)
 - [12-factor-agents.md](12-factor-agents.md)
 
 ## Testing Strategy

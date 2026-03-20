@@ -10,7 +10,7 @@ export class ReadNoteTool implements Tool {
     getDeclaration(): FunctionDeclaration {
         return {
             name: "read_note",
-            description: "Fetches a note's structure, links, and backlinks. Content is also available upon request. Prioritize 'structure-only' to save tokens and quickly understand organization. Only use 'full' if the structure confirms high relevance.",
+            description: "Fetches a note's structure, links, and backlinks. Content is also available upon request. Prioritize 'structure' to save tokens and quickly understand organization.",
             parameters: {
                 type: Type.OBJECT,
                 properties: {
@@ -18,10 +18,10 @@ export class ReadNoteTool implements Tool {
                         type: Type.STRING,
                         description: "The title or path of the note to fetch. Must be a note mentioned in the context (e.g., in links or backlinks of already read notes)."
                     },
-                    detailLevel: {
+                    detail: {
                         type: Type.STRING,
-                        description: "The level of detail to fetch. 'structure-only' fetches only the structure (headings, links) without content. 'full' fetches everything.",
-                        enum: ["structure-only", "full"]
+                        description: "The level of detail to fetch. 'structure' fetches headings and links. 'text' fetches everything.",
+                        enum: ["structure", "text"]
                     }
                 },
                 required: ["noteTitle"]
@@ -31,7 +31,7 @@ export class ReadNoteTool implements Tool {
 
     async execute(state: AgentState, params: Record<string, unknown>): Promise<[AgentState, ToolResult]> {
         const noteTitle = params.noteTitle as string;
-        const detailLevel = (params.detailLevel as "structure-only" | "full") || "full";
+        const detail = (params.detail as "structure" | "text") || "text";
         const file = this.app.metadataCache.getFirstLinkpathDest(noteTitle, "");
         if (!file) {
             this.logger.warn(`Note [[${noteTitle}]] not found.`);
@@ -39,7 +39,7 @@ export class ReadNoteTool implements Tool {
         }
 
         const filename = file.basename;
-        const newNote = await readNote(this.app, file, detailLevel);
+        const newNote = await readNote(this.app, file, detail);
 
         const newNotes = new Map(state.notes);
         newNotes.set(filename, newNote);
@@ -50,8 +50,8 @@ export class ReadNoteTool implements Tool {
         };
 
         return [newState, { 
-            output: `Read ${detailLevel} contents of [[${filename}]]`, 
-            verbose_result: `Successfully read ${detailLevel} contents of note [[${filename}]] and added it to the context for the next agent loop iteration.`
+            output: `Read ${detail} of [[${filename}]]`, 
+            verbose_result: `Successfully read ${detail} of note [[${filename}]] and added it to the context for the next agent loop iteration.`
         }];
     }
 }
