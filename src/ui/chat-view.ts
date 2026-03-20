@@ -6,6 +6,7 @@ import { addNote, setActiveNote } from "../utils/notes";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
 import { ReadNoteTool } from "../tools/read-note";
 import { SearchNotesTool } from "../tools/search-notes";
+import { ListFolderContents } from "../tools/list-folder-contents";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -118,17 +119,17 @@ export class ChatView extends ItemView {
 
 		this.initAgent();
 
-		this.registerEvent(this.app.workspace.on("file-open", async (file) => {
-			if (file instanceof TFile) {
-				const newState = await setActiveNote(this.app, this.state, file.basename);
-				if (this.agent) {
-					this.agent.setState(newState);
-				} else {
-					this.state = newState;
-					this.render();
+			this.registerEvent(this.app.workspace.on("file-open", async (file) => {
+				if (file instanceof TFile) {
+					const newState = await setActiveNote(this.app, this.state, file.basename);
+					if (this.agent) {
+						this.agent.setState(newState);
+					} else {
+						this.state = newState;
+						this.render();
+					}
 				}
-			}
-		}));
+			}));
 
 		await this.resetChat();
 	}
@@ -140,9 +141,10 @@ export class ChatView extends ItemView {
 		new NoteSuggestionModal(this.app, (file: TFile) => {
 			void (async () => {
 				// Add to context
-				this.state = await addNote(this.app, this.state, file.basename);
+				const newState = await addNote(this.app, this.state, file.basename);
+				this.state = newState;
 				if (this.agent) {
-					this.agent.state = this.state;
+					this.agent.setState(this.state);
 				}
 				this.render();
 
@@ -181,7 +183,8 @@ export class ChatView extends ItemView {
 			this.plugin.logger,
 			[
 				new ReadNoteTool(this.app, this.plugin.logger),
-				new SearchNotesTool(this.app, this.plugin.logger)
+				new SearchNotesTool(this.app, this.plugin.logger),
+				new ListFolderContents(this.app, this.plugin.logger),
 			],
 			(state) => {
 				this.state = state;
@@ -256,7 +259,7 @@ export class ChatView extends ItemView {
 				}
 			} else if (msg.type === "function_call") {
 				const toolMsg = this.responseContainer.createDiv({ cls: "sidekick-message tool-message" });
-				const resultText = "output" in msg.result ? msg.result.output : msg.result.error;
+				const resultText = msg.pretty || ("output" in msg.result ? (typeof msg.result.output === "string" ? msg.result.output : JSON.stringify(msg.result.output)) : msg.result.error);
 				toolMsg.createSpan({ text: resultText, cls: "sidekick-tool-result-summary" });
 			}
 		}

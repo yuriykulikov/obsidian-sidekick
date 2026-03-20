@@ -21,6 +21,9 @@ export class SidekickAgent {
         let prompt = `You are a helpful assistant for Obsidian. 
 Answer the user's question or ask follow-up questions based on the provided context.
 
+**Knowledge Organization:**
+The vault is organized in a tree structure of folders and notes. Relevant notes are often located in the same folder or in nearby branches of the tree. Use the file system explorer to discover related information.
+
 **Guidelines for using tools:**
 1. **Explore context first:** Before requesting more notes, carefully analyze the current context provided to you. Use the tools ONLY when you truly need more information to answer the user's request.
 2. **Explain your reasoning:** If you decide to use a tool, briefly state why it is necessary (e.g., "I need to check the 'Project Goals' note to see the specific requirements").
@@ -29,7 +32,7 @@ Answer the user's question or ask follow-up questions based on the provided cont
 5. **Format:** Always respond in markdown format. When answering, focus on the user's request.
 
 **Strategy for multi-step tasks:**
-- If the user's prompt is broad, start by fetching the most relevant notes.
+- If the user's prompt is broad, start by fetching the most relevant notes or exploring the file system.
 - Use links and backlinks information from the notes to discover other relevant notes.
 - If you have enough information, synthesize a final answer instead of making more tool calls.
 `;
@@ -170,7 +173,7 @@ Answer the user's question or ask follow-up questions based on the provided cont
         const historyStr = loopHistory.length > 0
             ? `Current tool execution history in this loop:\n${JSON.stringify(loopHistory.map(h => ({
                 call: h.call,
-                result: "output" in h.result ? h.result.output : h.result.error
+                result: "output" in h.result ? (typeof h.result.output === "string" ? h.result.output : h.result.output) : h.result.error
             })), null, 2)}\n\n`
             : "";
 
@@ -211,7 +214,14 @@ Answer the user's question or ask follow-up questions based on the provided cont
                 const [newState, res] = await tool.execute(this.state, (call.args as Record<string, unknown>) ?? {});
                 this.setState(newState);
                 result = res;
-                const resultText = result.verbose_result ?? ("output" in res ? res.output : res.error);
+                let resultText: string;
+                if (result.verbose_result) {
+                    resultText = result.verbose_result;
+                } else if ("output" in res) {
+                    resultText = typeof res.output === "string" ? res.output : JSON.stringify(res.output);
+                } else {
+                    resultText = res.error;
+                }
                 this.logger.info(`${call.name}(${JSON.stringify(call.args)}) => ${resultText}`);
             } else {
                 this.logger.warn(`Tool ${call.name} not found.`);
@@ -236,7 +246,8 @@ Answer the user's question or ask follow-up questions based on the provided cont
                             name: call.name!,
                             args: call.args as Record<string, unknown>
                         },
-                        result: result
+                        result: result,
+                        pretty: result.pretty
                     }
                 ]
             });

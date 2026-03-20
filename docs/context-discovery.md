@@ -27,7 +27,8 @@ By relying on the natural architecture of your vault—links, tags, and hierarch
 
 Sidekick currently uses the following tools to discover context:
 
-- **`read_note`**: Fetches a note's structure, links, and backlinks. Content is also available upon request. Prioritize `structure` to save tokens and quickly understand organization.
+- **`read_note`**: Fetches a note's structure, links, and backlinks. Content is also available upon request. Prioritize
+  `structure` to save tokens and quickly understand organization.
 - **`search_notes`**: Searches for notes by name/title. Returns a list of matching note titles.
-
-
+- **`list_folder_contents`**: Lists files and folders at a specific path. Helps the agent explore the vault's hierarchy
+  and discover notes without knowing their names.

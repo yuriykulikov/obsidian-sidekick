@@ -3,6 +3,7 @@ import { FunctionDeclaration } from "@google/genai";
 export interface AgentState {
     readonly history: readonly HistoryEntry[];
     readonly notes: ReadonlyMap<string, Note>;
+    readonly folders: ReadonlyMap<string, Folder>;
 }
 
 export interface Tool {
@@ -36,23 +37,43 @@ export interface ToolCallHistoryEntry {
         args: Record<string, unknown>;
     };
     result: ToolResult;
+    pretty?: string;
 }
 
-export type ToolResult = { output: string; verbose_result?: string } | { error: string; verbose_result?: string };
+export type ToolResult = { output: unknown; verbose_result?: string; pretty?: string } | { error: string; verbose_result?: string; pretty?: string };
 
 export interface Note {
-    filename: string;
+	filename: string;
+	path: string;
 	structure?: string | null;
-    content: string | null;
-    links: string[];
-    backlinks: string[];
-    active?: boolean;
+	content: string | null;
+	links: string[];
+	backlinks: string[];
+	active?: boolean;
+    parent?: Folder;
+}
+
+export interface File {
+    filename: string;
+    path: string;
+    type: "file";
+    mtime: number;
+    tags: string[];
+}
+
+export interface Folder {
+    filename: string;
+    path: string;
+    type: "folder";
+    file_count: number;
+    children: (File | Folder)[];
 }
 
 export function createInitialState(): AgentState {
     return {
         history: [],
-        notes: new Map()
+        notes: new Map(),
+        folders: new Map(),
     };
 }
 
