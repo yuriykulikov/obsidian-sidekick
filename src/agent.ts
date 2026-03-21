@@ -165,19 +165,28 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 
         // Prepare context for the prompt from notes
         const contextStr = this.state.notes.size > 0
-            ? `Context of notes:\n${JSON.stringify(Array.from(this.state.notes.values()), null, 2)}\n\n`
+            ? `# Notes\n\n${Array.from(this.state.notes.values()).map(note => {
+                let noteMd = `## Note [[${note.filename}]]\nPath: ${note.path}\n`;
+                if (note.content) {
+                    noteMd += `\n### Content\n\`\`\`\n${note.content}\n\`\`\`\n`;
+                } else if (note.structure) {
+                    noteMd += `\n### Structure\n\`\`\`\n${note.structure}\n\`\`\`\n`;
+                }
+                return noteMd;
+            }).join("\n")}\n\n`
             : "";
 
         // Prepare history for the prompt to make it clear we are in a loop
         const loopHistory = this.state.history.filter((h): h is ToolCallHistoryEntry => h.type === "function_call");
         const historyStr = loopHistory.length > 0
-            ? `Current tool execution history in this loop:\n${JSON.stringify(loopHistory.map(h => ({
-                call: h.call,
-                result: "output" in h.result ? (typeof h.result.output === "string" ? h.result.output : h.result.output) : h.result.error
-            })), null, 2)}\n\n`
+            ? `# Tool execution history in this loop\n\n${loopHistory.map(h => {
+                const callArgs = JSON.stringify(h.call.args);
+                const resultText = "output" in h.result ? (typeof h.result.output === "string" ? h.result.output : JSON.stringify(h.result.output)) : h.result.error;
+                return `## Tool Call: \`${h.call.name}(${callArgs})\`\n${resultText}`;
+            }).join("\n")}\n\n`
             : "";
 
-        const message = `${contextStr}${historyStr}User Question: ${prompt}`;
+        const message = `${contextStr}${historyStr}\n\n# User Question\n\n${prompt}`;
         this.logger.info(`Sending message: ${message}`);
 
         const response = await this.chatSession!.sendMessage({
@@ -214,15 +223,15 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
                 const [newState, res] = await tool.execute(this.state, (call.args as Record<string, unknown>) ?? {});
                 this.setState(newState);
                 result = res;
-                let resultText: string;
-                if (result.verbose_result) {
-                    resultText = result.verbose_result;
+                let logText: string;
+                if (result.pretty) {
+                    logText = result.pretty;
                 } else if ("output" in res) {
-                    resultText = typeof res.output === "string" ? res.output : JSON.stringify(res.output);
+                    logText = typeof res.output === "string" ? res.output : JSON.stringify(res.output);
                 } else {
-                    resultText = res.error;
+                    logText = res.error;
                 }
-                this.logger.info(`${call.name}(${JSON.stringify(call.args)}) => ${resultText}`);
+                this.logger.info(`${call.name}(${JSON.stringify(call.args)}) => ${logText}`);
             } else {
                 this.logger.warn(`Tool ${call.name} not found.`);
                 result = { error: `Tool ${call.name} not found.` };

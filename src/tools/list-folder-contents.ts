@@ -10,7 +10,7 @@ export class ListFolderContents implements Tool {
     getDeclaration(): FunctionDeclaration {
         return {
             name: "list_folder_contents",
-            description: "Lists files and folders at a specific path in the vault. Returns metadata including mtime and tags for files, and recursive file counts for folders.",
+            description: "Lists files and folders at a specific path in the vault. Returns a markdown list with folder paths and file counts, and file names.",
             parameters: {
                 type: Type.OBJECT,
                 properties: {
@@ -38,23 +38,27 @@ export class ListFolderContents implements Tool {
 
         const [newState, folder, items] = result;
 
-        // Format output as object
-        const output = {
-            path: folder.path === "/" || folder.path === "" ? "/" : folder.path,
-            items: items.map(item => ({
-                name: item.filename,
-                type: item.type,
-                info: item.type === "file" 
-                    ? (item.tags && item.tags.length > 0 ? `Tags: ${item.tags.join(", ")}` : "")
-                    : `${item.file_count} files`
-            })),
-            total_items: items.length
-        };
+        // Format output as a plain list
+        const folderPath = folder.path === "/" || folder.path === "" ? "/" : folder.path;
+        let output = `### Contents of ${folderPath}\n\n`;
+        
+        if (items.length === 0) {
+            output += "_Folder is empty._";
+        } else {
+            for (const item of items) {
+                if (item.type === "folder") {
+                    output += `- ${item.path}/ (${item.file_count} files)\n`;
+                } else {
+                    output += `- ${item.filename}\n`;
+                }
+            }
+            output += `\nTotal items: ${items.length}`;
+        }
 
         const totalItems = items.length;
         const pretty = totalItems === 0 
             ? `Empty folder: ${folder.path}`
-            : `Contents of ${folder.path}: ${items.map(i => i.filename + (i.type === "folder" ? "/" : "")).join(", ")}`;
+            : `Contents of ${folderPath}`;
 
         return [newState, { output, pretty }];
     }

@@ -181,12 +181,24 @@
 	padding: 4px 8px;
 	margin-bottom: 4px;
 	color: var(--text-muted);
+	cursor: pointer;
 }
 
+.tool-message:hover {
+	background-color: var(--background-secondary-alt);
+}
 
 .sidekick-tool-result-summary {
 	font-family: var(--font-monospace);
 	color: var(--text-success);
+	display: block;
+}
+
+.sidekick-tool-result-details {
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
 }
 
 /* Log View Styles */

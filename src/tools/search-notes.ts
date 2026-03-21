@@ -39,8 +39,8 @@ export class SearchNotesTool implements Tool {
                        matches.map(m => `- [[${m}]]`).join("\n");
 
         return [state, { 
-            output: `Found ${matches.length} notes matching "${query}"`, 
-            verbose_result: output
+            output: output,
+            pretty: `Found ${matches.length} notes matching "${query}"`
         }];
     }
 }

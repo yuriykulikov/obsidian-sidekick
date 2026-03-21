@@ -259,8 +259,16 @@ export class ChatView extends ItemView {
 				}
 			} else if (msg.type === "function_call") {
 				const toolMsg = this.responseContainer.createDiv({ cls: "sidekick-message tool-message" });
-				const resultText = msg.pretty || ("output" in msg.result ? (typeof msg.result.output === "string" ? msg.result.output : JSON.stringify(msg.result.output)) : msg.result.error);
-				toolMsg.createSpan({ text: resultText, cls: "sidekick-tool-result-summary" });
+				const summary = msg.pretty || msg.call.name;
+				toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
+				
+				const resultOutput = "output" in msg.result ? (typeof msg.result.output === "string" ? msg.result.output : JSON.stringify(msg.result.output)) : msg.result.error;
+				const detailsEl = toolMsg.createDiv({ cls: "sidekick-tool-result-details sidekick-hidden" });
+				void MarkdownRenderer.render(this.app, resultOutput, detailsEl, "", this);
+
+				toolMsg.addEventListener("click", () => {
+					detailsEl.toggleClass("sidekick-hidden", !detailsEl.hasClass("sidekick-hidden"));
+				});
 			}
 		}
 

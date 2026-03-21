@@ -49,9 +49,11 @@ export class ReadNoteTool implements Tool {
             notes: newNotes
         };
 
+        const output = `Successfully read ${detail} of note [[${filename}]] and added it to the context for the next agent loop iteration.`;
+
         return [newState, { 
-            output: `Read ${detail} of [[${filename}]]`, 
-            verbose_result: `Successfully read ${detail} of note [[${filename}]] and added it to the context for the next agent loop iteration.`
+            output: output,
+            pretty: `Read ${detail} of [[${filename}]]`
         }];
     }
 }
