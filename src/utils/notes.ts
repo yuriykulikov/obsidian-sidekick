@@ -47,6 +47,14 @@ export async function readNote(app: App, file: TFile, detail: "structure" | "tex
 		return null;
 	}).filter((line): line is string => line !== null);
 
+	const parentFolder = file.parent;
+	let folderSiblings: string[] = [];
+	if (parentFolder) {
+		folderSiblings = parentFolder.children
+			.filter(child => child instanceof TFile && child.path !== file.path)
+			.map(child => child.name);
+	}
+
 	return {
 		filename: filename,
 		path: file.path,
@@ -55,6 +63,8 @@ export async function readNote(app: App, file: TFile, detail: "structure" | "tex
 		backlinks: [...new Set(backlinks)],
 		active: false,
 		structure: (detail === "structure") ? structure.join('\n') : null,
+		parentPath: parentFolder?.path || "/",
+		folderSiblings: folderSiblings
 	};
 }
 

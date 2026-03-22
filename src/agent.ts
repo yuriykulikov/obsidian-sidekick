@@ -167,6 +167,9 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
         const contextStr = this.state.notes.size > 0
             ? `# Notes\n\n${Array.from(this.state.notes.values()).map(note => {
                 let noteMd = `## Note [[${note.filename}]]\nPath: ${note.path}\n`;
+                if (note.folderSiblings && note.folderSiblings.length > 0) {
+                    noteMd += `Siblings: ${note.folderSiblings.map(s => `[[${s}]]`).join(", ")}\n`;
+                }
                 if (note.content) {
                     noteMd += `\n### Content\n\`\`\`\n${note.content}\n\`\`\`\n`;
                 } else if (note.structure) {

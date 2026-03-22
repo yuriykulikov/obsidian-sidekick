@@ -51,6 +51,8 @@ export interface Note {
 	backlinks: string[];
 	active?: boolean;
     parent?: Folder;
+	parentPath?: string;
+	folderSiblings?: string[];
 }
 
 export interface File {
