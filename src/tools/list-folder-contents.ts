@@ -47,7 +47,7 @@ export class ListFolderContents implements Tool {
         } else {
             for (const item of items) {
                 if (item.type === "folder") {
-                    output += `- ${item.path}/ (${item.file_count} files)\n`;
+                    output += `- ${item.filename}/ (${item.file_count} files)\n`;
                 } else {
                     output += `- ${item.filename}\n`;
                 }
