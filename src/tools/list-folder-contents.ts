@@ -1,8 +1,7 @@
-import { App } from "obsidian";
+import { App, TFile, TFolder } from "obsidian";
 import { FunctionDeclaration, Type } from "@google/genai";
 import { AgentState, Tool, ToolResult } from "../types";
 import { Logger } from "../utils/logger";
-import { listFolderContents } from "../utils/notes";
 
 export class ListFolderContents implements Tool {
     constructor(private app: App, private logger: Logger) {}
@@ -30,36 +29,91 @@ export class ListFolderContents implements Tool {
     async execute(state: AgentState, params: Record<string, unknown>): Promise<[AgentState, ToolResult]> {
         const path = (params.path as string) || "/";
 
-        const result = await listFolderContents(this.app, state, path);
+		const folder = await this.getFolder(path);
 
-        if (!result) {
-            return [state, { error: `Path not found or is not a folder: ${path}` }];
-        }
+		if (!folder) {
+			return [state, { error: `Path not found or is not a folder: ${path}` }];
+		}
 
-        const [newState, folder, items] = result;
-
-        // Format output as a plain list
         const folderPath = folder.path === "/" || folder.path === "" ? "/" : folder.path;
         let output = `### Contents of ${folderPath}\n\n`;
-        
-        if (items.length === 0) {
+
+        if (folder.children.length === 0) {
             output += "_Folder is empty._";
         } else {
-            for (const item of items) {
-                if (item.type === "folder") {
-                    output += `- ${item.filename}/ (${item.file_count} files)\n`;
-                } else {
-                    output += `- ${item.filename}\n`;
+            const folderLines: string[] = [];
+            const fileLines: string[] = [];
+
+            for (const child of folder.children) {
+                if (child instanceof TFile && child.extension === "md") {
+                    fileLines.push(`- ${child.basename}`);
+                } else if (child instanceof TFolder) {
+                    let count = 0;
+                    const countFiles = (f: TFolder) => {
+                        for (const c of f.children) {
+                            if (c instanceof TFile && c.extension === "md") count++;
+                            else if (c instanceof TFolder) countFiles(c);
+                        }
+                    };
+                    countFiles(child);
+                    folderLines.push(`- ${child.name}/ (${count} files)`);
                 }
             }
-            output += `\nTotal items: ${items.length}`;
+
+            if (folderLines.length > 0) {
+                output += "#### Folders\n";
+                output += folderLines.join("\n") + "\n\n";
+            }
+
+            if (fileLines.length > 0) {
+                output += "#### Notes\n";
+                output += fileLines.join("\n") + "\n\n";
+            }
+
+            output += `Total items: ${folder.children.length}`;
         }
 
-        const totalItems = items.length;
+        const totalItems = folder.children.length;
         const pretty = totalItems === 0 
             ? `Empty folder: ${folder.path}`
             : `Contents of ${folderPath}`;
 
-        return [newState, { output, pretty }];
+        return [state, { output, pretty }];
     }
+
+	/**
+	 * Resolves a path to a folder in the vault.
+	 * 
+	 * @param path The path to the folder.
+	 * @returns The resolved folder object or null if not found or not a folder.
+	 */
+	private async getFolder(path: string): Promise<TFolder | null> {
+		let segments = path.split("/").filter(s => s.length > 0);
+		const resolvedSegments: string[] = [];
+
+		for (const segment of segments) {
+			if (segment === "..") {
+				resolvedSegments.pop();
+			} else if (segment !== ".") {
+				resolvedSegments.push(segment);
+			}
+		}
+
+		let normalizedPath = resolvedSegments.join("/");
+		
+		// Obsidian vault root is accessed via empty string.
+		// We handle both empty string and "/" by normalizing.
+		let abstractFile = this.app.vault.getAbstractFileByPath(normalizedPath);
+		
+		// If not found and it was intended to be root, try "/"
+		if (!abstractFile && normalizedPath === "") {
+			abstractFile = this.app.vault.getAbstractFileByPath("/");
+		}
+		
+		if (abstractFile instanceof TFolder) {
+			return abstractFile;
+		}
+
+		return null;
+	}
 }
