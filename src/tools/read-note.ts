@@ -44,9 +44,11 @@ export class ReadNoteTool implements Tool {
         const newNotes = new Map(state.notes);
         newNotes.set(filename, newNote);
 
+        const newDiscoveredStructure = Array.from(new Set([...state.discoveredStructure, file.path]));
         const newState = {
             ...state,
-            notes: newNotes
+            notes: newNotes,
+            discoveredStructure: newDiscoveredStructure
         };
 
         const output = `Successfully read ${detail} of note [[${filename}]] and added it to the context for the next agent loop iteration.`;

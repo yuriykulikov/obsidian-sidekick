@@ -77,6 +77,7 @@ export async function readNote(app: App, file: TFile, detail: "structure" | "tex
 export async function setActiveNote(app: App, state: AgentState, basename: string): Promise<AgentState> {
 	const hasPrompts = state.history.some(entry => entry.role === "user");
 	const notesCopy = new Map<string, Note>(state.notes);
+	let discoveredStructure = [...state.discoveredStructure];
 
 	// Deactivate or remove other active notes
 	for (const [name, note] of notesCopy) {
@@ -95,6 +96,7 @@ export async function setActiveNote(app: App, state: AgentState, basename: strin
 		const file = app.metadataCache.getFirstLinkpathDest(basename, "");
 		if (file) {
 			current = await readNote(app, file);
+			discoveredStructure = Array.from(new Set([...discoveredStructure, file.path]));
 		}
 	}
 
@@ -102,7 +104,7 @@ export async function setActiveNote(app: App, state: AgentState, basename: strin
 		notesCopy.set(basename, { ...current, active: true });
 	}
 
-	return { ...state, notes: notesCopy };
+	return { ...state, notes: notesCopy, discoveredStructure };
 }
 
 /**
@@ -123,9 +125,55 @@ export async function addNote(app: App, state: AgentState, basename: string): Pr
 	const newNotes = new Map(state.notes);
 	newNotes.set(basename, newNote);
 
+	const newDiscoveredStructure = Array.from(new Set([...state.discoveredStructure, file.path]));
+
 	return {
 		...state,
-		notes: newNotes
+		notes: newNotes,
+		discoveredStructure: newDiscoveredStructure
 	};
+}
+
+/**
+ * Renders a list of paths as a markdown tree.
+ */
+export function renderDiscoveredStructure(paths: readonly string[]): string {
+	if (paths.length === 0) {
+		return "No structure discovered yet.";
+	}
+
+	interface TreeNode {
+		[key: string]: TreeNode;
+	}
+
+	const sortedPaths = [...paths].sort();
+	const root: TreeNode = {};
+
+	for (const path of sortedPaths) {
+		const parts = path.split("/");
+		let current = root;
+		for (const part of parts) {
+			if (!current[part]) {
+				current[part] = {};
+			}
+			current = current[part];
+		}
+	}
+
+	let tree = "";
+	const buildTree = (obj: TreeNode, indent: number = 0) => {
+		const keys = Object.keys(obj).sort();
+		for (const key of keys) {
+			const child = obj[key];
+			if (child) {
+				const isFolder = Object.keys(child).length > 0;
+				tree += "  ".repeat(indent) + (isFolder ? "- 📁 " : "- 📄 ") + key + "\n";
+				buildTree(child, indent + 1);
+			}
+		}
+	};
+
+	buildTree(root);
+	return tree.trim();
 }
 

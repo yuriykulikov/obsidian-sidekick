@@ -2,6 +2,7 @@ import { App } from "obsidian";
 import { Chat, CreateChatParameters, FunctionResponse, GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AgentState, TextHistoryEntry, Tool, ToolCallHistoryEntry, ToolResult } from "./types";
 import { Logger } from "./utils/logger";
+import { renderDiscoveredStructure } from "./utils/notes";
 
 export class SidekickAgent {
     private genAI: GoogleGenAI;
@@ -164,6 +165,14 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
         const prompt = lastUserEntry ? lastUserEntry.content : "";
 		this.logger.info(`Sending message...`);
         // Prepare context for the prompt from notes
+        const structureStr = this.state.discoveredStructure.length > 0
+            ? (() => {
+                const rendered = renderDiscoveredStructure(this.state.discoveredStructure);
+                this.logger.markdown("Discovered Vault Structure", `\`\`\`\n${rendered}\n\`\`\``);
+                return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n\n`;
+            })()
+            : "";
+
         const contextStr = this.state.notes.size > 0
             ? `# Notes\n\n${Array.from(this.state.notes.values()).map(note => {
                 let noteMd = `## Note [[${note.filename}]]\nPath: ${note.path}\n`;
@@ -193,7 +202,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 
 		this.logger.info(`Prompt: ${prompt}`);
 
-        const message = `${contextStr}${historyStr}\n# User Question\n${prompt}`;
+        const message = `${structureStr}${contextStr}${historyStr}\n# User Question\n${prompt}`;
 
 		this.logger.markdown(`Full prompt`, message);
 

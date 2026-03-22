@@ -78,7 +78,14 @@ export class ListFolderContents implements Tool {
             ? `Empty folder: ${folder.path}`
             : `Contents of ${folderPath}`;
 
-        return [state, { output, pretty }];
+        const discoveredPaths = [folder.path, ...folder.children.map(c => c.path)];
+        const newDiscoveredStructure = Array.from(new Set([...state.discoveredStructure, ...discoveredPaths]));
+        const newState = {
+            ...state,
+            discoveredStructure: newDiscoveredStructure
+        };
+
+        return [newState, { output, pretty }];
     }
 
 	/**

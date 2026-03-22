@@ -3,6 +3,7 @@ import { FunctionDeclaration } from "@google/genai";
 export interface AgentState {
     readonly history: readonly HistoryEntry[];
     readonly notes: ReadonlyMap<string, Note>;
+    readonly discoveredStructure: readonly string[];
 }
 
 export interface Tool {
@@ -57,6 +58,7 @@ export function createInitialState(): AgentState {
     return {
         history: [],
         notes: new Map(),
+        discoveredStructure: [],
     };
 }
 

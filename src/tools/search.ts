@@ -43,6 +43,12 @@ export class SearchTool implements Tool {
 			}];
         }
 
+        const newDiscoveredStructure = Array.from(new Set([...state.discoveredStructure, ...matches.map(m => m.path)]));
+        const newState = {
+            ...state,
+            discoveredStructure: newDiscoveredStructure
+        };
+
         const notes = matches.filter(m => m instanceof TFile);
         const folders = matches.filter(m => !(m instanceof TFile));
 
@@ -58,7 +64,7 @@ export class SearchTool implements Tool {
             output += folders.map(m => `- \`${m.path}/\``).join("\n") + "\n\n";
         }
 
-        return [state, { 
+        return [newState, { 
             output: output.trim(),
             pretty: `Search ${query}: ${matches.length} matches`
         }];
