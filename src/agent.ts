@@ -1,6 +1,6 @@
 import { App } from "obsidian";
-import { GoogleGenAI, Chat, GenerateContentResponse, CreateChatParameters, FunctionResponse } from "@google/genai";
-import { AgentState, ToolResult, TextHistoryEntry, ToolCallHistoryEntry, Tool } from "./types";
+import { Chat, CreateChatParameters, FunctionResponse, GenerateContentResponse, GoogleGenAI } from "@google/genai";
+import { AgentState, TextHistoryEntry, Tool, ToolCallHistoryEntry, ToolResult } from "./types";
 import { Logger } from "./utils/logger";
 
 export class SidekickAgent {
@@ -78,7 +78,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
             ...this.state,
             history: [...this.state.history, { type: "text", role: "user", content: userPrompt }]
         });
-
+		this.logger.user(`User prompt: ${userPrompt}`);
         await this.agentLoop();
     }
 
@@ -94,7 +94,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 			}
 
 			const systemInstruction = SidekickAgent.getSystemPrompt();
-			this.logger.info(`System Prompt:\n${systemInstruction}`);
+			this.logger.markdown(`System Prompt`, systemInstruction);
 
 			const params: CreateChatParameters = {
 				model: "gemini-3-flash-preview",
@@ -162,7 +162,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
         const userEntries = this.state.history.filter((h): h is TextHistoryEntry => h.type === "text" && h.role === "user");
         const lastUserEntry = userEntries[userEntries.length - 1];
         const prompt = lastUserEntry ? lastUserEntry.content : "";
-
+		this.logger.info(`Sending message...`);
         // Prepare context for the prompt from notes
         const contextStr = this.state.notes.size > 0
             ? `# Notes\n\n${Array.from(this.state.notes.values()).map(note => {
@@ -172,6 +172,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
                 } else if (note.structure) {
                     noteMd += `\n### Structure\n\`\`\`\n${note.structure}\n\`\`\`\n`;
                 }
+				this.logger.markdown(`Note ${note.filename}`, noteMd);
                 return noteMd;
             }).join("\n")}\n\n`
             : "";
@@ -179,15 +180,19 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
         // Prepare history for the prompt to make it clear we are in a loop
         const loopHistory = this.state.history.filter((h): h is ToolCallHistoryEntry => h.type === "function_call");
         const historyStr = loopHistory.length > 0
-            ? `# Tool execution history in this loop\n\n${loopHistory.map(h => {
+            ? `# Tool execution history in this loop\n${loopHistory.map(h => {
                 const callArgs = JSON.stringify(h.call.args);
                 const resultText = "output" in h.result ? (typeof h.result.output === "string" ? h.result.output : JSON.stringify(h.result.output)) : h.result.error;
-                return `## Tool Call: \`${h.call.name}(${callArgs})\`\n${resultText}`;
-            }).join("\n")}\n\n`
+				this.logger.markdown(`Tool Call ${h.call.name}(${callArgs})`, resultText);
+				return `## Tool Call: \`${h.call.name}(${callArgs})\n${resultText}`;
+            }).join("\n")}\n`
             : "";
 
-        const message = `${contextStr}${historyStr}\n\n# User Question\n\n${prompt}`;
-        this.logger.info(`Sending message: ${message}`);
+		this.logger.info(`Prompt: ${prompt}`);
+
+        const message = `${contextStr}${historyStr}\n# User Question\n${prompt}`;
+
+		this.logger.markdown(`Full prompt`, message);
 
         const response = await this.chatSession!.sendMessage({
             message: message,

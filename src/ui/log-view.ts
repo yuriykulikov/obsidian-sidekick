@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Menu } from "obsidian";
+import { ItemView, WorkspaceLeaf, Menu, MarkdownRenderer } from "obsidian";
 import { LogEntry, Logger } from "../utils/logger";
 
 export const VIEW_TYPE_SIDEKICK_LOG = "sidekick-log-view";
@@ -68,10 +68,18 @@ export class SidekickLogView extends ItemView {
 	private appendLogEntry(entry: LogEntry) {
 		if (!this.logContainer) return;
 		const logEl = this.logContainer.createDiv({ cls: `sidekick-log-entry sidekick-log-${entry.level.toLowerCase()}` });
-		const timeStr = entry.timestamp.toLocaleTimeString();
-		logEl.createSpan({ cls: "sidekick-log-time", text: `[${timeStr}] ` });
-		logEl.createSpan({ cls: "sidekick-log-level", text: `${entry.level}: ` });
-		logEl.createSpan({ cls: "sidekick-log-message", text: entry.message });
+		
+		if (entry.markdown) {
+			const details = logEl.createEl("details");
+			if (!entry.collapsed) {
+				details.setAttribute("open", "true");
+			}
+			details.createEl("summary", { cls: "sidekick-log-message", text: entry.title || entry.message });
+			const content = details.createDiv({ cls: "sidekick-log-markdown-content" });
+			void MarkdownRenderer.render(this.app, entry.markdown, content, "", this);
+		} else {
+			logEl.createSpan({ cls: "sidekick-log-message", text: entry.message });
+		}
 		
 		// Auto-scroll to bottom
 		this.logContainer.scrollTo(0, this.logContainer.scrollHeight);

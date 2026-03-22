@@ -220,18 +220,14 @@
 }
 
 .sidekick-log-entry {
-	margin-bottom: 4px;
-	padding-bottom: 2px;
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
 }
 
-.sidekick-log-time {
-	color: var(--text-muted);
+.sidekick-log-user {
+	background-color: var(--background-secondary-alt);
+	padding: 8px;
+	border-top: 1px solid var(--interactive-accent);
 }
 
-.sidekick-log-info .sidekick-log-level {
-	color: var(--text-accent);
-}
-
-.sidekick-log-error .sidekick-log-level {
-	color: var(--text-error);
-}
