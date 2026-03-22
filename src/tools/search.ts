@@ -60,7 +60,7 @@ export class SearchTool implements Tool {
 
         return [state, { 
             output: output.trim(),
-            pretty: `Search ${query}: ${matches.length} matches"`
+            pretty: `Search ${query}: ${matches.length} matches`
         }];
     }
 }
