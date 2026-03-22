@@ -5,7 +5,7 @@ import { AgentState, createInitialState } from "../types";
 import { addNote, setActiveNote } from "../utils/notes";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
 import { ReadNoteTool } from "../tools/read-note";
-import { SearchNotesTool } from "../tools/search-notes";
+import { SearchTool } from "../tools/search";
 import { ListFolderContents } from "../tools/list-folder-contents";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
@@ -183,7 +183,7 @@ export class ChatView extends ItemView {
 			this.plugin.logger,
 			[
 				new ReadNoteTool(this.app, this.plugin.logger),
-				new SearchNotesTool(this.app, this.plugin.logger),
+				new SearchTool(this.app, this.plugin.logger),
 				new ListFolderContents(this.app, this.plugin.logger),
 			],
 			(state) => {
