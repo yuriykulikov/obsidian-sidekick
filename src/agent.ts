@@ -239,7 +239,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
                 } else {
                     logText = res.error;
                 }
-                this.logger.info(`${call.name}(${JSON.stringify(call.args)}) => ${logText}`);
+                this.logger.markdown(`Called tool ${call.name}(${JSON.stringify(call.args)})`, logText);
             } else {
                 this.logger.warn(`Tool ${call.name} not found.`);
                 result = { error: `Tool ${call.name} not found.` };

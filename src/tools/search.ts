@@ -37,7 +37,10 @@ export class SearchTool implements Tool {
             });
 
         if (matches.length === 0) {
-            return [state, { output: `No notes or folders found matching "${query}".` }];
+            return [state, {
+				output: `No notes or folders found matching "${query}".`,
+				pretty: `Search ${query}: no matches"`
+			}];
         }
 
         const notes = matches.filter(m => m instanceof TFile);
@@ -57,7 +60,7 @@ export class SearchTool implements Tool {
 
         return [state, { 
             output: output.trim(),
-            pretty: `Found ${matches.length} matches for "${query}"`
+            pretty: `Search ${query}: ${matches.length} matches"`
         }];
     }
 }
