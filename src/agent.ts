@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import { Chat, CreateChatParameters, FunctionResponse, GenerateContentResponse, GoogleGenAI } from "@google/genai";
 import { AgentState, TextHistoryEntry, Tool, ToolCallHistoryEntry, ToolResult } from "./types";
 import { Logger } from "./utils/logger";
-import { renderDiscoveredStructure } from "./utils/notes";
+import { refreshNotes, renderDiscoveredStructure } from "./utils/notes";
 
 export class SidekickAgent {
     private genAI: GoogleGenAI;
@@ -153,6 +153,8 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
      * @returns A promise that resolves to the LLM response.
      */
     private async promtLLM(): Promise<GenerateContentResponse> {
+		this.setState(await refreshNotes(this.app, this.state));
+
         // Find the last user prompt in history
         const userEntries = this.state.history.filter((h): h is TextHistoryEntry => h.type === "text" && h.role === "user");
         const lastUserEntry = userEntries[userEntries.length - 1];

@@ -119,6 +119,31 @@ export async function addNote(app: App, state: AgentState, basename: string): Pr
 }
 
 /**
+ * Refreshes all notes in the agent's context.
+ */
+export async function refreshNotes(app: App, state: AgentState): Promise<AgentState> {
+	const newNotes = new Map<string, Note>();
+	const currentDiscoveredStructure = new Set(state.discoveredStructure);
+
+	for (const [basename, note] of state.notes) {
+		const file = app.vault.getAbstractFileByPath(note.path);
+		if (file instanceof TFile) {
+			const refreshedNote = await readNote(app, file, note.content ? "text" : "structure");
+			newNotes.set(basename, { ...refreshedNote, active: note.active });
+		} else {
+			// If file is gone, remove it from context
+			currentDiscoveredStructure.delete(note.path);
+		}
+	}
+
+	return new AgentState(
+		state.history,
+		newNotes,
+		Array.from(currentDiscoveredStructure)
+	);
+}
+
+/**
  * Renders a list of paths as a markdown tree.
  */
 export function renderDiscoveredStructure(paths: readonly string[]): string {
