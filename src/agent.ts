@@ -75,10 +75,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
      */
     async next(userPrompt: string): Promise<void> {
         // Add current user message to state history
-        this.setState({
-            ...this.state,
-            history: [...this.state.history, { type: "text", role: "user", content: userPrompt }]
-        });
+        this.setState(this.state.appendHistoryEntry({ type: "text", role: "user", content: userPrompt }));
 		this.logger.user(`User prompt: ${userPrompt}`);
         await this.agentLoop();
     }
@@ -148,10 +145,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 			postfix = "\n\nMax iterations (${maxIterations}) reached. Breaking loop."
 		}
 
-		this.setState({
-			...this.state,
-			history: [...this.state.history, {type: "text", role: "model", content: finalContent + postfix}]
-		});
+		this.setState(this.state.appendHistoryEntry({type: "text", role: "model", content: finalContent + postfix}));
 	}
 
 	/**
@@ -226,10 +220,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 		}
         if (iterationResponse.text) {
             this.logger.info(`LLM Response: ${iterationResponse.text}`);
-            this.setState({
-                ...this.state,
-                history: [...this.state.history, { type: "text", role: "model", content: iterationResponse.text }]
-            });
+            this.setState(this.state.appendHistoryEntry({ type: "text", role: "model", content: iterationResponse.text }));
         }
 
         const results: FunctionResponse[] = [];
@@ -244,22 +235,16 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
             });
 
             // Add this function call and its result to history immediately
-            this.setState({
-                ...this.state,
-                history: [
-                    ...this.state.history,
-                    {
-                        type: "function_call",
-                        role: "model",
-                        call: {
-                            name: call.name,
-                            args: call.args as Record<string, unknown>
-                        },
-                        result: result,
-                        pretty: result.pretty
-                    }
-                ]
-            });
+            this.setState(this.state.appendHistoryEntry({
+                type: "function_call",
+                role: "model",
+                call: {
+                    name: call.name,
+                    args: call.args as Record<string, unknown>
+                },
+                result: result,
+                pretty: result.pretty
+            }));
         }
 		
         const response = await this.chatSession!.sendMessage({

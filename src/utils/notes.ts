@@ -97,7 +97,7 @@ export async function setActiveNote(app: App, state: AgentState, basename: strin
 		notesCopy.set(basename, { ...current, active: true });
 	}
 
-	return { ...state, notes: notesCopy, discoveredStructure };
+	return state.replaceNotes(notesCopy).appendDiscoveredStructure(discoveredStructure);
 }
 
 /**
@@ -115,16 +115,7 @@ export async function addNote(app: App, state: AgentState, basename: string): Pr
 
 	const newNote = await readNote(app, file);
 
-	const newNotes = new Map(state.notes);
-	newNotes.set(basename, newNote);
-
-	const newDiscoveredStructure = Array.from(new Set([...state.discoveredStructure, file.path]));
-
-	return {
-		...state,
-		notes: newNotes,
-		discoveredStructure: newDiscoveredStructure
-	};
+	return state.appendNote(basename, newNote).appendDiscoveredStructure([file.path]);
 }
 
 /**

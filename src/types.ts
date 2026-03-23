@@ -1,9 +1,45 @@
 import { FunctionDeclaration } from "@google/genai";
 
-export interface AgentState {
-    readonly history: readonly HistoryEntry[];
-    readonly notes: ReadonlyMap<string, Note>;
-    readonly discoveredStructure: readonly string[];
+export class AgentState {
+    constructor(
+        public readonly history: readonly HistoryEntry[] = [],
+        public readonly notes: ReadonlyMap<string, Note> = new Map(),
+        public readonly discoveredStructure: readonly string[] = []
+    ) {}
+
+    public appendHistoryEntry(item: HistoryEntry): AgentState {
+        return new AgentState(
+            [...this.history, item],
+            this.notes,
+            this.discoveredStructure
+        );
+    }
+
+    public replaceNotes(notes: ReadonlyMap<string, Note>): AgentState {
+        return new AgentState(
+            this.history,
+            notes,
+            this.discoveredStructure
+        );
+    }
+
+    public appendNote(filename: string, note: Note): AgentState {
+        const mergedNotes = new Map(this.notes);
+        mergedNotes.set(filename, note);
+        return new AgentState(
+            this.history,
+            mergedNotes,
+            this.discoveredStructure
+        );
+    }
+
+    public appendDiscoveredStructure(newPaths: readonly string[]): AgentState {
+        return new AgentState(
+            this.history,
+            this.notes,
+            Array.from(new Set([...this.discoveredStructure, ...newPaths]))
+        );
+    }
 }
 
 export interface Tool {
@@ -55,11 +91,7 @@ export interface Note {
 }
 
 export function createInitialState(): AgentState {
-    return {
-        history: [],
-        notes: new Map(),
-        discoveredStructure: [],
-    };
+    return new AgentState();
 }
 
 

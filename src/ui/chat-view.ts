@@ -321,10 +321,7 @@ export class ChatView extends ItemView {
 			removeBtn.addEventListener("click", () => {
 				const newNotes = new Map(this.state.notes);
 				newNotes.delete(filename);
-				this.state = {
-					...this.state,
-					notes: newNotes
-				};
+				this.state = this.state.replaceNotes(newNotes);
 				if (this.agent) {
 					this.agent.state = this.state;
 				}
