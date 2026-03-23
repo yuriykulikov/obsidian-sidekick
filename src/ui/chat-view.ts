@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, ButtonComponent, setIcon, TFile } from "obsidian";
 import SidekickPlugin from "../main";
 import { SidekickAgent } from "../agent";
-import { AgentState, createInitialState } from "../types";
+import { AgentState, createInitialState, TextHistoryEntry, ToolCallHistoryEntry } from "../types";
 import { addNote, setActiveNote } from "../utils/notes";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
 import { ReadNoteTool } from "../tools/read-note";
@@ -52,6 +52,29 @@ export class ChatView extends ItemView {
 		container.empty();
 		container.addClass("sidekick-view-container");
 
+		this.renderHeader(container);
+		this.responseContainer = container.createDiv({ cls: "sidekick-response-container" });
+		this.notesContainer = container.createDiv({ cls: "sidekick-notes-context-container" });
+		this.renderInputArea(container);
+
+		this.initAgent();
+
+		this.registerEvent(this.app.workspace.on("file-open", async (file) => {
+			if (file instanceof TFile) {
+				const newState = await setActiveNote(this.app, this.state, file.basename);
+				if (this.agent) {
+					this.agent.setState(newState);
+				} else {
+					this.state = newState;
+					this.render();
+				}
+			}
+		}));
+
+		await this.resetChat();
+	}
+
+	private renderHeader(container: HTMLElement) {
 		const headerContainer = container.createDiv({ cls: "sidekick-header" });
 
 		const newTaskButton = new ButtonComponent(headerContainer)
@@ -62,9 +85,9 @@ export class ChatView extends ItemView {
 			});
 		newTaskButton.buttonEl.addClass("sidekick-new-task-button");
 		newTaskButton.buttonEl.addClass("sidekick-header-button");
+	}
 
-		this.responseContainer = container.createDiv({ cls: "sidekick-response-container" });
-		this.notesContainer = container.createDiv({ cls: "sidekick-notes-context-container" });
+	private renderInputArea(container: HTMLElement) {
 		const inputContainer = container.createDiv({ cls: "sidekick-input-container" });
 
 		const addNoteButton = new ButtonComponent(inputContainer)
@@ -116,22 +139,6 @@ export class ChatView extends ItemView {
 				void this.sendMessage();
 			}
 		});
-
-		this.initAgent();
-
-			this.registerEvent(this.app.workspace.on("file-open", async (file) => {
-				if (file instanceof TFile) {
-					const newState = await setActiveNote(this.app, this.state, file.basename);
-					if (this.agent) {
-						this.agent.setState(newState);
-					} else {
-						this.state = newState;
-						this.render();
-					}
-				}
-			}));
-
-		await this.resetChat();
 	}
 
 	/**
@@ -232,7 +239,26 @@ export class ChatView extends ItemView {
 		this.notesContainer.empty();
 
 		this.renderNotes();
+		this.updateActionButtons();
 
+		const history = this.state.history;
+		for (const msg of history) {
+			if (msg.type === "text") {
+				this.renderTextMessage(msg);
+			} else if (msg.type === "function_call") {
+				this.renderToolMessage(msg);
+			}
+		}
+
+		if (this.isThinking) {
+			const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
+			agentMsg.createEl("em", { text: "Thinking..." });
+		}
+
+		this.scrollToBottom();
+	}
+
+	private updateActionButtons() {
 		if (this.sendButton && this.stopButton) {
 			if (this.isThinking) {
 				this.sendButton.addClass("sidekick-hidden");
@@ -242,41 +268,38 @@ export class ChatView extends ItemView {
 				this.stopButton.addClass("sidekick-hidden");
 			}
 		}
+	}
 
-		const history = this.state.history;
-		for (const msg of history) {
-			if (msg.type === "text") {
-				if (msg.role === "user") {
-					const userMsg = this.responseContainer.createDiv({ cls: "sidekick-message user-message" });
-					void MarkdownRenderer.render(this.app,  msg.content, userMsg, "", this);
-				} else {
-					const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-					const copyBtn = agentMsg.createDiv({ cls: "sidekick-copy-button" });
-				setIcon(copyBtn, "copy");
-				copyBtn.addEventListener("click", () => {
-					void navigator.clipboard.writeText(msg.content); });
-					void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
-				}
-			} else if (msg.type === "function_call") {
-				const toolMsg = this.responseContainer.createDiv({ cls: "sidekick-message tool-message" });
-				const summary = msg.pretty || msg.call.name;
-				toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
-				
-				const resultOutput = "output" in msg.result ? (typeof msg.result.output === "string" ? msg.result.output : JSON.stringify(msg.result.output)) : msg.result.error;
-				const detailsEl = toolMsg.createDiv({ cls: "sidekick-tool-result-details sidekick-hidden" });
-				void MarkdownRenderer.render(this.app, resultOutput, detailsEl, "", this);
-
-				toolMsg.addEventListener("click", () => {
-					detailsEl.toggleClass("sidekick-hidden", !detailsEl.hasClass("sidekick-hidden"));
-				});
-			}
-		}
-
-		if (this.isThinking) {
+	private renderTextMessage(msg: TextHistoryEntry) {
+		if (msg.role === "user") {
+			const userMsg = this.responseContainer.createDiv({ cls: "sidekick-message user-message" });
+			void MarkdownRenderer.render(this.app, msg.content, userMsg, "", this);
+		} else {
 			const agentMsg = this.responseContainer.createDiv({ cls: "sidekick-message agent-message" });
-			agentMsg.createEl("em", { text: "Thinking..." });
+			const copyBtn = agentMsg.createDiv({ cls: "sidekick-copy-button" });
+			setIcon(copyBtn, "copy");
+			copyBtn.addEventListener("click", () => {
+				void navigator.clipboard.writeText(msg.content);
+			});
+			void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
 		}
+	}
 
+	private renderToolMessage(msg: ToolCallHistoryEntry) {
+		const toolMsg = this.responseContainer.createDiv({ cls: "sidekick-message tool-message" });
+		const summary = msg.pretty || msg.call.name;
+		toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
+
+		const resultOutput = "output" in msg.result ? (typeof msg.result.output === "string" ? msg.result.output : JSON.stringify(msg.result.output)) : msg.result.error;
+		const detailsEl = toolMsg.createDiv({ cls: "sidekick-tool-result-details sidekick-hidden" });
+		void MarkdownRenderer.render(this.app, resultOutput, detailsEl, "", this);
+
+		toolMsg.addEventListener("click", () => {
+			detailsEl.toggleClass("sidekick-hidden", !detailsEl.hasClass("sidekick-hidden"));
+		});
+	}
+
+	private scrollToBottom() {
 		// Scroll to bottom after render
 		setTimeout(() => {
 			this.responseContainer.scrollTo(0, this.responseContainer.scrollHeight);

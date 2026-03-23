@@ -58,16 +58,15 @@ export default class SidekickPlugin extends Plugin {
 	}
 
 	/**
-	 * Opens or reveals the Sidekick view in the workspace.
+	 * Opens or reveals a view in the workspace by its type.
 	 */
-	async activateView() {
+	private async activateViewByType(viewType: string) {
 		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_SIDEKICK);
+		const leaves = workspace.getLeavesOfType(viewType);
 
 		if (leaves.length > 0) {
-			// A leaf with our view already exists, use that
 			const existingLeaf = leaves[0];
 			if (existingLeaf) {
 				leaf = existingLeaf;
@@ -78,7 +77,7 @@ export default class SidekickPlugin extends Plugin {
 
 		if (leaf) {
 			void leaf.setViewState({
-				type: VIEW_TYPE_SIDEKICK,
+				type: viewType,
 				active: true,
 			});
 
@@ -87,30 +86,16 @@ export default class SidekickPlugin extends Plugin {
 	}
 
 	/**
+	 * Opens or reveals the Sidekick view in the workspace.
+	 */
+	async activateView() {
+		await this.activateViewByType(VIEW_TYPE_SIDEKICK);
+	}
+
+	/**
 	 * Opens or reveals the Sidekick Log view in the workspace.
 	 */
 	async activateLogView() {
-		const { workspace } = this.app;
-
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_SIDEKICK_LOG);
-
-		if (leaves.length > 0) {
-			const existingLeaf = leaves[0];
-			if (existingLeaf) {
-				leaf = existingLeaf;
-			}
-		} else {
-			leaf = workspace.getRightLeaf(false);
-		}
-
-		if (leaf) {
-			void leaf.setViewState({
-				type: VIEW_TYPE_SIDEKICK_LOG,
-				active: true,
-			});
-
-			void workspace.revealLeaf(leaf);
-		}
+		await this.activateViewByType(VIEW_TYPE_SIDEKICK_LOG);
 	}
 }

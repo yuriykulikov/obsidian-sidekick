@@ -33,16 +33,9 @@ export async function readNote(app: App, file: TFile, detail: "structure" | "tex
 		if (trimmed.startsWith("# ") || trimmed.startsWith("## ") || trimmed.startsWith("### ")) {
 			return trimmed;
 		}
-		if (trimmed.includes("[[")) {
-			const linkRegex = /\[\[(.*?)(?:\|.*?)?]]/g;
-			const linksFound = [];
-			let match;
-			while ((match = linkRegex.exec(trimmed)) !== null) {
-				linksFound.push(match[1]);
-			}
-			if (linksFound.length > 0) {
-				return `Links: ${linksFound.join(", ")}`;
-			}
+		const linksFound = extractLinks(trimmed);
+		if (linksFound.length > 0) {
+			return `Links: ${linksFound.join(", ")}`;
 		}
 		return null;
 	}).filter((line): line is string => line !== null);
@@ -175,5 +168,23 @@ export function renderDiscoveredStructure(paths: readonly string[]): string {
 
 	buildTree(root);
 	return tree.trim();
+}
+
+/**
+ * Extracts Obsidian links from a string.
+ */
+function extractLinks(text: string): string[] {
+	if (!text.includes("[[")) {
+		return [];
+	}
+	const linkRegex = /\[\[(.*?)(?:\|.*?)?]]/g;
+	const linksFound: string[] = [];
+	let match;
+	while ((match = linkRegex.exec(text)) !== null) {
+		if (match[1]) {
+			linksFound.push(match[1]);
+		}
+	}
+	return linksFound;
 }
 

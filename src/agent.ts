@@ -234,25 +234,8 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 
         const results: FunctionResponse[] = [];
         for (const call of functionCalls) {
-            const tool = this.tools.find(t => t.getDeclaration().name === call.name);
-            let result: ToolResult;
-            if (tool) {
-                const [newState, res] = await tool.execute(this.state, (call.args as Record<string, unknown>) ?? {});
-                this.setState(newState);
-                result = res;
-                let logText: string;
-                if (result.pretty) {
-                    logText = result.pretty;
-                } else if ("output" in res) {
-                    logText = typeof res.output === "string" ? res.output : JSON.stringify(res.output);
-                } else {
-                    logText = res.error;
-                }
-                this.logger.markdown(`Called tool ${call.name}(${JSON.stringify(call.args)})`, logText);
-            } else {
-                this.logger.warn(`Tool ${call.name} not found.`);
-                result = { error: `Tool ${call.name} not found.` };
-            }
+            if (!call.name) continue;
+            const result = await this.executeTool(call.name, (call.args as Record<string, unknown>) ?? {});
 
             results.push({
                 name: call.name,
@@ -269,7 +252,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
                         type: "function_call",
                         role: "model",
                         call: {
-                            name: call.name!,
+                            name: call.name,
                             args: call.args as Record<string, unknown>
                         },
                         result: result,
@@ -283,9 +266,6 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
             message: [
                 ...results.map(r => {
                     const responseBody: Record<string, unknown> = { ...r.response as Record<string, unknown> };
-                    // verbose_result is for logging and LLM context, but not for the history rendering (handled in chat-view.ts)
-                    // The LLM should see the verbose result if provided.
-                    // If verbose_result is present, we might want to prioritize it for the LLM.
                     return {
                         functionResponse: {
                             name: r.name,
@@ -303,6 +283,29 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
         }
 
         return response;
+    }
+
+    private async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+        const tool = this.tools.find(t => t.getDeclaration().name === name);
+        let result: ToolResult;
+        if (tool) {
+            const [newState, res] = await tool.execute(this.state, args);
+            this.setState(newState);
+            result = res;
+            let logText: string;
+            if (result.pretty) {
+                logText = result.pretty;
+            } else if ("output" in res) {
+                logText = typeof res.output === "string" ? res.output : JSON.stringify(res.output);
+            } else {
+                logText = res.error;
+            }
+            this.logger.markdown(`Called tool ${name}(${JSON.stringify(args)})`, logText);
+        } else {
+            this.logger.warn(`Tool ${name} not found.`);
+            result = { error: `Tool ${name} not found.` };
+        }
+        return result;
     }
 
     /**
