@@ -31,6 +31,10 @@ For more information, see the [Design Document](docs/design-doc.md).
 
 Run `npm run dev` in plugin dir which should be in `Vault/.obsidian/plugins`
 
+## Linting
+
+Run `npm run lint` or `npm run lint:fix` to ensure code follows Biome's formatting and linting rules.
+
 ## Security & Privacy
 
 Sidekick uses the **Google Gemini API** (specifically the `gemini-3-flash-preview` model) to process your prompts and notes.

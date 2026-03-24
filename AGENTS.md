@@ -74,7 +74,7 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - **Do not use Notice** except for errors.
 
 **Before finishing a task**
-- **Run linting**: Run `npm run lint` and fix all errors and warnings.
+- **Run linting**: Run `npm run lint` or `npm run lint:fix` to ensure code follows Biome's formatting and linting rules.
 - **Run build**: Run `npm run build` to ensure the project compiles and bundles correctly.
 
 ## Common tasks
