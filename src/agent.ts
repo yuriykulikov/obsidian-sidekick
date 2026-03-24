@@ -1,25 +1,37 @@
-import { App } from "obsidian";
-import { Chat, CreateChatParameters, FunctionResponse, GenerateContentResponse, GoogleGenAI } from "@google/genai";
-import { AgentState, TextHistoryEntry, Tool, ToolCallHistoryEntry, ToolResult } from "./types";
-import { Logger } from "./utils/logger";
+import {
+  type Chat,
+  type CreateChatParameters,
+  type FunctionResponse,
+  type GenerateContentResponse,
+  GoogleGenAI,
+} from "@google/genai";
+import type { App } from "obsidian";
+import type {
+  AgentState,
+  TextHistoryEntry,
+  Tool,
+  ToolCallHistoryEntry,
+  ToolResult,
+} from "./types";
+import type { Logger } from "./utils/logger";
 import { refreshNotes, renderDiscoveredStructure } from "./utils/notes";
 
 export class SidekickAgent {
-    private genAI: GoogleGenAI;
-    private chatSession: Chat | null = null;
-    app: App;
-    state: AgentState;
-    logger: Logger;
-    tools: Tool[];
-    private onStateChange: (state: AgentState) => void;
-    private stopRequested: boolean = false;
+  private genAI: GoogleGenAI;
+  private chatSession: Chat | null = null;
+  app: App;
+  state: AgentState;
+  logger: Logger;
+  tools: Tool[];
+  private onStateChange: (state: AgentState) => void;
+  private stopRequested: boolean = false;
 
-    /**
-     * Returns the default system prompt for the agent.
-     * @returns The system prompt string.
-     */
-    static getSystemPrompt(): string {
-        let prompt = `You are a helpful assistant for Obsidian. 
+  /**
+   * Returns the default system prompt for the agent.
+   * @returns The system prompt string.
+   */
+  static getSystemPrompt(): string {
+    const prompt = `You are a helpful assistant for Obsidian. 
 Answer the user's question or ask follow-up questions based on the provided context.
 
 **Knowledge Organization:**
@@ -38,288 +50,398 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 - If you have enough information, synthesize a final answer instead of making more tool calls.
 `;
 
-        return prompt;
+    return prompt;
+  }
+
+  /**
+   * Initializes a new instance of the SidekickAgent.
+   * @param app - The Obsidian App instance.
+   * @param apiKey - The Google Gemini API key.
+   * @param state - The initial agent state.
+   * @param logger - The logger instance.
+   * @param tools - The list of tools available to the agent.
+   * @param onStateChange - Callback function to notify when the state changes.
+   */
+  constructor(
+    app: App,
+    apiKey: string,
+    state: AgentState,
+    logger: Logger,
+    tools: Tool[] = [],
+    onStateChange: (state: AgentState) => void,
+  ) {
+    this.app = app;
+    this.genAI = new GoogleGenAI({ apiKey });
+    this.state = state;
+    this.logger = logger;
+    this.tools = tools;
+    this.onStateChange = onStateChange;
+  }
+
+  /**
+   * Updates the internal state and notifies via onStateChange callback.
+   * @param newState - The new state to apply.
+   */
+  public setState(newState: AgentState): void {
+    this.state = newState;
+    this.onStateChange(this.state);
+  }
+
+  /**
+   * Processes the next user prompt by updating the state and running the agent loop.
+   * @param userPrompt - The user's input message.
+   * @returns A promise that resolves when the agent finishes processing.
+   */
+  async next(userPrompt: string): Promise<void> {
+    // Add current user message to state history
+    this.setState(
+      this.state.appendHistoryEntry({
+        type: "text",
+        role: "user",
+        content: userPrompt,
+      }),
+    );
+    this.logger.user(`User prompt: ${userPrompt}`);
+    await this.agentLoop();
+  }
+
+  /**
+   * Initializes the chat session if it doesn't already exist.
+   */
+  private createChatSession() {
+    if (!this.chatSession) {
+      if (this.state.history.length === 1) {
+        this.logger.info(`Creating new chat session`);
+      } else {
+        this.logger.info(
+          `Creating new chat session with ${this.state.history.length} history entries`,
+        );
+      }
+
+      const systemInstruction = SidekickAgent.getSystemPrompt();
+      this.logger.markdown(`System Prompt`, systemInstruction);
+
+      const params: CreateChatParameters = {
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: systemInstruction,
+          tools:
+            this.tools.length > 0
+              ? [
+                  {
+                    functionDeclarations: this.tools.map((t) =>
+                      t.getDeclaration(),
+                    ),
+                  },
+                ]
+              : undefined,
+        },
+        history: this.state.history
+          .filter((m): m is TextHistoryEntry => m.type === "text")
+          .map((m) => ({
+            role: m.role,
+            parts: [{ text: m.content }],
+          })),
+      };
+      this.chatSession = this.genAI.chats.create(params);
+    }
+  }
+
+  private async agentLoop(): Promise<void> {
+    this.createChatSession();
+    this.stopRequested = false;
+    let iterations = 0;
+    const maxIterations = 15;
+
+    while (true) {
+      iterations++;
+
+      let iterationResponse = await this.promtLLM();
+
+      const functionCalls = iterationResponse.functionCalls;
+
+      if (
+        this.stopRequested ||
+        iterations >= maxIterations ||
+        !functionCalls ||
+        functionCalls.length === 0
+      ) {
+        await this.finalizeLoop(
+          iterationResponse.text ?? "",
+          iterations,
+          maxIterations,
+        );
+        return;
+      }
+
+      iterationResponse = await this.handleFunctionCalls(iterationResponse);
+    }
+  }
+
+  private async finalizeLoop(
+    finalContent: string,
+    iterations: number,
+    maxIterations: number,
+  ): Promise<void> {
+    let postfix = "";
+    if (this.stopRequested) {
+      this.logger.warn("Agent loop stopped by user.");
+      postfix = "\n\nAgent loop stopped by user.";
+    } else if (iterations >= maxIterations) {
+      this.logger.warn(
+        `Max iterations (${maxIterations}) reached. Breaking loop.`,
+      );
+      postfix = `\n\nMax iterations (${maxIterations}) reached. Breaking loop.`;
     }
 
-    /**
-     * Initializes a new instance of the SidekickAgent.
-     * @param app - The Obsidian App instance.
-     * @param apiKey - The Google Gemini API key.
-     * @param state - The initial agent state.
-     * @param logger - The logger instance.
-     * @param tools - The list of tools available to the agent.
-     * @param onStateChange - Callback function to notify when the state changes.
-     */
-    constructor(app: App, apiKey: string, state: AgentState, logger: Logger, tools: Tool[] = [], onStateChange: (state: AgentState) => void) {
-        this.app = app;
-        this.genAI = new GoogleGenAI({ apiKey });
-        this.state = state;
-        this.logger = logger;
-        this.tools = tools;
-        this.onStateChange = onStateChange;
+    this.setState(
+      this.state.appendHistoryEntry({
+        type: "text",
+        role: "model",
+        content: finalContent + postfix,
+      }),
+    );
+  }
+
+  /**
+   * Sends a message to the LLM with the current note context and history.
+   * @returns A promise that resolves to the LLM response.
+   */
+  private async promtLLM(): Promise<GenerateContentResponse> {
+    this.setState(await refreshNotes(this.app, this.state));
+
+    // Find the last user prompt in history
+    const userEntries = this.state.history.filter(
+      (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
+    );
+    const lastUserEntry = userEntries[userEntries.length - 1];
+    const prompt = lastUserEntry ? lastUserEntry.content : "";
+    this.logger.info(`Sending message...`);
+    // Prepare context for the prompt from notes
+    const structureStr =
+      this.state.discoveredStructure.length > 0
+        ? (() => {
+            const rendered = renderDiscoveredStructure(
+              this.state.discoveredStructure,
+            );
+            this.logger.markdown(
+              "Discovered Vault Structure",
+              `\`\`\`\n${rendered}\n\`\`\``,
+            );
+            return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n\n`;
+          })()
+        : "";
+
+    const contextStr =
+      this.state.notes.size > 0
+        ? `# Notes\n\n${Array.from(this.state.notes.values())
+            .map((note) => {
+              let noteMd = `## Note [[${note.filename}]]\nPath: ${note.path}\n`;
+              if (note.folderSiblings && note.folderSiblings.length > 0) {
+                noteMd += `Siblings: ${note.folderSiblings.map((s) => `[[${s}]]`).join(", ")}\n`;
+              }
+              if (note.content) {
+                noteMd += `\n### Content\n\`\`\`\n${note.content}\n\`\`\`\n`;
+              } else if (note.structure) {
+                noteMd += `\n### Structure\n\`\`\`\n${note.structure}\n\`\`\`\n`;
+              }
+              this.logger.markdown(`Note ${note.filename}`, noteMd);
+              return noteMd;
+            })
+            .join("\n")}\n\n`
+        : "";
+
+    // Prepare history for the prompt to make it clear we are in a loop
+    const loopHistory = this.state.history.filter(
+      (h): h is ToolCallHistoryEntry => h.type === "function_call",
+    );
+    const historyStr =
+      loopHistory.length > 0
+        ? `# Tool execution history in this loop\n${loopHistory
+            .map((h) => {
+              const callArgs = JSON.stringify(h.call.args);
+              const resultText =
+                "output" in h.result
+                  ? typeof h.result.output === "string"
+                    ? h.result.output
+                    : JSON.stringify(h.result.output)
+                  : h.result.error;
+              this.logger.markdown(
+                `Tool Call ${h.call.name}(${callArgs})`,
+                resultText,
+              );
+              return `## Tool Call: \`${h.call.name}(${callArgs})\n${resultText}`;
+            })
+            .join("\n")}\n`
+        : "";
+
+    this.logger.info(`Prompt: ${prompt}`);
+
+    const message = `${structureStr}${contextStr}${historyStr}\n# User Question\n${prompt}`;
+
+    this.logger.markdown(`Full prompt`, message);
+
+    const response = await this.chatSession?.sendMessage({
+      message: message,
+    });
+
+    if (!response) {
+      throw new Error("Chat session not initialized or failed to get response");
     }
 
-    /**
-     * Updates the internal state and notifies via onStateChange callback.
-     * @param newState - The new state to apply.
-     */
-    public setState(newState: AgentState): void {
-        this.state = newState;
-        this.onStateChange(this.state);
+    this.logResponse(response, "to prompt the LLM");
+    return response;
+  }
+
+  /**
+   * Handles function calls from the model by executing tools and returning results.
+   * @param iterationResponse - The model response containing function calls and potentially text.
+   * @returns A promise that resolves to the tool results.
+   */
+  private async handleFunctionCalls(
+    iterationResponse: GenerateContentResponse,
+  ): Promise<GenerateContentResponse> {
+    const functionCalls = iterationResponse.functionCalls;
+    if (!functionCalls || functionCalls.length === 0) {
+      return iterationResponse;
+    }
+    if (iterationResponse.text) {
+      this.logger.info(`LLM Response: ${iterationResponse.text}`);
+      this.setState(
+        this.state.appendHistoryEntry({
+          type: "text",
+          role: "model",
+          content: iterationResponse.text,
+        }),
+      );
     }
 
-    /**
-     * Processes the next user prompt by updating the state and running the agent loop.
-     * @param userPrompt - The user's input message.
-     * @returns A promise that resolves when the agent finishes processing.
-     */
-    async next(userPrompt: string): Promise<void> {
-        // Add current user message to state history
-        this.setState(this.state.appendHistoryEntry({ type: "text", role: "user", content: userPrompt }));
-		this.logger.user(`User prompt: ${userPrompt}`);
-        await this.agentLoop();
+    const results: FunctionResponse[] = [];
+    for (const call of functionCalls) {
+      if (!call.name) continue;
+      const result = await this.executeTool(
+        call.name,
+        (call.args as Record<string, unknown>) ?? {},
+      );
+
+      results.push({
+        name: call.name,
+        id: call.id,
+        response: result,
+      });
+
+      // Add this function call and its result to history immediately
+      this.setState(
+        this.state.appendHistoryEntry({
+          type: "function_call",
+          role: "model",
+          call: {
+            name: call.name,
+            args: call.args as Record<string, unknown>,
+          },
+          result: result,
+          pretty: result.pretty,
+        }),
+      );
     }
 
-	/**
-	 * Initializes the chat session if it doesn't already exist.
-	 */
-	private createChatSession() {
-		if (!this.chatSession) {
-			if (this.state.history.length == 1) {
-				this.logger.info(`Creating new chat session`);
-			} else  {
-				this.logger.info(`Creating new chat session with ${this.state.history.length} history entries`);
-			}
+    const response = await this.chatSession?.sendMessage({
+      message: [
+        ...results.map((r) => {
+          const responseBody: Record<string, unknown> = {
+            ...(r.response as Record<string, unknown>),
+          };
+          return {
+            functionResponse: {
+              name: r.name,
+              id: r.id,
+              response: responseBody,
+            } as FunctionResponse,
+          };
+        }),
+      ],
+    });
 
-			const systemInstruction = SidekickAgent.getSystemPrompt();
-			this.logger.markdown(`System Prompt`, systemInstruction);
-
-			const params: CreateChatParameters = {
-				model: "gemini-3-flash-preview",
-				config: {
-					systemInstruction: systemInstruction,
-					tools: this.tools.length > 0 ? [{
-						functionDeclarations: this.tools.map(t => t.getDeclaration())
-					}] : undefined
-				},
-				history: this.state.history
-					.filter((m): m is TextHistoryEntry => m.type === "text")
-					.map(m => ({
-						role: m.role,
-						parts: [{ text: m.content }]
-					}))
-			};
-			this.chatSession = this.genAI.chats.create(params);
-		}
-	}
-
-    private async agentLoop(): Promise<void> {
-        this.createChatSession();
-        this.stopRequested = false;
-        let iterations = 0;
-        const maxIterations = 15;
-
-        while (true) {
-            iterations++;
-
-			let iterationResponse = await this.promtLLM();
-
-            const functionCalls = iterationResponse.functionCalls;
-
-            if (this.stopRequested || iterations >= maxIterations || !functionCalls || functionCalls.length === 0) {
-                await this.finalizeLoop(iterationResponse.text ?? "", iterations, maxIterations);
-                return;
-            }
-
-            iterationResponse = await this.handleFunctionCalls(iterationResponse);
-        }
+    if (!response) {
+      throw new Error("Chat session not initialized or failed to get response");
     }
 
-	private async finalizeLoop(finalContent: string, iterations: number, maxIterations: number): Promise<void> {
-		let postfix = "";
-		if (this.stopRequested) {
-			this.logger.warn("Agent loop stopped by user.");
-			postfix = "\n\nAgent loop stopped by user."
-		} else if (iterations >= maxIterations) {
-			this.logger.warn(`Max iterations (${maxIterations}) reached. Breaking loop.`);
-			postfix = "\n\nMax iterations (${maxIterations}) reached. Breaking loop."
-		}
-
-		this.setState(this.state.appendHistoryEntry({type: "text", role: "model", content: finalContent + postfix}));
-	}
-
-	/**
-     * Sends a message to the LLM with the current note context and history.
-     * @returns A promise that resolves to the LLM response.
-     */
-    private async promtLLM(): Promise<GenerateContentResponse> {
-		this.setState(await refreshNotes(this.app, this.state));
-
-        // Find the last user prompt in history
-        const userEntries = this.state.history.filter((h): h is TextHistoryEntry => h.type === "text" && h.role === "user");
-        const lastUserEntry = userEntries[userEntries.length - 1];
-        const prompt = lastUserEntry ? lastUserEntry.content : "";
-		this.logger.info(`Sending message...`);
-        // Prepare context for the prompt from notes
-        const structureStr = this.state.discoveredStructure.length > 0
-            ? (() => {
-                const rendered = renderDiscoveredStructure(this.state.discoveredStructure);
-                this.logger.markdown("Discovered Vault Structure", `\`\`\`\n${rendered}\n\`\`\``);
-                return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n\n`;
-            })()
-            : "";
-
-        const contextStr = this.state.notes.size > 0
-            ? `# Notes\n\n${Array.from(this.state.notes.values()).map(note => {
-                let noteMd = `## Note [[${note.filename}]]\nPath: ${note.path}\n`;
-                if (note.folderSiblings && note.folderSiblings.length > 0) {
-                    noteMd += `Siblings: ${note.folderSiblings.map(s => `[[${s}]]`).join(", ")}\n`;
-                }
-                if (note.content) {
-                    noteMd += `\n### Content\n\`\`\`\n${note.content}\n\`\`\`\n`;
-                } else if (note.structure) {
-                    noteMd += `\n### Structure\n\`\`\`\n${note.structure}\n\`\`\`\n`;
-                }
-				this.logger.markdown(`Note ${note.filename}`, noteMd);
-                return noteMd;
-            }).join("\n")}\n\n`
-            : "";
-
-        // Prepare history for the prompt to make it clear we are in a loop
-        const loopHistory = this.state.history.filter((h): h is ToolCallHistoryEntry => h.type === "function_call");
-        const historyStr = loopHistory.length > 0
-            ? `# Tool execution history in this loop\n${loopHistory.map(h => {
-                const callArgs = JSON.stringify(h.call.args);
-                const resultText = "output" in h.result ? (typeof h.result.output === "string" ? h.result.output : JSON.stringify(h.result.output)) : h.result.error;
-				this.logger.markdown(`Tool Call ${h.call.name}(${callArgs})`, resultText);
-				return `## Tool Call: \`${h.call.name}(${callArgs})\n${resultText}`;
-            }).join("\n")}\n`
-            : "";
-
-		this.logger.info(`Prompt: ${prompt}`);
-
-        const message = `${structureStr}${contextStr}${historyStr}\n# User Question\n${prompt}`;
-
-		this.logger.markdown(`Full prompt`, message);
-
-        const response = await this.chatSession!.sendMessage({
-            message: message,
-        });
-
-        this.logResponse(response, "to prompt the LLM");
-        return response;
+    this.logResponse(response, "to send function responses");
+    if (response.text) {
+      this.logger.info(
+        `Final model response after function calls: ${response.text}`,
+      );
     }
 
-    /**
-     * Handles function calls from the model by executing tools and returning results.
-     * @param iterationResponse - The model response containing function calls and potentially text.
-     * @returns A promise that resolves to the tool results.
-     */
-    private async handleFunctionCalls(iterationResponse: GenerateContentResponse): Promise<GenerateContentResponse> {
-		const functionCalls = iterationResponse.functionCalls;
-		if (!functionCalls || functionCalls.length === 0) {
-			return iterationResponse;
-		}
-        if (iterationResponse.text) {
-            this.logger.info(`LLM Response: ${iterationResponse.text}`);
-            this.setState(this.state.appendHistoryEntry({ type: "text", role: "model", content: iterationResponse.text }));
-        }
+    return response;
+  }
 
-        const results: FunctionResponse[] = [];
-        for (const call of functionCalls) {
-            if (!call.name) continue;
-            const result = await this.executeTool(call.name, (call.args as Record<string, unknown>) ?? {});
-
-            results.push({
-                name: call.name,
-                id: call.id,
-                response: result
-            });
-
-            // Add this function call and its result to history immediately
-            this.setState(this.state.appendHistoryEntry({
-                type: "function_call",
-                role: "model",
-                call: {
-                    name: call.name,
-                    args: call.args as Record<string, unknown>
-                },
-                result: result,
-                pretty: result.pretty
-            }));
-        }
-		
-        const response = await this.chatSession!.sendMessage({
-            message: [
-                ...results.map(r => {
-                    const responseBody: Record<string, unknown> = { ...r.response as Record<string, unknown> };
-                    return {
-                        functionResponse: {
-                            name: r.name,
-                            id: r.id,
-                            response: responseBody
-                        } as FunctionResponse
-                    };
-                }),
-            ]
-        });
-
-        this.logResponse(response, "to send function responses");
-        if (response.text) {
-            this.logger.info(`Final model response after function calls: ${response.text}`);
-        }
-
-        return response;
+  private async executeTool(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<ToolResult> {
+    const tool = this.tools.find((t) => t.getDeclaration().name === name);
+    let result: ToolResult;
+    if (tool) {
+      const [newState, res] = await tool.execute(this.state, args);
+      this.setState(newState);
+      result = res;
+      let logText: string;
+      if (result.pretty) {
+        logText = result.pretty;
+      } else if ("output" in res) {
+        logText =
+          typeof res.output === "string"
+            ? res.output
+            : JSON.stringify(res.output);
+      } else {
+        logText = res.error;
+      }
+      this.logger.markdown(
+        `Called tool ${name}(${JSON.stringify(args)})`,
+        logText,
+      );
+    } else {
+      this.logger.warn(`Tool ${name} not found.`);
+      result = { error: `Tool ${name} not found.` };
     }
+    return result;
+  }
 
-    private async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
-        const tool = this.tools.find(t => t.getDeclaration().name === name);
-        let result: ToolResult;
-        if (tool) {
-            const [newState, res] = await tool.execute(this.state, args);
-            this.setState(newState);
-            result = res;
-            let logText: string;
-            if (result.pretty) {
-                logText = result.pretty;
-            } else if ("output" in res) {
-                logText = typeof res.output === "string" ? res.output : JSON.stringify(res.output);
-            } else {
-                logText = res.error;
-            }
-            this.logger.markdown(`Called tool ${name}(${JSON.stringify(args)})`, logText);
-        } else {
-            this.logger.warn(`Tool ${name} not found.`);
-            result = { error: `Tool ${name} not found.` };
-        }
-        return result;
-    }
+  /**
+   * Signals the agent to stop its current loop.
+   */
+  stop() {
+    this.stopRequested = true;
+  }
 
-    /**
-     * Signals the agent to stop its current loop.
-     */
-    stop() {
-        this.stopRequested = true;
+  /**
+   * Logs detailed information about the LLM response.
+   * @param response - The GenerateContentResponse from the model.
+   * @param forWhat - Optional description of what the response was for.
+   */
+  private logResponse(
+    response: GenerateContentResponse,
+    forWhat?: string,
+  ): void {
+    const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
+    const logMsg = forWhat
+      ? `Sent ${forWhat}, used ${tokens} tokens`
+      : `Used ${tokens} LLM tokens`;
+    this.logger.info(logMsg);
+    if (response.promptFeedback) {
+      this.logger.info(
+        `Prompt feedback: ${JSON.stringify(response.promptFeedback)}`,
+      );
     }
-
-    /**
-     * Logs detailed information about the LLM response.
-     * @param response - The GenerateContentResponse from the model.
-     * @param forWhat - Optional description of what the response was for.
-     */
-    private logResponse(response: GenerateContentResponse, forWhat?: string): void {
-        const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
-        const logMsg = forWhat ? `Sent ${forWhat}, used ${tokens} tokens` : `Used ${tokens} LLM tokens`;
-        this.logger.info(logMsg);
-		if (response.promptFeedback) {
-			this.logger.info(`Prompt feedback: ${JSON.stringify(response.promptFeedback)}`);
-		}
-		if (response.functionCalls && response.functionCalls.length > 0) {
-            const formattedCalls = response.functionCalls.map(call => `${call.name}(${JSON.stringify(call.args)})`).join(", ");
-			this.logger.info(`LLM requested: [${formattedCalls}]`);
-		}
-		if (response.data) {
-			this.logger.info(`Response data: ${response.data}`);
-		}
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      const formattedCalls = response.functionCalls
+        .map((call) => `${call.name}(${JSON.stringify(call.args)})`)
+        .join(", ");
+      this.logger.info(`LLM requested: [${formattedCalls}]`);
     }
+    if (response.data) {
+      this.logger.info(`Response data: ${response.data}`);
+    }
+  }
 }

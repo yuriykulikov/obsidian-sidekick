@@ -1,233 +1,238 @@
 .sidekick-header {
-	padding: 5px 10px;
-	display: flex;
-	justify-content: flex-end;
-	align-items: center;
-	position: absolute;
-	top: 0;
-	right: 0;
-	z-index: 10;
-	gap: 4px;
+  padding: 5px 10px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  gap: 4px;
 }
 
 .sidekick-header-button {
-	background-color: transparent !important;
-	box-shadow: none !important;
-	border: none !important;
-	color: var(--text-muted) !important;
-	padding: 4px;
-	height: auto;
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: var(--text-muted);
+  padding: 4px;
+  height: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidekick-header-button:hover {
-	color: var(--interactive-accent) !important;
+  color: var(--interactive-accent);
 }
 
 .sidekick-new-task-button {
-	font-size: 0.8em;
-	padding: 4px 8px;
+  font-size: 0.8em;
+  padding: 4px 8px;
 }
 
 .sidekick-notes-context {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 5px;
-	padding: 5px 10px;
-	align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 5px 10px;
+  align-items: center;
 }
 
 .sidekick-notes-context-label {
-	font-size: 0.75em;
-	color: var(--text-muted);
-	font-weight: bold;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  font-weight: bold;
 }
 
 .sidekick-note-tag {
-	font-size: 0.75em;
-	background-color: var(--background-secondary);
-	padding: 2px 6px;
-	border-radius: 4px;
-	display: flex;
-	align-items: center;
-	border: 1px solid transparent;
+  font-size: 0.75em;
+  background-color: var(--background-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
 }
 
 .sidekick-note-active {
-	font-weight: bold;
+  font-weight: bold;
 }
 
 .sidekick-note-remove {
-	margin-left: 4px;
-	cursor: pointer;
-	color: var(--text-muted);
+  margin-left: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
 }
 
 .sidekick-note-remove:hover {
-	color: var(--text-error);
+  color: var(--text-error);
 }
 
 .sidekick-view-container {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
 }
 
 .sidekick-response-container {
-	flex: 1;
-	overflow-y: auto;
-	padding: 10px;
-	margin-top: 30px; /* Space for the floating New Task button */
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  margin-top: 30px; /* Space for the floating New Task button */
 }
 
 .sidekick-input-container {
-	padding: 10px;
-	display: flex;
-	position: relative;
+  padding: 10px;
+  display: flex;
+  position: relative;
 }
 
 .sidekick-input {
-	width: 100%;
-	height: 100px;
-	resize: none;
+  width: 100%;
+  height: 100px;
+  resize: none;
 }
 
-.sidekick-send-button, .sidekick-add-note-button, .sidekick-stop-button {
-	position: absolute;
-	bottom: 15px;
-	padding: 4px;
-	height: 30px;
-	width: 30px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background-color: transparent !important;
-	box-shadow: none !important;
-	border: none !important;
-	color: var(--text-muted);
-	border-radius: 5px;
-	cursor: pointer;
+.sidekick-send-button,
+.sidekick-add-note-button,
+.sidekick-stop-button {
+  position: absolute;
+  bottom: 15px;
+  padding: 4px;
+  height: 30px;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: var(--text-muted);
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-.sidekick-send-button, .sidekick-stop-button {
-	right: 15px;
+.sidekick-send-button,
+.sidekick-stop-button {
+  right: 15px;
 }
 
 .sidekick-add-note-button {
-	right: 50px;
+  right: 50px;
 }
 
-.sidekick-send-button:hover, .sidekick-stop-button:hover, .sidekick-add-note-button:hover {
-	color: var(--interactive-accent);
+.sidekick-send-button:hover,
+.sidekick-stop-button:hover,
+.sidekick-add-note-button:hover {
+  color: var(--interactive-accent);
 }
 
-.sidekick-send-button svg, .sidekick-stop-button svg, .sidekick-add-note-button svg {
-	width: 18px;
-	height: 18px;
+.sidekick-send-button svg,
+.sidekick-stop-button svg,
+.sidekick-add-note-button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .sidekick-hidden {
-	display: none !important;
+  display: none;
 }
 
 .sidekick-message {
-	margin-bottom: 10px;
-	padding: 5px;
-	border-radius: 5px;
-	user-select: text;
+  margin-bottom: 10px;
+  padding: 5px;
+  border-radius: 5px;
+  user-select: text;
 }
 
 .user-message {
-	background-color: var(--background-secondary-alt);
+  background-color: var(--background-secondary-alt);
 }
 
 .agent-message {
-	background-color: var(--background-primary-alt);
-	position: relative;
+  background-color: var(--background-primary-alt);
+  position: relative;
 }
 
 .sidekick-copy-button {
-	position: absolute;
-	top: 5px;
-	right: 5px;
-	opacity: 0.3;
-	cursor: pointer;
-	padding: 4px;
-	border-radius: 4px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 5;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  opacity: 0.3;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
 }
 
 .sidekick-copy-button:hover {
-	opacity: 1;
-	background-color: var(--background-secondary-alt);
+  opacity: 1;
+  background-color: var(--background-secondary-alt);
 }
 
 .sidekick-copy-button svg {
-	width: 16px;
-	height: 16px;
+  width: 16px;
+  height: 16px;
 }
 
 .tool-message {
-	background-color: var(--background-secondary);
-	border-left: 3px solid var(--text-accent);
-	font-size: 0.85em;
-	padding: 4px 8px;
-	margin-bottom: 4px;
-	color: var(--text-muted);
-	cursor: pointer;
+  background-color: var(--background-secondary);
+  border-left: 3px solid var(--text-accent);
+  font-size: 0.85em;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
 }
 
 .tool-message:hover {
-	background-color: var(--background-secondary-alt);
+  background-color: var(--background-secondary-alt);
 }
 
 .sidekick-tool-result-summary {
-	font-family: var(--font-monospace);
-	color: var(--text-success);
-	display: block;
+  font-family: var(--font-monospace);
+  color: var(--text-success);
+  display: block;
 }
 
 .sidekick-tool-result-details {
-	margin-top: 8px;
-	padding-top: 8px;
-	border-top: 1px solid var(--background-modifier-border);
-	color: var(--text-normal);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
 }
 
 /* Log View Styles */
 .sidekick-log-container {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-
 .sidekick-log-messages {
-	flex: 1;
-	overflow-y: auto;
-	padding: 10px;
-	font-family: var(--font-monospace);
-	font-size: 0.85em;
-	white-space: pre-wrap;
-	user-select: text;
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  user-select: text;
 }
 
 .sidekick-log-entry {
-	margin-top: 8px;
-	padding-top: 8px;
-	border-top: 1px solid var(--background-modifier-border);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
 }
 
 .sidekick-log-user {
-	background-color: var(--background-secondary-alt);
-	padding: 8px;
-	border-top: 1px solid var(--interactive-accent);
+  background-color: var(--background-secondary-alt);
+  padding: 8px;
+  border-top: 1px solid var(--interactive-accent);
 }
-

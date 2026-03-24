@@ -1,64 +1,80 @@
-import { App, TFile } from "obsidian";
-import { AgentState, Note } from "../types";
+import { type App, TFile } from "obsidian";
+import { AgentState, type Note } from "../types";
 
 /**
  * Reads a note's content, links, and backlinks.
  */
-export async function readNote(app: App, file: TFile, detail: "structure" | "text" = "text"): Promise<Note> {
-	const filename = file.basename;
-	const content = await app.vault.read(file);
+export async function readNote(
+  app: App,
+  file: TFile,
+  detail: "structure" | "text" = "text",
+): Promise<Note> {
+  const filename = file.basename;
+  const content = await app.vault.read(file);
 
-	const links: string[] = [];
-	const backlinks: string[] = [];
+  const links: string[] = [];
+  const backlinks: string[] = [];
 
-	const cache = app.metadataCache.getFileCache(file);
-	if (cache?.links) {
-		for (const link of cache.links) {
-			links.push(link.link);
-		}
-	}
+  const cache = app.metadataCache.getFileCache(file);
+  if (cache?.links) {
+    for (const link of cache.links) {
+      links.push(link.link);
+    }
+  }
 
-	const resolvedLinks = app.metadataCache.resolvedLinks;
-	for (const [sourcePath, targets] of Object.entries(resolvedLinks)) {
-		if (targets[file.path]) {
-			const sourceFile = app.vault.getAbstractFileByPath(sourcePath);
-			if (sourceFile instanceof TFile) {
-				backlinks.push(sourceFile.basename);
-			}
-		}
-	}
+  const resolvedLinks = app.metadataCache.resolvedLinks;
+  for (const [sourcePath, targets] of Object.entries(resolvedLinks)) {
+    if (targets[file.path]) {
+      const sourceFile = app.vault.getAbstractFileByPath(sourcePath);
+      if (sourceFile instanceof TFile) {
+        backlinks.push(sourceFile.basename);
+      }
+    }
+  }
 
-	const structure = content.split('\n').map(line => {
-		const trimmed = line.trim();
-		if (trimmed.startsWith("# ") || trimmed.startsWith("## ") || trimmed.startsWith("### ")) {
-			return trimmed;
-		}
-		const linksFound = extractLinks(trimmed);
-		if (linksFound.length > 0) {
-			return `Links: ${linksFound.join(", ")}`;
-		}
-		return null;
-	}).filter((line): line is string => line !== null);
+  const structure = content
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (
+        trimmed.startsWith("# ") ||
+        trimmed.startsWith("## ") ||
+        trimmed.startsWith("### ")
+      ) {
+        return trimmed;
+      }
+      const linksFound = extractLinks(trimmed);
+      if (linksFound.length > 0) {
+        return `Links: ${linksFound.join(", ")}`;
+      }
+      return null;
+    })
+    .filter((line): line is string => line !== null);
 
-	const parentFolder = file.parent;
-	let folderSiblings: string[] = [];
-	if (parentFolder) {
-		folderSiblings = parentFolder.children
-			.filter(child => child instanceof TFile && child.extension === "md" && child.path !== file.path)
-			.map(child => child.name);
-	}
+  const parentFolder = file.parent;
+  let folderSiblings: string[] = [];
+  if (parentFolder) {
+    folderSiblings = parentFolder.children
+      .filter(
+        (child) =>
+          child instanceof TFile &&
+          child.extension === "md" &&
+          child.path !== file.path,
+      )
+      .map((child) => child.name);
+  }
 
-	return {
-		filename: filename,
-		path: file.path,
-		content: detail === "text" ? content : null,
-		links: [...new Set(links)],
-		backlinks: [...new Set(backlinks)],
-		active: false,
-		structure: (detail === "structure") ? structure.join('\n') : null,
-		parentPath: parentFolder?.path || "/",
-		folderSiblings: folderSiblings
-	};
+  return {
+    filename: filename,
+    path: file.path,
+    content: detail === "text" ? content : null,
+    links: [...new Set(links)],
+    backlinks: [...new Set(backlinks)],
+    active: false,
+    structure: detail === "structure" ? structure.join("\n") : null,
+    parentPath: parentFolder?.path || "/",
+    folderSiblings: folderSiblings,
+  };
 }
 
 /**
@@ -67,140 +83,161 @@ export async function readNote(app: App, file: TFile, detail: "structure" | "tex
  * 2. If prompts in history, just deactivate the old active note(s)
  * 3. Add/set the new note to active
  */
-export async function setActiveNote(app: App, state: AgentState, basename: string): Promise<AgentState> {
-	const hasPrompts = state.history.some(entry => entry.role === "user");
-	const notesCopy = new Map<string, Note>(state.notes);
-	let discoveredStructure = [...state.discoveredStructure];
+export async function setActiveNote(
+  app: App,
+  state: AgentState,
+  basename: string,
+): Promise<AgentState> {
+  const hasPrompts = state.history.some((entry) => entry.role === "user");
+  const notesCopy = new Map<string, Note>(state.notes);
+  let discoveredStructure = [...state.discoveredStructure];
 
-	// Deactivate or remove other active notes
-	for (const [name, note] of notesCopy) {
-		if (note.active && name !== basename) {
-			if (hasPrompts) {
-				notesCopy.set(name, { ...note, active: false });
-			} else {
-				notesCopy.delete(name);
-			}
-		}
-	}
+  // Deactivate or remove other active notes
+  for (const [name, note] of notesCopy) {
+    if (note.active && name !== basename) {
+      if (hasPrompts) {
+        notesCopy.set(name, { ...note, active: false });
+      } else {
+        notesCopy.delete(name);
+      }
+    }
+  }
 
-	// Add or activate the target note
-	let current = notesCopy.get(basename);
-	if (!current) {
-		const file = app.metadataCache.getFirstLinkpathDest(basename, "");
-		if (file) {
-			current = await readNote(app, file);
-			discoveredStructure = Array.from(new Set([...discoveredStructure, file.path]));
-		}
-	}
+  // Add or activate the target note
+  let current = notesCopy.get(basename);
+  if (!current) {
+    const file = app.metadataCache.getFirstLinkpathDest(basename, "");
+    if (file) {
+      current = await readNote(app, file);
+      discoveredStructure = Array.from(
+        new Set([...discoveredStructure, file.path]),
+      );
+    }
+  }
 
-	if (current) {
-		notesCopy.set(basename, { ...current, active: true });
-	}
+  if (current) {
+    notesCopy.set(basename, { ...current, active: true });
+  }
 
-	return state.replaceNotes(notesCopy).appendDiscoveredStructure(discoveredStructure);
+  return state
+    .replaceNotes(notesCopy)
+    .appendDiscoveredStructure(discoveredStructure);
 }
 
 /**
  * Adds a note to the agent's context by its basename.
  */
-export async function addNote(app: App, state: AgentState, basename: string): Promise<AgentState> {
-	if (state.notes.has(basename)) {
-		return state;
-	}
+export async function addNote(
+  app: App,
+  state: AgentState,
+  basename: string,
+): Promise<AgentState> {
+  if (state.notes.has(basename)) {
+    return state;
+  }
 
-	const file = app.metadataCache.getFirstLinkpathDest(basename, "");
-	if (!file) {
-		return state;
-	}
+  const file = app.metadataCache.getFirstLinkpathDest(basename, "");
+  if (!file) {
+    return state;
+  }
 
-	const newNote = await readNote(app, file);
+  const newNote = await readNote(app, file);
 
-	return state.appendNote(basename, newNote).appendDiscoveredStructure([file.path]);
+  return state
+    .appendNote(basename, newNote)
+    .appendDiscoveredStructure([file.path]);
 }
 
 /**
  * Refreshes all notes in the agent's context.
  */
-export async function refreshNotes(app: App, state: AgentState): Promise<AgentState> {
-	const newNotes = new Map<string, Note>();
-	const currentDiscoveredStructure = new Set(state.discoveredStructure);
+export async function refreshNotes(
+  app: App,
+  state: AgentState,
+): Promise<AgentState> {
+  const newNotes = new Map<string, Note>();
+  const currentDiscoveredStructure = new Set(state.discoveredStructure);
 
-	for (const [basename, note] of state.notes) {
-		const file = app.vault.getAbstractFileByPath(note.path);
-		if (file instanceof TFile) {
-			const refreshedNote = await readNote(app, file, note.content ? "text" : "structure");
-			newNotes.set(basename, { ...refreshedNote, active: note.active });
-		} else {
-			// If file is gone, remove it from context
-			currentDiscoveredStructure.delete(note.path);
-		}
-	}
+  for (const [basename, note] of state.notes) {
+    const file = app.vault.getAbstractFileByPath(note.path);
+    if (file instanceof TFile) {
+      const refreshedNote = await readNote(
+        app,
+        file,
+        note.content ? "text" : "structure",
+      );
+      newNotes.set(basename, { ...refreshedNote, active: note.active });
+    } else {
+      // If file is gone, remove it from context
+      currentDiscoveredStructure.delete(note.path);
+    }
+  }
 
-	return new AgentState(
-		state.history,
-		newNotes,
-		Array.from(currentDiscoveredStructure)
-	);
+  return new AgentState(
+    state.history,
+    newNotes,
+    Array.from(currentDiscoveredStructure),
+  );
 }
 
 /**
  * Renders a list of paths as a markdown tree.
  */
 export function renderDiscoveredStructure(paths: readonly string[]): string {
-	if (paths.length === 0) {
-		return "No structure discovered yet.";
-	}
+  if (paths.length === 0) {
+    return "No structure discovered yet.";
+  }
 
-	interface TreeNode {
-		[key: string]: TreeNode;
-	}
+  interface TreeNode {
+    [key: string]: TreeNode;
+  }
 
-	const sortedPaths = [...paths].sort();
-	const root: TreeNode = {};
+  const sortedPaths = [...paths].sort();
+  const root: TreeNode = {};
 
-	for (const path of sortedPaths) {
-		const parts = path.split("/");
-		let current = root;
-		for (const part of parts) {
-			if (!current[part]) {
-				current[part] = {};
-			}
-			current = current[part];
-		}
-	}
+  for (const path of sortedPaths) {
+    const parts = path.split("/");
+    let current = root;
+    for (const part of parts) {
+      if (!current[part]) {
+        current[part] = {};
+      }
+      current = current[part];
+    }
+  }
 
-	let tree = "";
-	const buildTree = (obj: TreeNode, indent: number = 0) => {
-		const keys = Object.keys(obj).sort();
-		for (const key of keys) {
-			const child = obj[key];
-			if (child) {
-				const isFolder = Object.keys(child).length > 0;
-				tree += "  ".repeat(indent) + (isFolder ? "- 📁 " : "- 📄 ") + key + "\n";
-				buildTree(child, indent + 1);
-			}
-		}
-	};
+  let tree = "";
+  const buildTree = (obj: TreeNode, indent: number = 0) => {
+    const keys = Object.keys(obj).sort();
+    for (const key of keys) {
+      const child = obj[key];
+      if (child) {
+        const isFolder = Object.keys(child).length > 0;
+        tree += `${"  ".repeat(indent) + (isFolder ? "- 📁 " : "- 📄 ") + key}\n`;
+        buildTree(child, indent + 1);
+      }
+    }
+  };
 
-	buildTree(root);
-	return tree.trim();
+  buildTree(root);
+  return tree.trim();
 }
 
 /**
  * Extracts Obsidian links from a string.
  */
 function extractLinks(text: string): string[] {
-	if (!text.includes("[[")) {
-		return [];
-	}
-	const linkRegex = /\[\[(.*?)(?:\|.*?)?]]/g;
-	const linksFound: string[] = [];
-	let match;
-	while ((match = linkRegex.exec(text)) !== null) {
-		if (match[1]) {
-			linksFound.push(match[1]);
-		}
-	}
-	return linksFound;
+  if (!text.includes("[[")) {
+    return [];
+  }
+  const linkRegex = /\[\[(.*?)(?:\|.*?)?]]/g;
+  const linksFound: string[] = [];
+  let match = linkRegex.exec(text);
+  while (match !== null) {
+    if (match[1]) {
+      linksFound.push(match[1]);
+    }
+    match = linkRegex.exec(text);
+  }
+  return linksFound;
 }
-

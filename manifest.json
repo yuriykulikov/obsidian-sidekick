@@ -1,11 +1,11 @@
 {
-	"id": "obsidian-sidekick",
-	"name": "Sidekick",
-	"version": "0.0.1",
-	"minAppVersion": "0.15.0",
-	"description": "Every superhero needs a sidekick.",
-	"author": "Yuriy and Junie",
-	"authorUrl": "https://github.com/yuriykulikov",
-	"fundingUrl": "https://github.com/yuriykulikov/obsidian-sidekick",
-	"isDesktopOnly": false
+  "id": "obsidian-sidekick",
+  "name": "Sidekick",
+  "version": "0.0.1",
+  "minAppVersion": "0.15.0",
+  "description": "Every superhero needs a sidekick.",
+  "author": "Yuriy and Junie",
+  "authorUrl": "https://github.com/yuriykulikov",
+  "fundingUrl": "https://github.com/yuriykulikov/obsidian-sidekick",
+  "isDesktopOnly": false
 }
