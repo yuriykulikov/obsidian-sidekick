@@ -47,7 +47,7 @@ export class SearchTool implements Tool {
         state,
         {
           output: `No notes or folders found matching "${query}".`,
-          pretty: `Search ${query}: no matches"`,
+          pretty: `Search for "${query}": no matches`,
         },
       ];
     }
@@ -75,7 +75,7 @@ export class SearchTool implements Tool {
       newState,
       {
         output: output.trim(),
-        pretty: `Search ${query}: ${matches.length} matches`,
+        pretty: `Search for "${query}": ${matches.length} matches`,
       },
     ];
   }
