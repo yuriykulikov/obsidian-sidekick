@@ -93,6 +93,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
    * @returns A promise that resolves when the agent finishes processing.
    */
   async next(userPrompt: string): Promise<void> {
+    this.setState(await refreshNotes(this.app, this.state));
     // Add current user message to state history
     this.setState(
       this.state.appendHistoryEntry({
@@ -208,8 +209,6 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
    * @returns A promise that resolves to the LLM response.
    */
   private async promtLLM(): Promise<GenerateContentResponse> {
-    this.setState(await refreshNotes(this.app, this.state));
-
     // Find the last user prompt in history
     const userEntries = this.state.history.filter(
       (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
