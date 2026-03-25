@@ -380,20 +380,22 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
   ): Promise<ToolResult> {
     const tool = this.tools.find((t) => t.getDeclaration().name === name);
     let result: ToolResult;
+    const startTime = Date.now();
     if (tool) {
       const [newState, res] = await tool.execute(this.state, args);
+      const duration = Date.now() - startTime;
       this.setState(newState);
       result = res;
       let logText: string;
       if (result.pretty) {
-        logText = result.pretty;
+        logText = `${result.pretty} (${duration}ms)`;
       } else if ("output" in res) {
         logText =
           typeof res.output === "string"
-            ? res.output
+            ? `${res.output} (${duration}ms)`
             : JSON.stringify(res.output);
       } else {
-        logText = res.error;
+        logText = `${res.error} (${duration}ms)`;
       }
       this.logger.markdown(
         `Called tool ${name}(${JSON.stringify(args)})`,
