@@ -9,7 +9,7 @@ import {
 } from "obsidian";
 import { SidekickAgent } from "../agent";
 import type SidekickPlugin from "../main";
-import { ListFolderContents } from "../tools/list-folder-contents";
+import { ListFolderContentsTool } from "../tools/list-folder-contents";
 import { ReadNoteTool } from "../tools/read-note";
 import { SearchTool } from "../tools/search";
 import {
@@ -217,7 +217,7 @@ export class ChatView extends ItemView {
       [
         new ReadNoteTool(this.app, this.plugin.logger),
         new SearchTool(this.app, this.plugin.logger),
-        new ListFolderContents(this.app, this.plugin.logger),
+        new ListFolderContentsTool(this.app, this.plugin.logger),
       ],
       (state) => {
         this.state = state;

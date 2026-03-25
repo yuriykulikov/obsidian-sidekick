@@ -3,7 +3,7 @@ import { type App, TFile, TFolder } from "obsidian";
 import type { AgentState, Tool, ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
-export class ListFolderContents implements Tool {
+export class ListFolderContentsTool implements Tool {
   constructor(
     private app: App,
     _logger: Logger,
@@ -21,11 +21,6 @@ export class ListFolderContents implements Tool {
             type: Type.STRING,
             description:
               "The path relative to the vault root (e.g., '/', 'Work/Projects'). Defaults to '/'.",
-          },
-          depth: {
-            type: Type.NUMBER,
-            description:
-              "How many levels to explore. Currently, only shallow (1) is supported. Defaults to 1.",
           },
         },
       },
@@ -87,7 +82,7 @@ export class ListFolderContents implements Tool {
     const pretty =
       totalItems === 0
         ? `Empty folder: ${folder.path}`
-        : `Contents of ${folderPath}`;
+        : `List folder contents: ${folderPath}`;
 
     const newState = state.appendDiscoveredStructure([
       folder.path,
