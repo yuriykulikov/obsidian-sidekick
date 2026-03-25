@@ -53,6 +53,13 @@
   border-radius: 4px;
   display: flex;
   align-items: center;
+}
+
+.sidekick-note-full {
+  border: 1px solid var(--background-modifier-border);
+}
+
+.sidekick-note-structure {
   border: 1px solid transparent;
 }
 
@@ -107,9 +114,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
+  background-color: transparent;
+  box-shadow: none;
+  border: none;
   color: var(--text-muted);
   border-radius: 5px;
   cursor: pointer;

@@ -4,7 +4,7 @@ import type { AgentState, Tool, ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 import { readNote } from "../utils/notes";
 
-export class ReadNoteTool implements Tool {
+export class ReadNoteStructureTool implements Tool {
   constructor(
     private app: App,
     private logger: Logger,
@@ -12,16 +12,16 @@ export class ReadNoteTool implements Tool {
 
   getDeclaration(): FunctionDeclaration {
     return {
-      name: "read_note",
+      name: "read_note_structure",
       description:
-        "Reads the full content of a note. Use this when you need to understand the details of a note or quote from it.",
+        "Fetches a note's structure, including headings, links, and backlinks. Use this to quickly understand the organization of a note and navigate to related content without reading the full text.",
       parameters: {
         type: Type.OBJECT,
         properties: {
           path: {
             type: Type.STRING,
             description:
-              "The path or title of the note to read (e.g., 'Work/Projects/Project Alpha' or 'Project Alpha').",
+              "The path or title of the note to fetch (e.g., 'Work/Projects/Project Alpha' or 'Project Alpha').",
           },
         },
         required: ["path"],
@@ -41,19 +41,35 @@ export class ReadNoteTool implements Tool {
     }
 
     const filename = file.basename;
-    const newNote = await readNote(this.app, file, "text");
+
+    // Check if the note is already in state with full content
+    const existingNote = state.notes.get(filename);
+    if (existingNote?.content) {
+      this.logger.info(
+        `Note [[${filename}]] already has content in context, skipping structure read.`,
+      );
+      return [
+        state,
+        {
+          output: `Note [[${filename}]] already has full content in the context, which includes its structure. You don't need to read its structure separately.`,
+          pretty: `Skipped reading structure of [[${filename}]] (already in context)`,
+        },
+      ];
+    }
+
+    const newNote = await readNote(this.app, file, "structure");
 
     const newState = state
       .appendNote(filename, newNote)
       .appendDiscoveredStructure([file.path]);
 
-    const output = `Successfully read content of note [[${filename}]] and added it to the context.`;
+    const output = `Successfully read structure of note [[${filename}]] and added it to the context.`;
 
     return [
       newState,
       {
         output: output,
-        pretty: `Read content of [[${filename}]]`,
+        pretty: `Read structure of [[${filename}]]`,
       },
     ];
   }

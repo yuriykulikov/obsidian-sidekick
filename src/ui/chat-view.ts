@@ -11,6 +11,7 @@ import { SidekickAgent } from "../agent";
 import type SidekickPlugin from "../main";
 import { ListFolderContentsTool } from "../tools/list-folder-contents";
 import { ReadNoteTool } from "../tools/read-note";
+import { ReadNoteStructureTool } from "../tools/read-note-structure";
 import { SearchTool } from "../tools/search";
 import {
   type AgentState,
@@ -216,6 +217,7 @@ export class ChatView extends ItemView {
       this.plugin.logger,
       [
         new ReadNoteTool(this.app, this.plugin.logger),
+        new ReadNoteStructureTool(this.app, this.plugin.logger),
         new SearchTool(this.app, this.plugin.logger),
         new ListFolderContentsTool(this.app, this.plugin.logger),
       ],
@@ -366,6 +368,13 @@ export class ChatView extends ItemView {
       });
       if (note.active) {
         noteTag.addClass("sidekick-note-active");
+      }
+      if (note.content) {
+        noteTag.addClass("sidekick-note-full");
+        noteTag.setAttr("title", "Full content in context");
+      } else if (note.structure) {
+        noteTag.addClass("sidekick-note-structure");
+        noteTag.setAttr("title", "Structure only in context");
       }
       const removeBtn = noteTag.createEl("span", {
         cls: "sidekick-note-remove",
