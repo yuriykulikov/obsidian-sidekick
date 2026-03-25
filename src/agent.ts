@@ -14,7 +14,11 @@ import type {
   ToolResult,
 } from "./types";
 import type { Logger } from "./utils/logger";
-import { refreshNotes, renderDiscoveredStructure } from "./utils/notes";
+import {
+  refreshNotes,
+  renderDiscoveredStructure,
+  renderNoteToMarkdown,
+} from "./utils/notes";
 
 export class SidekickAgent {
   private genAI: GoogleGenAI;
@@ -235,17 +239,12 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
       this.state.notes.size > 0
         ? `# Notes\n\n${Array.from(this.state.notes.values())
             .map((note) => {
-              let noteMd = `## Note [[${note.filename}]]\nPath: ${note.path}\n`;
-              if (note.folderSiblings && note.folderSiblings.length > 0) {
-                noteMd += `Siblings: ${note.folderSiblings.map((s) => `[[${s}]]`).join(", ")}\n`;
-              }
-              if (note.content) {
-                noteMd += `\n### Content\n\`\`\`\n${note.content}\n\`\`\`\n`;
-              } else if (note.structure) {
-                noteMd += `\n### Structure\n\`\`\`\n${note.structure}\n\`\`\`\n`;
-              }
-              this.logger.markdown(`Note ${note.filename}`, noteMd);
-              return noteMd;
+              const md = renderNoteToMarkdown(note);
+              this.logger.markdown(
+                `${note.content ? "Note content " : "Note structure "} ${note.filename}`,
+                md,
+              );
+              return md;
             })
             .join("\n")}\n\n`
         : "";

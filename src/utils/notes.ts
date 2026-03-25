@@ -61,7 +61,7 @@ export async function readNote(
           child.extension === "md" &&
           child.path !== file.path,
       )
-      .map((child) => child.name);
+      .map((child) => (child as TFile).basename);
   }
 
   return {
@@ -75,6 +75,42 @@ export async function readNote(
     parentPath: parentFolder?.path || "/",
     folderSiblings: folderSiblings,
   };
+}
+
+/**
+ * Renders a note's context for the LLM.
+ */
+export function renderNoteToMarkdown(note: Note): string {
+  let noteMd = `# Note [[${note.filename}]]\n`;
+  noteMd += `Path: ${note.path}\n`;
+
+  noteMd += "## Metadata\n";
+
+  noteMd += "### Links\n";
+  for (const l of note.links || []) {
+    noteMd += `- [[${l}]]\n`;
+  }
+
+  noteMd += "### Backlinks\n";
+  for (const b of note.backlinks || []) {
+    noteMd += `- [[${b}]]\n`;
+  }
+
+  noteMd += "### Siblings\n";
+  for (const s of note.folderSiblings || []) {
+    noteMd += `- [[${s}]]\n`;
+  }
+
+  if (note.content) {
+    noteMd += "### Content\n```\n";
+    noteMd += note.content.trim();
+    noteMd += "\n```\n";
+  } else if (note.structure) {
+    noteMd += "\n### Structure\n```\n";
+    noteMd += note.structure.trim();
+    noteMd += "\n```\n";
+  }
+  return noteMd;
 }
 
 /**
