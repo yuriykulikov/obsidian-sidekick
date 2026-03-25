@@ -27,11 +27,6 @@
   color: var(--interactive-accent);
 }
 
-.sidekick-new-task-button {
-  font-size: 0.8em;
-  padding: 4px 8px;
-}
-
 .sidekick-notes-context {
   display: flex;
   flex-wrap: wrap;
@@ -114,9 +109,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: transparent;
-  box-shadow: none;
-  border: none;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
   color: var(--text-muted);
   border-radius: 5px;
   cursor: pointer;
