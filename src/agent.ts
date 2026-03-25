@@ -157,7 +157,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
     while (true) {
       iterations++;
 
-      let iterationResponse = await this.promtLLM();
+      let iterationResponse = await this.promptLLM();
 
       const functionCalls = iterationResponse.functionCalls;
 
@@ -208,7 +208,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
    * Sends a message to the LLM with the current note context and history.
    * @returns A promise that resolves to the LLM response.
    */
-  private async promtLLM(): Promise<GenerateContentResponse> {
+  private async promptLLM(): Promise<GenerateContentResponse> {
     // Find the last user prompt in history
     const userEntries = this.state.history.filter(
       (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
