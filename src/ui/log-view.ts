@@ -4,11 +4,11 @@ import {
   type Menu,
   type WorkspaceLeaf,
 } from "obsidian";
-import type { LogEntry, Logger } from "../utils/logger";
+import type { LogEntry, Logger, LogListener } from "../utils/logger";
 
 export const VIEW_TYPE_SIDEKICK_LOG = "sidekick-log-view";
 
-export class SidekickLogView extends ItemView {
+export class SidekickLogView extends ItemView implements LogListener {
   private logger: Logger;
   private logContainer: HTMLElement;
 
@@ -36,7 +36,7 @@ export class SidekickLogView extends ItemView {
 
     this.logContainer = container.createDiv({ cls: "sidekick-log-messages" });
 
-    this.logger.addListener(this.onLogAdded);
+    this.logger.addListener(this);
     this.render();
   }
 
@@ -48,17 +48,20 @@ export class SidekickLogView extends ItemView {
         .setIcon("trash")
         .onClick(() => {
           this.logger.clear();
-          this.render();
         });
     });
   }
 
   async onClose() {
-    this.logger.removeListener(this.onLogAdded);
+    this.logger.removeListener(this);
   }
 
-  private onLogAdded = (entry: LogEntry) => {
+  onLog = (entry: LogEntry) => {
     this.appendLogEntry(entry);
+  };
+
+  clear = () => {
+    this.render();
   };
 
   private render() {

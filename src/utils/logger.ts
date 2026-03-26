@@ -17,7 +17,10 @@ export interface LogEntry {
   collapsed?: boolean;
 }
 
-export type LogListener = (entry: LogEntry) => void;
+export interface LogListener {
+  onLog: (entry: LogEntry) => void;
+  clear: () => void;
+}
 
 export class Logger {
   private logs: LogEntry[] = [];
@@ -91,11 +94,14 @@ export class Logger {
 
   private notifyListeners(entry: LogEntry) {
     for (const listener of this.listeners) {
-      listener(entry);
+      listener.onLog(entry);
     }
   }
 
   clear() {
     this.logs = [];
+    for (const listener of this.listeners) {
+      listener.clear();
+    }
   }
 }

@@ -360,6 +360,7 @@ export class ChatView extends ItemView {
   async resetChat() {
     this.agent.stop();
     this.agent.dispose();
+    this.logger.clear();
     this.initAgent();
     const activeFile = this.app.workspace.getActiveFile();
     if (activeFile) {
