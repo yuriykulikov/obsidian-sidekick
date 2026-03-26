@@ -36,8 +36,12 @@ export class ReadNoteStructureTool implements Tool {
     const path = params.path as string;
     const file = this.app.metadataCache.getFirstLinkpathDest(path, "");
     if (!file) {
-      this.logger.warn(`Note [[${path}]] not found.`);
-      return [state, { error: `Note [[${path}]] not found.` }];
+      const message = `Note [[${path}]] not found.`;
+      this.logger.warn(message);
+      return [
+        state,
+        { error: message, summary: `Read note structure: ${message}` },
+      ];
     }
 
     const filename = file.basename;
@@ -51,8 +55,8 @@ export class ReadNoteStructureTool implements Tool {
       return [
         state,
         {
-          output: `Note [[${filename}]] already has full content in the context, which includes its structure. You don't need to read its structure separately.`,
-          pretty: `Skipped reading structure of [[${filename}]] (already in context)`,
+          error: `Note [[${filename}]] already has full content in the context, which includes its structure. You don't need to read its structure separately.`,
+          summary: `Read note structure: skipped for [[${filename}]] (already in context)`,
         },
       ];
     }
@@ -69,7 +73,8 @@ export class ReadNoteStructureTool implements Tool {
       newState,
       {
         output: output,
-        pretty: `Read structure of [[${filename}]]`,
+        summary: `Read note structure: [[${filename}]]`,
+        verbose: newNote.structure || "",
       },
     ];
   }

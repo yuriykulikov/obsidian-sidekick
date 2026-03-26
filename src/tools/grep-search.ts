@@ -78,7 +78,7 @@ export class GrepSearchTool implements Tool {
         state,
         {
           output: `No matches found for "${query}" in the vault.`,
-          pretty: `Grep search for "${query}": no matches`,
+          summary: `Grep search: no matches for "${query}"`,
         },
       ];
     }
@@ -101,7 +101,7 @@ export class GrepSearchTool implements Tool {
       newState,
       {
         output: output.trim(),
-        pretty: `Grep search for "${query}": ${results.length} notes matched`,
+        summary: `Grep search: found matches for "${query}" in ${results.length} notes`,
       },
     ];
   }

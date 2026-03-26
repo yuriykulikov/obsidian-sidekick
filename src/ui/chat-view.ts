@@ -271,31 +271,42 @@ export class ChatView extends ItemView {
     const toolMsg = this.responseContainer.createDiv({
       cls: "sidekick-message tool-message",
     });
-    const summary = msg.pretty || msg.call.name;
-    toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
-
-    const resultOutput =
-      "output" in msg.result
-        ? typeof msg.result.output === "string"
-          ? msg.result.output
-          : JSON.stringify(msg.result.output)
-        : msg.result.error;
-    const detailsEl = toolMsg.createDiv({
-      cls: "sidekick-tool-result-details",
-    });
-    if (msg.collapsed) {
-      detailsEl.addClass("sidekick-hidden");
+    if ("error" in msg.result) {
+      toolMsg.addClass("sidekick-tool-error");
     }
-    void MarkdownRenderer.render(this.app, resultOutput, detailsEl, "", this);
+    const summary = msg.result.summary;
+    toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
+    if (msg.result.verbose) {
+      toolMsg.createSpan({
+        text: "...",
+        cls: "sidekick-tool-verbose-indicator",
+      });
+    }
 
-    toolMsg.addEventListener("click", () => {
-      const isCollapsed = detailsEl.hasClass("sidekick-hidden");
-      this.agent.setHistoryEntryCollapsed(msg.id, !isCollapsed);
-      detailsEl.toggleClass(
-        "sidekick-hidden",
-        !detailsEl.hasClass("sidekick-hidden"),
+    if (msg.result.verbose) {
+      const verboseElement = toolMsg.createDiv({
+        cls: "sidekick-tool-result-details",
+      });
+      if (msg.collapsed) {
+        verboseElement.addClass("sidekick-hidden");
+      }
+      void MarkdownRenderer.render(
+        this.app,
+        msg.result.verbose,
+        verboseElement,
+        "",
+        this,
       );
-    });
+
+      toolMsg.addEventListener("click", () => {
+        const isCollapsed = verboseElement.hasClass("sidekick-hidden");
+        this.agent.setHistoryEntryCollapsed(msg.id, !isCollapsed);
+        verboseElement.toggleClass(
+          "sidekick-hidden",
+          !verboseElement.hasClass("sidekick-hidden"),
+        );
+      });
+    }
   }
 
   private scrollToBottom() {

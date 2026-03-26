@@ -36,7 +36,13 @@ export class ListDirectoryTool implements Tool {
     const folder = await this.getFolder(path);
 
     if (!folder) {
-      return [state, { error: `Path not found or is not a folder: ${path}` }];
+      return [
+        state,
+        {
+          error: `Path not found or is not a folder: ${path}`,
+          summary: `List directory: ${path} not found or is not a folder`,
+        },
+      ];
     }
 
     const folderPath =
@@ -79,17 +85,17 @@ export class ListDirectoryTool implements Tool {
     }
 
     const totalItems = folder.children.length;
-    const pretty =
+    const summary =
       totalItems === 0
-        ? `Empty folder: ${folder.path}`
-        : `List folder contents: ${folderPath}`;
+        ? `List directory: empty folder ${folderPath}`
+        : `List directory: ${folderPath} (${totalItems} items)`;
 
     const newState = state.appendDiscoveredStructure([
       folder.path,
       ...folder.children.map((c) => c.path),
     ]);
 
-    return [newState, { output, pretty }];
+    return [newState, { output, summary }];
   }
 
   /**

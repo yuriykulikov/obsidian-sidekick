@@ -36,8 +36,9 @@ export class ReadNoteTool implements Tool {
     const path = params.path as string;
     const file = this.app.metadataCache.getFirstLinkpathDest(path, "");
     if (!file) {
-      this.logger.warn(`Note [[${path}]] not found.`);
-      return [state, { error: `Note [[${path}]] not found.` }];
+      const message = `Note [[${path}]] not found.`;
+      this.logger.warn(message);
+      return [state, { error: message, summary: `Read note: ${message}` }];
     }
 
     const filename = file.basename;
@@ -53,7 +54,7 @@ export class ReadNoteTool implements Tool {
       newState,
       {
         output: output,
-        pretty: `Read content of [[${filename}]]`,
+        summary: `Read note: [[${filename}]]`,
       },
     ];
   }

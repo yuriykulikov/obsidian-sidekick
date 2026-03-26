@@ -116,13 +116,16 @@ export interface ToolCallHistoryEntry {
     args: Record<string, unknown>;
   };
   result: ToolResult;
-  pretty?: string;
   collapsed: boolean;
 }
 
-export type ToolResult =
-  | { output: unknown; verbose_result?: string; pretty?: string }
-  | { error: string; verbose_result?: string; pretty?: string };
+/**
+ * Result return from Tool. output and error are given to the LLM, other properties are used in UI and logs.
+ */
+export type ToolResult = ({ output: unknown } | { error: string }) & {
+  verbose?: string;
+  summary: string;
+};
 
 export interface Note {
   filename: string;

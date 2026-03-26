@@ -283,17 +283,12 @@ export class SidekickAgent {
         ? `# Tool execution history in this loop\n${loopHistory
             .map((h) => {
               const callArgs = JSON.stringify(h.call.args);
-              const resultText =
-                "output" in h.result
-                  ? typeof h.result.output === "string"
-                    ? h.result.output
-                    : JSON.stringify(h.result.output)
-                  : h.result.error;
+              const resultText = this.toolResultString(h.result);
               this.logger.markdown(
                 `Tool Call ${h.call.name}(${callArgs})`,
                 resultText,
               );
-              return `## Tool Call: \`${h.call.name}(${callArgs})\n${resultText}`;
+              return `## Used tool: \`${h.call.name}(${callArgs})\n${resultText}`;
             })
             .join("\n")}\n`
         : "";
@@ -318,6 +313,14 @@ export class SidekickAgent {
 
     this.logResponse(response, "to prompt the LLM");
     return response;
+  }
+
+  private toolResultString(result: ToolResult) {
+    return "output" in result
+      ? typeof result.output === "string"
+        ? result.output
+        : JSON.stringify(result.output, null, 2)
+      : result.error;
   }
 
   /**
@@ -368,7 +371,6 @@ export class SidekickAgent {
             args: call.args as Record<string, unknown>,
           },
           result: result,
-          pretty: result.pretty,
           collapsed: true,
         }),
       );
@@ -418,13 +420,10 @@ export class SidekickAgent {
       this.setState(newState);
       result = res;
       let logText: string;
-      if (result.pretty) {
-        logText = `${result.pretty} (${duration}ms)`;
+      if (result.summary) {
+        logText = `${result.summary} (${duration}ms)`;
       } else if ("output" in res) {
-        logText =
-          typeof res.output === "string"
-            ? `${res.output} (${duration}ms)`
-            : JSON.stringify(res.output);
+        logText = this.toolResultString(result);
       } else {
         logText = `${res.error} (${duration}ms)`;
       }
@@ -433,8 +432,12 @@ export class SidekickAgent {
         logText,
       );
     } else {
-      this.logger.warn(`Tool ${name} not found.`);
-      result = { error: `Tool ${name} not found.` };
+      const message = `Tool ${name} not found.`;
+      this.logger.warn(message);
+      result = {
+        error: message,
+        summary: message,
+      };
     }
     return result;
   }

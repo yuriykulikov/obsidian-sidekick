@@ -191,6 +191,10 @@
   margin-bottom: 4px;
   color: var(--text-muted);
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .tool-message:hover {
@@ -200,10 +204,22 @@
 .sidekick-tool-result-summary {
   font-family: var(--font-monospace);
   color: var(--text-success);
-  display: block;
+}
+
+.sidekick-tool-verbose-indicator {
+  font-weight: bold;
+}
+
+.tool-message.sidekick-tool-error {
+  border-left-color: var(--text-error);
+}
+
+.sidekick-tool-error .sidekick-tool-result-summary {
+  color: var(--text-error);
 }
 
 .sidekick-tool-result-details {
+  flex: 1 1 100%;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--background-modifier-border);

@@ -36,8 +36,15 @@ export class ReadNoteLinksTool implements Tool {
     const path = params.path as string;
     const file = this.app.metadataCache.getFirstLinkpathDest(path, "");
     if (!file) {
-      this.logger.warn(`Note [[${path}]] not found.`);
-      return [state, { error: `Note [[${path}]] not found.` }];
+      const error = `Note [[${path}]] not found.`;
+      this.logger.warn(error);
+      return [
+        state,
+        {
+          error,
+          summary: `Read note links: ${error}`,
+        },
+      ];
     }
 
     const filename = file.basename;
@@ -58,7 +65,8 @@ export class ReadNoteLinksTool implements Tool {
       newState,
       {
         output: output,
-        pretty: `Read links of [[${filename}]]`,
+        summary: `Read note links: [[${filename}]]`,
+        verbose: `Read ${output.links.length} links and ${output.backlinks.length} backlinks of [[${filename}]]\n${JSON.stringify(output)}`,
       },
     ];
   }
