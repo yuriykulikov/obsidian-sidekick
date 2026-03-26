@@ -9,17 +9,23 @@
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
     "lint": "biome check .",
-    "lint:fix": "biome check --write --unsafe ."
+    "lint:fix": "biome check --write --unsafe .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "license": "0-BSD",
   "devDependencies": {
     "@biomejs/biome": "2.4.8",
     "@types/node": "^16.11.6",
+    "@vitest/coverage-v8": "^4.1.2",
     "esbuild": "0.25.5",
     "jiti": "2.6.1",
+    "jsdom": "^29.0.1",
     "tslib": "2.4.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "@google/genai": "^1.42.0",

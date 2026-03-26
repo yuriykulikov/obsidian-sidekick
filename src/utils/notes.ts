@@ -96,10 +96,19 @@ export function renderNoteToMarkdown(note: Note): string {
     noteMd += `- [[${b}]]\n`;
   }
 
-  noteMd += "### Siblings\n";
-  for (const s of note.folderSiblings || []) {
-    noteMd += `- [[${s}]]\n`;
-  }
+  noteMd += "### Vault Context\n```\n";
+  const contextPaths = [
+    note.path,
+    ...(note.folderSiblings || []).map((s) => {
+      const dir =
+        !note.parentPath || note.parentPath === "/"
+          ? ""
+          : `${note.parentPath}/`;
+      return `${dir}${s}.md`;
+    }),
+  ];
+  noteMd += renderDiscoveredStructure(contextPaths);
+  noteMd += "\n```\n";
 
   if (note.content) {
     noteMd += "### Content\n```\n";
