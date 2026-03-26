@@ -22,9 +22,21 @@ For more information, see the [Design Document](docs/design-doc.md).
 - **Bundler: esbuild** (defined in `esbuild.config.mjs`).
 - Types: `obsidian` type definitions.
 
+## Architecture & Dependency Injection
+
+Sidekick uses a **Factory Pattern** for dependency injection, ensuring clear separation between the AI logic and
+Obsidian's UI/lifecycle:
+
+- **`AgentFactory` (`src/agent-factory.ts`)**: The central place where the agent's runtime environment is constructed.
+  It instantiates the tools, prepares the system prompt, and initializes the LLM chat session.
+- **`SidekickAgent` (`src/agent.ts`)**: The core engine that executes the transducer loop. It receives all dependencies
+  via its constructor, making it agnostic of the plugin's specific setup.
+- **Tool Catalog**: The set of available tools is defined and injected into the agent by the `AgentFactory`.
+
 ## File & folder conventions
 
 Source lives in `src/`:
+
   ```
   src/
     main.ts           # Plugin entry point, lifecycle management
@@ -48,13 +60,16 @@ Source lives in `src/`:
 Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particular:
 
 - Default to local/offline operation. Only make network requests when essential to the feature.
-- No hidden telemetry. If you collect optional analytics or call third-party services, require explicit opt-in and document clearly in `README.md` and in settings.
+- No hidden telemetry. If you collect optional analytics or call third-party services, require explicit opt-in and
+  document clearly in `README.md` and in settings.
 - Never execute remote code, fetch and eval scripts, or auto-update plugin code outside of normal releases.
 - Minimize scope: read/write only what's necessary inside the vault. Do not access files outside the vault.
 - Clearly disclose any external services used, data sent, and risks.
-- Respect user privacy. Do not collect vault contents, filenames, or personal information unless absolutely necessary and explicitly consented.
+- Respect user privacy. Do not collect vault contents, filenames, or personal information unless absolutely necessary
+  and explicitly consented.
 - Avoid deceptive patterns, ads, or spammy notifications.
-- Register and clean up all DOM, app, and interval listeners using the provided `register*` helpers so the plugin unloads safely.
+- Register and clean up all DOM, app, and interval listeners using the provided `register*` helpers so the plugin
+  unloads safely.
 
 ## Coding conventions
 
@@ -66,14 +81,17 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 ## Agent do/don't
 
 **Do**
+
 - Use `this.register*` helpers for everything that needs cleanup.
 - Use `this.logger` for debugging and informational messages to ensure they are visible in the plugin's log view.
 
 **Don't**
+
 - **Do not modify `main.js` directly**: It is a compiled file. Always make changes in the `src/` directory.
 - **Do not use Notice** except for errors.
 
 **Before finishing a task**
+
 - **Run linting**: Run `npm run lint` or `npm run lint:fix` to ensure code follows Biome's formatting and linting rules.
 - **Run build**: Run `npm run build` to ensure the project compiles and bundles correctly.
 
@@ -82,9 +100,12 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 ### Register listeners safely
 
 ```ts
-this.registerEvent(this.app.workspace.on("file-open", f => { /* ... */ }));
-this.registerDomEvent(window, "resize", () => { /* ... */ });
-this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
+this.registerEvent(this.app.workspace.on("file-open", f => { /* ... */
+}));
+this.registerDomEvent(window, "resize", () => { /* ... */
+});
+this.registerInterval(window.setInterval(() => { /* ... */
+}, 1000));
 ```
 
 ## References

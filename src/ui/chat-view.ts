@@ -2,24 +2,18 @@ import {
   ButtonComponent,
   ItemView,
   MarkdownRenderer,
-  Notice,
   setIcon,
   TFile,
   type WorkspaceLeaf,
 } from "obsidian";
-import { SidekickAgent } from "../agent";
-import type SidekickPlugin from "../main";
-import { ListDirectoryTool } from "../tools/list-directory";
-import { ReadNoteTool } from "../tools/read-note";
-import { ReadNoteStructureTool } from "../tools/read-note-structure";
-import { SearchNotesTool } from "../tools/search-notes";
-import {
-  type AgentState,
-  createInitialState,
-  type TextHistoryEntry,
-  type ToolCallHistoryEntry,
+import type { SidekickAgent } from "../agent";
+import type { AgentFactory } from "../agent-factory";
+import type {
+  AgentState,
+  TextHistoryEntry,
+  ToolCallHistoryEntry,
 } from "../types";
-import { addNote, setActiveNote } from "../utils/notes";
+import type { Logger } from "../utils/logger";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
@@ -28,20 +22,20 @@ export const VIEW_TYPE_SIDEKICK = "sidekick-view";
  * The SidekickView class provides a custom sidebar view for interacting with the AI agent.
  */
 export class ChatView extends ItemView {
-  plugin: SidekickPlugin;
-  agent: SidekickAgent | null = null;
-  state: AgentState;
-  isThinking: boolean = false;
+  agentFactory: AgentFactory;
+  agent: SidekickAgent;
   responseContainer: HTMLElement;
   notesContainer: HTMLElement;
   inputEl: HTMLTextAreaElement;
   sendButton: HTMLButtonElement;
   stopButton: HTMLButtonElement;
+  logger: Logger;
 
-  constructor(leaf: WorkspaceLeaf, plugin: SidekickPlugin) {
+  constructor(leaf: WorkspaceLeaf, agentFactory: AgentFactory, logger: Logger) {
     super(leaf);
-    this.plugin = plugin;
-    this.state = createInitialState();
+    this.agentFactory = agentFactory;
+    this.logger = logger;
+    this.initAgent();
   }
 
   getViewType() {
@@ -75,22 +69,10 @@ export class ChatView extends ItemView {
     });
     this.renderInputArea(container);
 
-    this.initAgent();
-
     this.registerEvent(
       this.app.workspace.on("file-open", async (file) => {
         if (file instanceof TFile) {
-          const newState = await setActiveNote(
-            this.app,
-            this.state,
-            file.basename,
-          );
-          if (this.agent) {
-            this.agent.setState(newState);
-          } else {
-            this.state = newState;
-            this.render();
-          }
+          await this.agent.setActiveNote(file.basename);
         }
       }),
     );
@@ -174,12 +156,7 @@ export class ChatView extends ItemView {
     new NoteSuggestionModal(this.app, (file: TFile) => {
       void (async () => {
         // Add to context
-        const newState = await addNote(this.app, this.state, file.basename);
-        this.state = newState;
-        if (this.agent) {
-          this.agent.setState(this.state);
-        }
-        this.render();
+        await this.agent.addNote(file.basename);
 
         // Add to input text
         const cursor = this.inputEl.selectionStart;
@@ -204,29 +181,11 @@ export class ChatView extends ItemView {
   /**
    * Initializes the agent with the current state and settings.
    */
-  private initAgent(): boolean {
-    const apiKey = this.plugin.settings.geminiApiKey;
-    if (!apiKey) {
-      return false;
-    }
-
-    this.agent = new SidekickAgent(
-      this.app,
-      apiKey,
-      this.state,
-      this.plugin.logger,
-      [
-        new ReadNoteTool(this.app, this.plugin.logger),
-        new ReadNoteStructureTool(this.app, this.plugin.logger),
-        new SearchNotesTool(this.app, this.plugin.logger),
-        new ListDirectoryTool(this.app, this.plugin.logger),
-      ],
-      (state) => {
-        this.state = state;
-        this.render();
-      },
-    );
-    return true;
+  private initAgent(): SidekickAgent {
+    this.agent = this.agentFactory.createAgentInstance((state) => {
+      this.render(state);
+    });
+    return this.agent;
   }
 
   /**
@@ -235,26 +194,14 @@ export class ChatView extends ItemView {
   async sendMessage() {
     const prompt = this.inputEl.value.trim();
     if (!prompt) return;
-
-    if (!this.agent && !this.initAgent()) {
-      new Notice("Configure API key in settings");
-      return;
-    }
-
-    this.isThinking = true;
     this.inputEl.value = "";
-    this.render();
-
     try {
-      await this.agent?.next(prompt);
+      await this.agent.next(prompt);
     } catch (error) {
-      this.plugin.logger.error(
+      this.logger.error(
         `Agent Error: ${error instanceof Error ? error.message : String(error)}`,
       );
       console.error("Agent Error:", error);
-    } finally {
-      this.isThinking = false;
-      this.render();
     }
   }
 
@@ -262,15 +209,15 @@ export class ChatView extends ItemView {
    * Re-renders the chat history and current status.
    * Uses MarkdownRenderer to display messages and indicates if the agent is thinking.
    */
-  render() {
+  render(state: AgentState) {
     if (!this.responseContainer || !this.notesContainer) return;
     this.responseContainer.empty();
     this.notesContainer.empty();
 
-    this.renderNotes();
-    this.updateActionButtons();
+    this.renderNotes(state);
+    this.updateActionButtons(state);
 
-    const history = this.state.history;
+    const history = state.history;
     for (const msg of history) {
       if (msg.type === "text") {
         this.renderTextMessage(msg);
@@ -279,7 +226,7 @@ export class ChatView extends ItemView {
       }
     }
 
-    if (this.isThinking) {
+    if (state.isThinking) {
       const agentMsg = this.responseContainer.createDiv({
         cls: "sidekick-message agent-message",
       });
@@ -289,9 +236,9 @@ export class ChatView extends ItemView {
     this.scrollToBottom();
   }
 
-  private updateActionButtons() {
+  private updateActionButtons(state: AgentState) {
     if (this.sendButton && this.stopButton) {
-      if (this.isThinking) {
+      if (state.isThinking) {
         this.sendButton.addClass("sidekick-hidden");
         this.stopButton.removeClass("sidekick-hidden");
       } else {
@@ -356,12 +303,12 @@ export class ChatView extends ItemView {
   /**
    * Renders the list of added notes that will be used as context.
    */
-  private renderNotes() {
+  private renderNotes(state: AgentState) {
     const notesWrapper = this.notesContainer.createDiv({
       cls: "sidekick-notes-context",
     });
 
-    for (const [filename, note] of this.state.notes) {
+    for (const [filename, note] of state.notes) {
       const noteTag = notesWrapper.createEl("span", {
         cls: "sidekick-note-tag",
         text: filename,
@@ -381,44 +328,30 @@ export class ChatView extends ItemView {
         text: " ×",
       });
       removeBtn.addEventListener("click", () => {
-        const newNotes = new Map(this.state.notes);
-        newNotes.delete(filename);
-        this.state = this.state.replaceNotes(newNotes);
-        if (this.agent) {
-          this.agent.state = this.state;
-        }
-        this.render();
+        this.agent.removeNote(filename);
       });
     }
   }
 
   async onClose() {
     // Nothing to clean up.
+    this.agent.dispose();
   }
 
   /**
    * Resets the current chat session, clearing the agent instance and message history.
    */
   async resetChat() {
-    if (this.agent) {
-      this.agent.stop();
+    this.agent.stop();
+    this.agent.dispose();
+    this.initAgent();
+    const activeFile = this.app.workspace.getActiveFile();
+    if (activeFile) {
+      await this.agent.setActiveNote(activeFile.basename);
     }
-    this.agent = null;
-    this.state = createInitialState();
-    this.isThinking = false;
+
     if (this.inputEl) {
       this.inputEl.value = "";
     }
-
-    const activeFile = this.app.workspace.getActiveFile();
-    if (activeFile) {
-      this.state = await setActiveNote(
-        this.app,
-        this.state,
-        activeFile.basename,
-      );
-    }
-
-    this.render();
   }
 }

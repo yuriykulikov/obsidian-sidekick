@@ -5,6 +5,7 @@ export class AgentState {
     public readonly history: readonly HistoryEntry[] = [],
     public readonly notes: ReadonlyMap<string, Note> = new Map(),
     public readonly discoveredStructure: readonly string[] = [],
+    public readonly isThinking: boolean = false,
   ) {}
 
   public appendHistoryEntry(item: HistoryEntry): AgentState {
@@ -12,17 +13,28 @@ export class AgentState {
       [...this.history, item],
       this.notes,
       this.discoveredStructure,
+      this.isThinking,
     );
   }
 
   public replaceNotes(notes: ReadonlyMap<string, Note>): AgentState {
-    return new AgentState(this.history, notes, this.discoveredStructure);
+    return new AgentState(
+      this.history,
+      notes,
+      this.discoveredStructure,
+      this.isThinking,
+    );
   }
 
   public appendNote(filename: string, note: Note): AgentState {
     const mergedNotes = new Map(this.notes);
     mergedNotes.set(filename, note);
-    return new AgentState(this.history, mergedNotes, this.discoveredStructure);
+    return new AgentState(
+      this.history,
+      mergedNotes,
+      this.discoveredStructure,
+      this.isThinking,
+    );
   }
 
   public appendDiscoveredStructure(newPaths: readonly string[]): AgentState {
@@ -30,6 +42,16 @@ export class AgentState {
       this.history,
       this.notes,
       Array.from(new Set([...this.discoveredStructure, ...newPaths])),
+      this.isThinking,
+    );
+  }
+
+  public setThinking(isThinking: boolean): AgentState {
+    return new AgentState(
+      this.history,
+      this.notes,
+      this.discoveredStructure,
+      isThinking,
     );
   }
 }
@@ -85,8 +107,4 @@ export interface Note {
   active?: boolean;
   parentPath?: string;
   folderSiblings?: string[];
-}
-
-export function createInitialState(): AgentState {
-  return new AgentState();
 }

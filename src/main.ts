@@ -1,4 +1,5 @@
 import { Plugin, type WorkspaceLeaf } from "obsidian";
+import { AgentFactory } from "./agent-factory";
 import {
   DEFAULT_SETTINGS,
   type SidekickPluginSettings,
@@ -8,6 +9,12 @@ import { ChatView, VIEW_TYPE_SIDEKICK } from "./ui/chat-view";
 import { SidekickLogView, VIEW_TYPE_SIDEKICK_LOG } from "./ui/log-view";
 import { Logger } from "./utils/logger";
 
+/**
+ * `SidekickPlugin` is the entry point for the Obsidian Sidekick plugin.
+ *
+ * It manages the plugin lifecycle and acts as the root of the **Dependency
+ * Injection** chain, initializing the `AgentFactory` and the plugin's views.
+ */
 export default class SidekickPlugin extends Plugin {
   settings: SidekickPluginSettings;
   logger: Logger;
@@ -20,7 +27,16 @@ export default class SidekickPlugin extends Plugin {
     this.logger = new Logger();
     await this.loadSettings();
 
-    this.registerView(VIEW_TYPE_SIDEKICK, (leaf) => new ChatView(leaf, this));
+    const agentFactory = new AgentFactory(
+      this.app,
+      this.logger,
+      () => this.settings.geminiApiKey,
+    );
+
+    this.registerView(
+      VIEW_TYPE_SIDEKICK,
+      (leaf) => new ChatView(leaf, agentFactory, this.logger),
+    );
 
     this.registerView(
       VIEW_TYPE_SIDEKICK_LOG,

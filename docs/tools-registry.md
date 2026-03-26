@@ -5,6 +5,9 @@ iteration of the loop, ensuring it always knows its current capabilities.
 
 ## Tool definitions
 
+The runtime catalog of tools is defined in the `AgentFactory.createAgentInstance()` method within
+`src/agent-factory.ts`.
+
 ### `search_notes`
 
 Searches for notes and folders within the vault by matching names against a query. Returns a list of matching paths,

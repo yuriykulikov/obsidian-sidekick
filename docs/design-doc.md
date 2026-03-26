@@ -33,7 +33,12 @@ a final answer, which might be a message or a suggestion to change a note.
 
 ### Separation of Agent Loop from UI
 
-The agent loop is separated from the UI. UI integration is done through explicitly defined APIs (similar to tools).
+The agent loop is separated from the UI. UI can feed input into the agent, observe the agent state, and render it.
+
+### Dependency Injection (DI)
+
+Sidekick uses a factory-based DI pattern. Dependencies are passed to constructors instead of being created
+directly.
 
 ### Agent context and loop
 

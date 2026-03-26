@@ -1,9 +1,7 @@
-import {
-  type Chat,
-  type CreateChatParameters,
-  type FunctionResponse,
-  type GenerateContentResponse,
-  GoogleGenAI,
+import type {
+  Chat,
+  FunctionResponse,
+  GenerateContentResponse,
 } from "@google/genai";
 import type { App } from "obsidian";
 import type {
@@ -15,71 +13,62 @@ import type {
 } from "./types";
 import type { Logger } from "./utils/logger";
 import {
+  addNote,
   refreshNotes,
   renderDiscoveredStructure,
   renderNoteToMarkdown,
+  setActiveNote,
 } from "./utils/notes";
 
+/**
+ * `SidekickAgent` is the core engine of the AI assistant, implementing a
+ * "transducer loop" that interacts with the Gemini LLM.
+ *
+ * It follows a **Dependency Injection** pattern, receiving all its capabilities
+ * (Obsidian App, chat session, logger, and its **Tool Catalog**) via its constructor.
+ * This ensures the agent logic is decoupled from its instantiation and the plugin UI.
+ */
 export class SidekickAgent {
-  private genAI: GoogleGenAI;
-  private chatSession: Chat | null = null;
+  private chatSession: Chat | undefined;
   app: App;
   state: AgentState;
   logger: Logger;
+  systemInstruction: string;
   tools: Tool[];
   private onStateChange: (state: AgentState) => void;
   private stopRequested: boolean = false;
-
-  /**
-   * Returns the default system prompt for the agent.
-   * @returns The system prompt string.
-   */
-  static getSystemPrompt(): string {
-    const prompt = `You are a helpful assistant for Obsidian. 
-Answer the user's question or ask follow-up questions based on the provided context.
-
-**Knowledge Organization:**
-The vault is organized in a tree structure of folders and notes. Relevant notes are often located in the same folder or in nearby branches of the tree. Use the file system explorer to discover related information.
-
-**Guidelines for using tools:**
-1. **Explore context first:** Before requesting more notes, carefully analyze the current context provided to you. Use the tools ONLY when you truly need more information to answer the user's request.
-2. **Explain your reasoning:** If you decide to use a tool, briefly state why it is necessary (e.g., "I need to check the 'Project Goals' note to see the specific requirements").
-3. **Be judicious:** Avoid requesting the same note multiple times.
-4. **Tool-based operation:** You must ONLY use the tools provided to you. If a task cannot be completed with the available tools, inform the user about the limitation.
-5. **Format:** Always respond in markdown format. When answering, focus on the user's request.
-
-**Strategy for multi-step tasks:**
-- If the user's prompt is broad, start by fetching the most relevant notes or exploring the file system.
-- Use links and backlinks information from the notes to discover other relevant notes.
-- If you have enough information, synthesize a final answer instead of making more tool calls.
-`;
-
-    return prompt;
-  }
+  private disposed: boolean = false;
+  private initError: string | undefined;
 
   /**
    * Initializes a new instance of the SidekickAgent.
    * @param app - The Obsidian App instance.
-   * @param apiKey - The Google Gemini API key.
+   * @param chatSession - The Gemini Chat session instance (optional).
    * @param state - The initial agent state.
    * @param logger - The logger instance.
+   * @param systemInstruction - The system instruction string.
    * @param tools - The list of tools available to the agent.
    * @param onStateChange - Callback function to notify when the state changes.
+   * @param initError - Error message if initialization failed.
    */
   constructor(
     app: App,
-    apiKey: string,
+    chatSession: Chat | undefined,
     state: AgentState,
     logger: Logger,
+    systemInstruction: string,
     tools: Tool[] = [],
     onStateChange: (state: AgentState) => void,
+    initError?: string,
   ) {
     this.app = app;
-    this.genAI = new GoogleGenAI({ apiKey });
+    this.chatSession = chatSession;
     this.state = state;
     this.logger = logger;
+    this.systemInstruction = systemInstruction;
     this.tools = tools;
     this.onStateChange = onStateChange;
+    this.initError = initError;
   }
 
   /**
@@ -88,7 +77,45 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
    */
   public setState(newState: AgentState): void {
     this.state = newState;
-    this.onStateChange(this.state);
+    if (!this.disposed) {
+      this.onStateChange(this.state);
+    }
+  }
+
+  /**
+   * Adds a note to the agent's context.
+   * @param filename - The name of the note to add.
+   */
+  public async addNote(filename: string): Promise<void> {
+    const newState = await addNote(this.app, this.state, filename);
+    this.setState(newState);
+  }
+
+  /**
+   * Sets the active note in the agent's context.
+   * @param filename - The name of the note to set as active.
+   */
+  public async setActiveNote(filename: string): Promise<void> {
+    const newState = await setActiveNote(this.app, this.state, filename);
+    this.setState(newState);
+  }
+
+  /**
+   * Removes a note from the agent's context.
+   * @param filename - The name of the note to remove.
+   */
+  public removeNote(filename: string): void {
+    const newNotes = new Map(this.state.notes);
+    newNotes.delete(filename);
+    this.setState(this.state.replaceNotes(newNotes));
+  }
+
+  /**
+   * Updates the thinking status of the agent.
+   * @param isThinking - The new thinking status.
+   */
+  public setThinking(isThinking: boolean): void {
+    this.setState(this.state.setThinking(isThinking));
   }
 
   /**
@@ -97,67 +124,50 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
    * @returns A promise that resolves when the agent finishes processing.
    */
   async next(userPrompt: string): Promise<void> {
-    this.setState(await refreshNotes(this.app, this.state));
-    // Add current user message to state history
-    this.setState(
-      this.state.appendHistoryEntry({
-        type: "text",
-        role: "user",
-        content: userPrompt,
-      }),
-    );
+    if (this.initError) {
+      this.setState(
+        this.state.appendHistoryEntry({
+          type: "text",
+          role: "model",
+          content: this.initError,
+        }),
+      );
+      return;
+    }
     this.logger.user(`User prompt: ${userPrompt}`);
-    await this.agentLoop();
-  }
+    this.setState(
+      (await refreshNotes(this.app, this.state))
+        // Add current user message to state history
+        .appendHistoryEntry({
+          type: "text",
+          role: "user",
+          content: userPrompt,
+        }),
+    );
 
-  /**
-   * Initializes the chat session if it doesn't already exist.
-   */
-  private createChatSession() {
-    if (!this.chatSession) {
-      if (this.state.history.length === 1) {
-        this.logger.info(`Creating new chat session`);
-      } else {
-        this.logger.info(
-          `Creating new chat session with ${this.state.history.length} history entries`,
-        );
-      }
-
-      const systemInstruction = SidekickAgent.getSystemPrompt();
-      this.logger.markdown(`System Prompt`, systemInstruction);
-
-      const params: CreateChatParameters = {
-        model: "gemini-3-flash-preview",
-        config: {
-          systemInstruction: systemInstruction,
-          tools:
-            this.tools.length > 0
-              ? [
-                  {
-                    functionDeclarations: this.tools.map((t) =>
-                      t.getDeclaration(),
-                    ),
-                  },
-                ]
-              : undefined,
-        },
-        history: this.state.history
-          .filter((m): m is TextHistoryEntry => m.type === "text")
-          .map((m) => ({
-            role: m.role,
-            parts: [{ text: m.content }],
-          })),
-      };
-      this.chatSession = this.genAI.chats.create(params);
+    try {
+      await this.agentLoop();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Agent error: ${errorMessage}`);
+      this.setState(
+        this.state
+          .appendHistoryEntry({
+            type: "text",
+            role: "model",
+            content: `Error: ${errorMessage}`,
+          })
+          .setThinking(false),
+      );
     }
   }
 
   private async agentLoop(): Promise<void> {
-    this.createChatSession();
     this.stopRequested = false;
     let iterations = 0;
     const maxIterations = 15;
-
+    this.setState(this.state.setThinking(true));
     while (true) {
       iterations++;
 
@@ -200,11 +210,13 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
     }
 
     this.setState(
-      this.state.appendHistoryEntry({
-        type: "text",
-        role: "model",
-        content: finalContent + postfix,
-      }),
+      this.state
+        .appendHistoryEntry({
+          type: "text",
+          role: "model",
+          content: finalContent + postfix,
+        })
+        .setThinking(false),
     );
   }
 
@@ -279,12 +291,16 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
 
     this.logger.markdown(`Full prompt`, message);
 
-    const response = await this.chatSession?.sendMessage({
+    if (!this.chatSession) {
+      throw new Error(this.initError || "Chat session not initialized");
+    }
+
+    const response = await this.chatSession.sendMessage({
       message: message,
     });
 
     if (!response) {
-      throw new Error("Chat session not initialized or failed to get response");
+      throw new Error("Failed to get response from Gemini");
     }
 
     this.logResponse(response, "to prompt the LLM");
@@ -413,6 +429,11 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
    */
   stop() {
     this.stopRequested = true;
+  }
+
+  dispose() {
+    stop();
+    this.disposed = true;
   }
 
   /**
