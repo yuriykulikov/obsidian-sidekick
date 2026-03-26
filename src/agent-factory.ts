@@ -8,6 +8,7 @@ import { SidekickAgent } from "./agent";
 import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
 import { ReadNoteTool } from "./tools/read-note";
+import { ReadNoteLinksTool } from "./tools/read-note-links";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
 import { SearchNotesTool } from "./tools/search-notes";
 import { AgentState, type TextHistoryEntry, type Tool } from "./types";
@@ -107,6 +108,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
     const state: AgentState = new AgentState();
     const tools = [
       new ReadNoteTool(this.app, this.logger),
+      new ReadNoteLinksTool(this.app, this.logger),
       new ReadNoteStructureTool(this.app, this.logger),
       new SearchNotesTool(this.app, this.logger),
       new ListDirectoryTool(this.app, this.logger),

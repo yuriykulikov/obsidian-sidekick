@@ -133,5 +133,5 @@ export interface Note {
   backlinks: string[];
   active?: boolean;
   parentPath?: string;
-  folderSiblings?: string[];
+  folderSiblings?: string[] | null;
 }

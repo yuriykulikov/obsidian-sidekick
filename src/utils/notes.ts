@@ -7,7 +7,7 @@ import { AgentState, type Note } from "../types";
 export async function readNote(
   app: App,
   file: TFile,
-  detail: "structure" | "text" = "text",
+  detail: "links" | "structure" | "text",
 ): Promise<Note> {
   const filename = file.basename;
   const content = await app.vault.read(file);
@@ -64,6 +64,7 @@ export async function readNote(
       .map((child) => (child as TFile).basename);
   }
 
+  const structureOrText = detail === "structure" || detail === "text";
   return {
     filename: filename,
     path: file.path,
@@ -71,9 +72,9 @@ export async function readNote(
     links: [...new Set(links)],
     backlinks: [...new Set(backlinks)],
     active: false,
-    structure: detail === "structure" ? structure.join("\n") : null,
+    structure: structureOrText ? structure.join("\n") : null,
     parentPath: parentFolder?.path || "/",
-    folderSiblings: folderSiblings,
+    folderSiblings: structureOrText ? folderSiblings : null,
   };
 }
 
@@ -153,7 +154,7 @@ export async function setActiveNote(
   if (!current) {
     const file = app.metadataCache.getFirstLinkpathDest(basename, "");
     if (file) {
-      current = await readNote(app, file);
+      current = await readNote(app, file, "text");
       discoveredStructure = Array.from(
         new Set([...discoveredStructure, file.path]),
       );
@@ -186,7 +187,7 @@ export async function addNote(
     return state;
   }
 
-  const newNote = await readNote(app, file);
+  const newNote = await readNote(app, file, "text");
 
   return state
     .appendNote(basename, newNote)
