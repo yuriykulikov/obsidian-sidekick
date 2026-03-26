@@ -7,18 +7,21 @@ iteration of the loop, ensuring it always knows its current capabilities.
 
 ### `search_notes`
 
-Searches for notes within the vault by matching titles or path names against a query. Returns a list of matching notes
-as internal links, providing a way to discover specific notes when the exact name is unknown.
+Searches for notes and folders within the vault by matching names against a query. Returns a list of matching paths,
+providing a way to discover specific notes or folders when the exact name or location is unknown.
 
 ### `read_note`
 
-Fetches a note's information, including its content, structure (headings), links, and backlinks. It can be used to
-quickly scan a note's organization ('structure' mode) or read its full text ('text' mode). This tool is essential for
-navigating the vault's knowledge graph.
+Reads the full content of a note. Use this when you need to understand the details of a note, quote from it, or analyze
+its content in depth.
 
-### `list_folder_contents`
+### `read_note_structure`
 
-Lists files and folders at a specific path in the vault. Returns metadata including mtime and tags for files, and
-recursive file counts for folders. This helps the agent understand the vault's organization and discover notes without
-searching for specific terms.
+Fetches a note's structure, including headings, links, and backlinks. Use this to quickly understand the organization of
+a note and navigate to related content without reading the full text.
+
+### `list_directory`
+
+Lists files and folders at a specific path in the vault. Returns a markdown list with folder paths and file counts, and
+file names. This helps the agent understand the vault's organization and discover notes by browsing the hierarchy.
 

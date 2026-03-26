@@ -3,7 +3,7 @@ import { type App, TFile, TFolder } from "obsidian";
 import type { AgentState, Tool, ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
-export class ListFolderContentsTool implements Tool {
+export class ListDirectoryTool implements Tool {
   constructor(
     private app: App,
     _logger: Logger,
@@ -11,7 +11,7 @@ export class ListFolderContentsTool implements Tool {
 
   getDeclaration(): FunctionDeclaration {
     return {
-      name: "list_folder_contents",
+      name: "list_directory",
       description:
         "Lists files and folders at a specific path in the vault. Returns a markdown list with folder paths and file counts, and file names.",
       parameters: {

@@ -9,10 +9,10 @@ import {
 } from "obsidian";
 import { SidekickAgent } from "../agent";
 import type SidekickPlugin from "../main";
-import { ListFolderContentsTool } from "../tools/list-folder-contents";
+import { ListDirectoryTool } from "../tools/list-directory";
 import { ReadNoteTool } from "../tools/read-note";
 import { ReadNoteStructureTool } from "../tools/read-note-structure";
-import { SearchTool } from "../tools/search";
+import { SearchNotesTool } from "../tools/search-notes";
 import {
   type AgentState,
   createInitialState,
@@ -218,8 +218,8 @@ export class ChatView extends ItemView {
       [
         new ReadNoteTool(this.app, this.plugin.logger),
         new ReadNoteStructureTool(this.app, this.plugin.logger),
-        new SearchTool(this.app, this.plugin.logger),
-        new ListFolderContentsTool(this.app, this.plugin.logger),
+        new SearchNotesTool(this.app, this.plugin.logger),
+        new ListDirectoryTool(this.app, this.plugin.logger),
       ],
       (state) => {
         this.state = state;

@@ -3,7 +3,7 @@ import { type App, TFile } from "obsidian";
 import type { AgentState, Tool, ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
-export class SearchTool implements Tool {
+export class SearchNotesTool implements Tool {
   constructor(
     private app: App,
     _logger: Logger,
@@ -11,7 +11,7 @@ export class SearchTool implements Tool {
 
   getDeclaration(): FunctionDeclaration {
     return {
-      name: "search",
+      name: "search_notes",
       description:
         "Searches for notes and folders by name. Returns a list of matching paths. Use this to find the location of notes or folders in the vault.",
       parameters: {
