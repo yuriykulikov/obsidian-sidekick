@@ -14,7 +14,7 @@ export class ReadNoteTool implements Tool {
     return {
       name: "read_note",
       description:
-        "Reads the full content of a note. Use this when you need to understand the details of a note or quote from it.",
+        "Reads the full content of a note. Use this when you have a specific note name or path (e.g., from a link [[Note]] or a search result) and need to understand its details.",
       parameters: {
         type: Type.OBJECT,
         properties: {

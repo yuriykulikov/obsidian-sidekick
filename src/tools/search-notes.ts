@@ -13,7 +13,7 @@ export class SearchNotesTool implements Tool {
     return {
       name: "search_notes",
       description:
-        "Searches for notes and folders by name. Returns a list of matching paths. Use this to find the location of notes or folders in the vault.",
+        "Searches for notes and folders by name when you don't have a direct link. Returns a list of matching paths. Do NOT use this if you already have a [[Link]] to the note you want to look up.",
       parameters: {
         type: Type.OBJECT,
         properties: {

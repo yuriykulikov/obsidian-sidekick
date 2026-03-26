@@ -14,7 +14,7 @@ export class ReadNoteLinksTool implements Tool {
     return {
       name: "read_note_links",
       description:
-        "Reads the links and backlinks of a note. Use this when you need to understand the relationships between this note and others in the vault.",
+        "Reads the links and backlinks of a note. Use this when you need to understand the relationships between this note and others in the vault. Once you have these links, use 'read_note', 'read_note_structure' or '' for direct navigation.",
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -54,19 +54,16 @@ export class ReadNoteLinksTool implements Tool {
       .appendNote(filename, newNote)
       .appendDiscoveredStructure([file.path]);
 
-    const output = {
-      filename: filename,
-      path: file.path,
-      links: newNote.links,
-      backlinks: newNote.backlinks,
-    };
+    let output = `## Links for [[${filename}]]\n\n`;
+    output += `### Links\n${newNote.links.map((l) => `- [[${l}]]`).join("\n") || "_No links found._"}\n\n`;
+    output += `### Backlinks\n${newNote.backlinks.map((b) => `- [[${b}]]`).join("\n") || "_No backlinks found._"}`;
 
     return [
       newState,
       {
         output: output,
         summary: `Read note links: [[${filename}]]`,
-        verbose: `Read ${output.links.length} links and ${output.backlinks.length} backlinks of [[${filename}]]\n${JSON.stringify(output)}`,
+        verbose: `Read ${newNote.links.length} links and ${newNote.backlinks.length} backlinks of [[${filename}]]\n${output}`,
       },
     ];
   }

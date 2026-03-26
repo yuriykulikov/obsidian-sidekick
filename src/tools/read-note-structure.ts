@@ -14,7 +14,7 @@ export class ReadNoteStructureTool implements Tool {
     return {
       name: "read_note_structure",
       description:
-        "Fetches a note's structure, including headings, links, and backlinks. Use this to quickly understand the organization of a note and navigate to related content without reading the full text.",
+        "Fetches a note's structure, including headings, links, and backlinks. Use this when you have a specific note name or path (e.g., from a link [[Note]] or a search result) to quickly understand its organization and navigate to related content without reading the full text.",
       parameters: {
         type: Type.OBJECT,
         properties: {
