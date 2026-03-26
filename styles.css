@@ -244,13 +244,35 @@
 }
 
 .sidekick-log-entry {
-  margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--background-modifier-border);
 }
 
 .sidekick-log-user {
-  background-color: var(--background-secondary-alt);
-  padding: 8px;
   border-top: 1px solid var(--interactive-accent);
+}
+
+.sidekick-log-loop {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.sidekick-log-warn {
+  padding-left: 8px;
+  border: 1px solid orange;
+  padding-bottom: 8px;
+}
+
+.sidekick-log-error {
+  padding-left: 8px;
+  border: 1px solid red;
+  padding-bottom: 8px;
+}
+
+.sidekick-log-tool {
+  padding-left: 8px;
+  border-left: 1px solid var(--interactive-accent);
+}
+
+.sidekick-log-context {
+  padding-left: 8px;
+  border-left: 1px solid var(--background-modifier-border);
 }

@@ -12,6 +12,7 @@ import type {
   ToolResult,
 } from "./types";
 import type { Logger } from "./utils/logger";
+import { LogLevel } from "./utils/logger";
 import {
   addNote,
   refreshNotes,
@@ -183,7 +184,7 @@ export class SidekickAgent {
     this.setState(this.state.setThinking(true));
     while (true) {
       iterations++;
-
+      this.logger.loop(`Iteration ${iterations}, sending prompt to LLM...`);
       let iterationResponse = await this.promptLLM();
 
       const functionCalls = iterationResponse.functionCalls;
@@ -211,6 +212,8 @@ export class SidekickAgent {
     iterations: number,
     maxIterations: number,
   ): Promise<void> {
+    this.logger.markdown(`Final LLM Response`, finalContent);
+
     let postfix = "";
     if (this.stopRequested) {
       this.logger.warn("Agent loop stopped by user.");
@@ -244,7 +247,6 @@ export class SidekickAgent {
     );
     const lastUserEntry = userEntries[userEntries.length - 1];
     const prompt = lastUserEntry ? lastUserEntry.content : "";
-    this.logger.info(`Sending message...`);
     // Prepare context for the prompt from notes
     const structureStr =
       this.state.discoveredStructure.length > 0
@@ -255,6 +257,7 @@ export class SidekickAgent {
             this.logger.markdown(
               "Discovered Vault Structure",
               `\`\`\`\n${rendered}\n\`\`\``,
+              LogLevel.CONTEXT,
             );
             return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n\n`;
           })()
@@ -268,6 +271,7 @@ export class SidekickAgent {
               this.logger.markdown(
                 `${note.content ? "Note content " : "Note structure "} ${note.filename}`,
                 md,
+                LogLevel.CONTEXT,
               );
               return md;
             })
@@ -285,19 +289,18 @@ export class SidekickAgent {
               const callArgs = JSON.stringify(h.call.args);
               const resultText = this.toolResultString(h.result);
               this.logger.markdown(
-                `Tool Call ${h.call.name}(${callArgs})`,
+                h.result.summary,
                 resultText,
+                LogLevel.CONTEXT,
               );
               return `## Used tool: \`${h.call.name}(${callArgs})\n${resultText}`;
             })
             .join("\n")}\n`
         : "";
 
-    this.logger.info(`Prompt: ${prompt}`);
-
     const message = `${structureStr}${contextStr}${historyStr}\n# User Question\n${prompt}`;
 
-    this.logger.markdown(`Full prompt`, message);
+    this.logger.markdown(`Full prompt`, message, LogLevel.CONTEXT);
 
     if (!this.chatSession) {
       throw new Error(this.initError || "Chat session not initialized");
@@ -394,15 +397,17 @@ export class SidekickAgent {
     });
 
     if (!response) {
+      this.logger.error(
+        "Chat session not initialized or failed to get response",
+      );
       throw new Error("Chat session not initialized or failed to get response");
     }
 
-    this.logResponse(response, "to send function responses");
     if (response.text) {
-      this.logger.info(
-        `Final model response after function calls: ${response.text}`,
-      );
+      this.logger.markdown(`Model responded after tool calls`, response.text);
     }
+
+    this.logResponse(response, "to send function responses");
 
     return response;
   }
@@ -416,29 +421,22 @@ export class SidekickAgent {
     const startTime = Date.now();
     if (tool) {
       const [newState, res] = await tool.execute(this.state, args);
-      const duration = Date.now() - startTime;
-      this.setState(newState);
       result = res;
-      let logText: string;
-      if (result.summary) {
-        logText = `${result.summary} (${duration}ms)`;
-      } else if ("output" in res) {
-        logText = this.toolResultString(result);
-      } else {
-        logText = `${res.error} (${duration}ms)`;
-      }
-      this.logger.markdown(
-        `Called tool ${name}(${JSON.stringify(args)})`,
-        logText,
-      );
+
+      this.setState(newState);
     } else {
       const message = `Tool ${name} not found.`;
-      this.logger.warn(message);
       result = {
         error: message,
         summary: message,
       };
     }
+    const duration = Date.now() - startTime;
+    this.logger.markdown(
+      `${result.summary} (${duration}ms)`,
+      this.toolResultString(result),
+      "output" in result ? LogLevel.TOOL : LogLevel.ERROR,
+    );
     return result;
   }
 
@@ -461,26 +459,15 @@ export class SidekickAgent {
    */
   private logResponse(
     response: GenerateContentResponse,
-    forWhat?: string,
+    forWhat: string,
   ): void {
     const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
-    const logMsg = forWhat
-      ? `Sent ${forWhat}, used ${tokens} tokens`
-      : `Used ${tokens} LLM tokens`;
+    const logMsg = `Used ${tokens} tokens ${forWhat}`;
     this.logger.info(logMsg);
     if (response.promptFeedback) {
       this.logger.info(
         `Prompt feedback: ${JSON.stringify(response.promptFeedback)}`,
       );
-    }
-    if (response.functionCalls && response.functionCalls.length > 0) {
-      const formattedCalls = response.functionCalls
-        .map((call) => `${call.name}(${JSON.stringify(call.args)})`)
-        .join(", ");
-      this.logger.info(`LLM requested: [${formattedCalls}]`);
-    }
-    if (response.data) {
-      this.logger.info(`Response data: ${response.data}`);
     }
   }
 }

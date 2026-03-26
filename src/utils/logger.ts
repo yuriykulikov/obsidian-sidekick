@@ -1,7 +1,11 @@
 export enum LogLevel {
   INFO = "INFO",
+  WARN = "WARN",
   ERROR = "ERROR",
   USER = "USER",
+  LOOP = "LOOP",
+  CONTEXT = "CONTEXT",
+  TOOL = "TOOL",
 }
 
 export interface LogEntry {
@@ -38,18 +42,31 @@ export class Logger {
     this.log(LogLevel.USER, message);
   }
 
+  loop(message: string) {
+    this.log(LogLevel.LOOP, message);
+  }
+
+  tool(message: string) {
+    this.log(LogLevel.TOOL, message);
+  }
+
   warn(message: string) {
-    this.log(LogLevel.INFO, message);
+    this.log(LogLevel.WARN, message);
   }
 
   error(message: string) {
     this.log(LogLevel.ERROR, message);
   }
 
-  markdown(title: string, markdown: string, collapsed: boolean = true) {
+  markdown(
+    title: string,
+    markdown: string,
+    level: LogLevel = LogLevel.INFO,
+    collapsed: boolean = true,
+  ) {
     const entry: LogEntry = {
       timestamp: new Date(),
-      level: LogLevel.INFO,
+      level: level,
       message: title,
       title,
       markdown,
