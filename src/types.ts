@@ -37,6 +37,31 @@ export class AgentState {
     );
   }
 
+  public removeNote(filename: string): AgentState {
+    const mergedNotes = new Map(this.notes);
+    mergedNotes.delete(filename);
+    return new AgentState(
+      this.history,
+      mergedNotes,
+      this.discoveredStructure,
+      this.isThinking,
+    );
+  }
+
+  public setHistoryEntryCollapsed(id: string, collapsed: boolean): AgentState {
+    return new AgentState(
+      this.history.map((entry) => {
+        if (entry.type === "function_call" && entry.id === id) {
+          return { ...entry, collapsed };
+        }
+        return entry;
+      }),
+      this.notes,
+      this.discoveredStructure,
+      this.isThinking,
+    );
+  }
+
   public appendDiscoveredStructure(newPaths: readonly string[]): AgentState {
     return new AgentState(
       this.history,
@@ -83,6 +108,7 @@ export interface TextHistoryEntry {
 }
 
 export interface ToolCallHistoryEntry {
+  id: string;
   type: "function_call";
   role: "model";
   call: {
@@ -91,6 +117,7 @@ export interface ToolCallHistoryEntry {
   };
   result: ToolResult;
   pretty?: string;
+  collapsed: boolean;
 }
 
 export type ToolResult =

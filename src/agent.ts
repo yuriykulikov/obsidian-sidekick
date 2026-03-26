@@ -82,6 +82,10 @@ export class SidekickAgent {
     }
   }
 
+  public setStateDeferNotify(newState: AgentState): void {
+    this.state = newState;
+  }
+
   /**
    * Adds a note to the agent's context.
    * @param filename - The name of the note to add.
@@ -105,9 +109,18 @@ export class SidekickAgent {
    * @param filename - The name of the note to remove.
    */
   public removeNote(filename: string): void {
-    const newNotes = new Map(this.state.notes);
-    newNotes.delete(filename);
-    this.setState(this.state.replaceNotes(newNotes));
+    this.setState(this.state.removeNote(filename));
+  }
+
+  /**
+   * Collapses or expands a history entry.
+   * @param id - The ID of the history entry.
+   * @param collapsed - The new collapsed state.
+   */
+  public setHistoryEntryCollapsed(id: string, collapsed: boolean): void {
+    this.setStateDeferNotify(
+      this.state.setHistoryEntryCollapsed(id, collapsed),
+    );
   }
 
   /**
@@ -347,6 +360,7 @@ export class SidekickAgent {
       // Add this function call and its result to history immediately
       this.setState(
         this.state.appendHistoryEntry({
+          id: call.id || Math.random().toString(36).substring(2, 9),
           type: "function_call",
           role: "model",
           call: {
@@ -355,6 +369,7 @@ export class SidekickAgent {
           },
           result: result,
           pretty: result.pretty,
+          collapsed: true,
         }),
       );
     }

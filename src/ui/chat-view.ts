@@ -281,11 +281,16 @@ export class ChatView extends ItemView {
           : JSON.stringify(msg.result.output)
         : msg.result.error;
     const detailsEl = toolMsg.createDiv({
-      cls: "sidekick-tool-result-details sidekick-hidden",
+      cls: "sidekick-tool-result-details",
     });
+    if (msg.collapsed) {
+      detailsEl.addClass("sidekick-hidden");
+    }
     void MarkdownRenderer.render(this.app, resultOutput, detailsEl, "", this);
 
     toolMsg.addEventListener("click", () => {
+      const isCollapsed = detailsEl.hasClass("sidekick-hidden");
+      this.agent.setHistoryEntryCollapsed(msg.id, !isCollapsed);
       detailsEl.toggleClass(
         "sidekick-hidden",
         !detailsEl.hasClass("sidekick-hidden"),
