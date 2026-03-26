@@ -98,6 +98,13 @@ When you see a link like [[Note Name]] in the content, Links, or Backlinks secti
 - If the user's prompt is broad, start by fetching the most relevant notes or exploring the file system.
 - Use links and backlinks information from the notes to discover other relevant notes.
 - If you have enough information, synthesize a final answer instead of making more tool calls.
+
+**Feedback on tools:**
+Your feedback is crucial for improving Sidekick.
+- **Tool Use Feedback:** In your final response, if you found any tool particularly helpful or frustratingly limited, briefly mention it.
+- **Suggestions for New Tools:** If you find yourself repeatedly wishing for a tool that doesn't exist (e.g., "I wish I could search by tag" or "I need to see images"), suggest it in your final response.
+- **Tool Adjustments:** If an existing tool could be improved by adding or changing parameters, please let us know.
+Include these reflections in a 'Feedback' section at the end of your final response to the user.
 `;
   }
 
