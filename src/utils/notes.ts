@@ -84,7 +84,7 @@ export function renderNoteToMarkdown(note: Note): string {
   let noteMd = `# Note [[${note.filename}]]\n`;
   noteMd += `Path: ${note.path}\n`;
 
-  noteMd += "## Metadata\n";
+  noteMd += "## Context\n";
 
   noteMd += "### Links\n";
   for (const l of note.links || []) {
@@ -96,7 +96,7 @@ export function renderNoteToMarkdown(note: Note): string {
     noteMd += `- [[${b}]]\n`;
   }
 
-  noteMd += "### Vault Context\n```\n";
+  noteMd += "### Directory Structure\n```\n";
   const contextPaths = [
     note.path,
     ...(note.folderSiblings || []).map((s) => {
@@ -115,7 +115,7 @@ export function renderNoteToMarkdown(note: Note): string {
     noteMd += note.content.trim();
     noteMd += "\n```\n";
   } else if (note.structure) {
-    noteMd += "\n### Structure\n```\n";
+    noteMd += "\n## Structure\n```\n";
     noteMd += note.structure.trim();
     noteMd += "\n```\n";
   }
