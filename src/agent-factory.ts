@@ -5,6 +5,7 @@ import {
 } from "@google/genai";
 import type { App } from "obsidian";
 import { SidekickAgent } from "./agent";
+import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
 import { ReadNoteTool } from "./tools/read-note";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
@@ -109,6 +110,7 @@ The vault is organized in a tree structure of folders and notes. Relevant notes 
       new ReadNoteStructureTool(this.app, this.logger),
       new SearchNotesTool(this.app, this.logger),
       new ListDirectoryTool(this.app, this.logger),
+      new GrepSearchTool(this.app, this.logger),
     ];
 
     const systemPrompt = this.getSystemPrompt();

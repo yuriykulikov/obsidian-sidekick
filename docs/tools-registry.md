@@ -28,3 +28,9 @@ a note and navigate to related content without reading the full text.
 Lists files and folders at a specific path in the vault. Returns a markdown list with folder paths and file counts, and
 file names. This helps the agent understand the vault's organization and discover notes by browsing the hierarchy.
 
+### `grep_search`
+
+Searches for a specific text string within all notes in the vault. Returns a list of matches including the file path and 
+a configurable number of surrounding lines of text for context. This is useful for finding specific information, 
+mentions, or patterns across the entire vault.
+
