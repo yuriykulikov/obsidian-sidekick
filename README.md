@@ -1,3 +1,5 @@
+[![Node.js build](https://github.com/yuriykulikov/obsidian-sidekick/actions/workflows/lint.yml/badge.svg)](https://github.com/yuriykulikov/obsidian-sidekick/actions/workflows/lint.yml)
+
 # Sidekick
 
 Sidekick is an AI agent for [Obsidian](https://obsidian.md), designed to be your companion in managing and growing your
@@ -37,8 +39,11 @@ Run `npm run lint` or `npm run lint:fix` to ensure code follows Biome's formatti
 
 ## Security & Privacy
 
-Sidekick uses the **Google Gemini API** (specifically the `gemini-3-flash-preview` model) to process your prompts and notes.
+Sidekick uses the **Google Gemini API** (specifically the `gemini-3-flash-preview` model) to process your prompts and
+notes.
+
 - Your data is only sent to Google when you interact with the agent.
 - No data is collected or stored by the plugin developers.
 - Refer to Google's privacy policy for how they handle API data.
-- Sidekick defaults to reading only the notes you explicitly provide or that it discovers through links to answer your questions.
+- Sidekick defaults to reading only the notes you explicitly provide or that it discovers through links to answer your
+  questions.
