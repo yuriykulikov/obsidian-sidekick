@@ -76,7 +76,7 @@ export class SearchNotesTool implements Tool {
       {
         output: output.trim(),
         summary: `Search notes: found ${matches.length} matches for "${query}"`,
-        verbose: `Search for "${query}": found ${notes.length} notes and ${folders.length} folders.`,
+        verbose: output.trim(),
       },
     ];
   }
