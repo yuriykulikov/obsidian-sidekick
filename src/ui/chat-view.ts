@@ -15,6 +15,7 @@ import type {
 } from "../types";
 import type { Logger } from "../utils/logger";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
+import { TagSuggestionModal } from "./tag-suggestion-modal";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -117,8 +118,10 @@ export class ChatView extends ItemView {
       const lastChar = value.charAt(cursor - 1);
       const lastTwoChars = value.substring(cursor - 2, cursor);
 
-      if (lastChar === "@" || lastChar === "#" || lastTwoChars === "[[") {
+      if (lastChar === "@" || lastTwoChars === "[[") {
         this.openNoteModal();
+      } else if (lastChar === "#") {
+        this.openTagModal();
       }
     });
 
@@ -147,6 +150,35 @@ export class ChatView extends ItemView {
         void this.sendMessage();
       }
     });
+  }
+
+  /**
+   * Opens the tag suggestion modal and adds the selected tag to input.
+   */
+  private openTagModal() {
+    new TagSuggestionModal(this.app, (tag: string) => {
+      // Add to input text
+      const cursor = this.inputEl.selectionStart;
+      const value = this.inputEl.value;
+      const before = value.substring(0, cursor);
+      const after = value.substring(cursor);
+
+      // If triggered by #, tag already contains # usually from getAllTags,
+      // but let's be sure. getAllTags returns tags with #.
+      const insertion = `${tag} `;
+      if (before.endsWith("#") && tag.startsWith("#")) {
+        // Remove the extra # if we already typed it
+        this.inputEl.value =
+          before.substring(0, before.length - 1) + insertion + after;
+        this.inputEl.selectionStart = this.inputEl.selectionEnd =
+          cursor - 1 + insertion.length;
+      } else {
+        this.inputEl.value = before + insertion + after;
+        this.inputEl.selectionStart = this.inputEl.selectionEnd =
+          cursor + insertion.length;
+      }
+      this.inputEl.focus();
+    }).open();
   }
 
   /**
