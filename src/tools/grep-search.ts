@@ -19,7 +19,17 @@ export class GrepSearchTool implements Tool {
         properties: {
           query: {
             type: Type.STRING,
-            description: "The text string to search for.",
+            description: "The text string or regex pattern to search for.",
+          },
+          regex: {
+            type: Type.BOOLEAN,
+            description:
+              "Whether to treat the query as a regular expression (default: false).",
+          },
+          regexExplanation: {
+            type: Type.STRING,
+            description:
+              "If using a regular expression, provide a brief explanation of what it matches. This will be included in the tool result summary.",
           },
           contextLines: {
             type: Type.NUMBER,
@@ -37,7 +47,27 @@ export class GrepSearchTool implements Tool {
     params: Record<string, unknown>,
   ): Promise<[AgentState, ToolResult]> {
     const query = params.query as string;
+    const regex = (params.regex as boolean) ?? false;
+    const regexExplanation = params.regexExplanation as string | undefined;
     const contextLines = (params.contextLines as number) ?? 1;
+
+    let searchFn: (text: string) => boolean;
+    if (regex) {
+      try {
+        const re = new RegExp(query);
+        searchFn = (text: string) => re.test(text);
+      } catch (error) {
+        return [
+          state,
+          {
+            error: `Invalid regular expression: ${error instanceof Error ? error.message : String(error)}`,
+            summary: `Grep search: invalid regex${regexExplanation ? ` (${regexExplanation})` : ""}`,
+          },
+        ];
+      }
+    } else {
+      searchFn = (text: string) => text.includes(query);
+    }
 
     const markdownFiles = this.app.vault.getMarkdownFiles();
     const results: { path: string; matches: string[] }[] = [];
@@ -50,7 +80,7 @@ export class GrepSearchTool implements Tool {
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
-          if (line?.includes(query)) {
+          if (line && searchFn(line)) {
             const start = Math.max(0, i - contextLines);
             const end = Math.min(lines.length - 1, i + contextLines);
             const contextMatch = lines
@@ -78,7 +108,7 @@ export class GrepSearchTool implements Tool {
         state,
         {
           output: `No matches found for "${query}" in the vault.`,
-          summary: `Grep search: no matches for "${query}"`,
+          summary: `Grep search: no matches for "${query}"${regexExplanation ? ` (${regexExplanation})` : ""}`,
         },
       ];
     }
@@ -101,7 +131,9 @@ export class GrepSearchTool implements Tool {
       newState,
       {
         output: output.trim(),
-        summary: `Grep search: found matches for "${query}" in ${results.length} notes`,
+        summary: `Grep search: found matches for "${query}" in ${results.length} notes${
+          regexExplanation ? ` (${regexExplanation})` : ""
+        }`,
       },
     ];
   }
