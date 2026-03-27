@@ -10,6 +10,7 @@ import { ListDirectoryTool } from "./tools/list-directory";
 import { ReadNoteTool } from "./tools/read-note";
 import { ReadNoteLinksTool } from "./tools/read-note-links";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
+import { SearchByTagTool } from "./tools/search-by-tag";
 import { SearchNotesTool } from "./tools/search-notes";
 import { AgentState, type TextHistoryEntry, type Tool } from "./types";
 import type { Logger } from "./utils/logger";
@@ -102,7 +103,7 @@ When you see a link like [[Note Name]] in the content, Links, or Backlinks secti
 **Feedback on tools:**
 Your feedback is crucial for improving Sidekick.
 - **Tool Use Feedback:** In your final response, if you found any tool particularly helpful or frustratingly limited, briefly mention it.
-- **Suggestions for New Tools:** If you find yourself repeatedly wishing for a tool that doesn't exist (e.g., "I wish I could search by tag" or "I need to see images"), suggest it in your final response.
+- **Suggestions for New Tools:** If you find yourself repeatedly wishing for a tool that doesn't exist (e.g., "I need to see images"), suggest it in your final response.
 - **Tool Adjustments:** If an existing tool could be improved by adding or changing parameters, please let us know.
 Include these reflections in a 'Feedback' section at the end of your final response to the user.
 `;
@@ -121,6 +122,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       new ReadNoteTool(this.app, this.logger),
       new ReadNoteLinksTool(this.app, this.logger),
       new ReadNoteStructureTool(this.app, this.logger),
+      new SearchByTagTool(this.app, this.logger),
       new SearchNotesTool(this.app, this.logger),
       new ListDirectoryTool(this.app, this.logger),
       new GrepSearchTool(this.app, this.logger),

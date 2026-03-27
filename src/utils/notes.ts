@@ -14,11 +14,35 @@ export async function readNote(
 
   const links: string[] = [];
   const backlinks: string[] = [];
+  const tags: string[] = [];
 
   const cache = app.metadataCache.getFileCache(file);
   if (cache?.links) {
     for (const link of cache.links) {
       links.push(link.link);
+    }
+  }
+
+  if (cache?.tags) {
+    for (const tag of cache.tags) {
+      tags.push(tag.tag);
+    }
+  }
+
+  if (cache?.frontmatter?.tags) {
+    const fmTags = cache.frontmatter.tags;
+    if (Array.isArray(fmTags)) {
+      for (const tag of fmTags) {
+        tags.push(
+          typeof tag === "string" && !tag.startsWith("#") ? `#${tag}` : tag,
+        );
+      }
+    } else if (typeof fmTags === "string") {
+      for (const tag of fmTags.split(/[\s,]+/)) {
+        if (tag) {
+          tags.push(tag.startsWith("#") ? tag : `#${tag}`);
+        }
+      }
     }
   }
 
@@ -71,6 +95,7 @@ export async function readNote(
     content: detail === "text" ? content : null,
     links: [...new Set(links)],
     backlinks: [...new Set(backlinks)],
+    tags: [...new Set(tags)],
     active: false,
     structure: structureOrText ? structure.join("\n") : null,
     parentPath: parentFolder?.path || "/",
@@ -90,6 +115,11 @@ export function renderNoteToMarkdown(note: Note): string {
   noteMd += "### Links\n";
   for (const l of note.links || []) {
     noteMd += `- [[${l}]]\n`;
+  }
+
+  noteMd += "### Tags\n";
+  for (const t of note.tags || []) {
+    noteMd += `- ${t}\n`;
   }
 
   noteMd += "### Backlinks\n";

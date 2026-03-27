@@ -134,6 +134,7 @@ export interface Note {
   content: string | null;
   links: string[];
   backlinks: string[];
+  tags: string[];
   active?: boolean;
   parentPath?: string;
   folderSiblings?: string[] | null;

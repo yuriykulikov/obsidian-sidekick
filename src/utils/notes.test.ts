@@ -12,6 +12,7 @@ describe("notes utils", () => {
         content: "This is the content of the note.",
         links: ["Link1", "Link2"],
         backlinks: ["Backlink1"],
+        tags: ["#tag1", "#tag2"],
         folderSiblings: ["Sibling1"],
         active: true,
       };
@@ -24,6 +25,9 @@ Path: one/two/Test Note.md
 ### Links
 - [[Link1]]
 - [[Link2]]
+### Tags
+- #tag1
+- #tag2
 ### Backlinks
 - [[Backlink1]]
 ### Directory Structure
@@ -52,6 +56,7 @@ This is the content of the note.
 `.trim(),
         links: [],
         backlinks: [],
+        tags: [],
         folderSiblings: [],
         active: false,
       };
@@ -62,6 +67,7 @@ This is the content of the note.
 Path: one/two/three/Structured Note.md
 ## Context
 ### Links
+### Tags
 ### Backlinks
 ### Directory Structure
 \`\`\`
@@ -87,6 +93,7 @@ Path: one/two/three/Structured Note.md
         content: "Empty",
         links: [],
         backlinks: [],
+        tags: [],
         folderSiblings: [],
       };
 
@@ -95,6 +102,7 @@ Path: one/two/three/Structured Note.md
 Path: Deep/Path/To/Empty Note.md
 ## Context
 ### Links
+### Tags
 ### Backlinks
 ### Directory Structure
 \`\`\`
