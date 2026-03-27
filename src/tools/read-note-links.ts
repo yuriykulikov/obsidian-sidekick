@@ -14,7 +14,7 @@ export class ReadNoteLinksTool implements Tool {
     return {
       name: "read_note_links",
       description:
-        "Reads the links and backlinks of a note. Use this when you need to understand the relationships between this note and others in the vault. Once you have these links, use 'read_note', 'read_note_structure' or '' for direct navigation.",
+        "Reads the links and backlinks of a note. Use this when you need to understand the relationships between this note and others in the vault. Once you have these links, use 'read_note', 'read_note_structure' or 'read_note_links' for direct navigation.",
       parameters: {
         type: Type.OBJECT,
         properties: {
