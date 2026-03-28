@@ -1,0 +1,50 @@
+/* Log View Styles */
+.sidekick-log-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidekick-log-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.sidekick-log-entry {
+  padding-top: 8px;
+}
+
+.sidekick-log-user {
+  border-top: 1px solid var(--interactive-accent);
+}
+
+.sidekick-log-loop {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.sidekick-log-warn {
+  padding-left: 8px;
+  border: 1px solid orange;
+  padding-bottom: 8px;
+}
+
+.sidekick-log-error {
+  padding-left: 8px;
+  border: 1px solid red;
+  padding-bottom: 8px;
+}
+
+.sidekick-log-tool {
+  padding-left: 8px;
+  border-left: 1px solid var(--interactive-accent);
+}
+
+.sidekick-log-context {
+  padding-left: 8px;
+  border-left: 1px solid var(--background-modifier-border);
+}

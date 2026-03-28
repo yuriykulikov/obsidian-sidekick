@@ -1,0 +1,52 @@
+.sidekick-input-container {
+  padding: 10px;
+  display: flex;
+  position: relative;
+}
+
+.sidekick-input {
+  width: 100%;
+  height: 100px;
+  resize: none;
+}
+
+.sidekick-send-button,
+.sidekick-add-note-button,
+.sidekick-stop-button {
+  position: absolute;
+  bottom: 15px;
+  padding: 4px;
+  height: 30px;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: var(--text-muted);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.sidekick-send-button,
+.sidekick-stop-button {
+  right: 15px;
+}
+
+.sidekick-add-note-button {
+  right: 50px;
+}
+
+.sidekick-send-button:hover,
+.sidekick-stop-button:hover,
+.sidekick-add-note-button:hover {
+  color: var(--interactive-accent);
+}
+
+.sidekick-send-button svg,
+.sidekick-stop-button svg,
+.sidekick-add-note-button svg {
+  width: 18px;
+  height: 18px;
+}

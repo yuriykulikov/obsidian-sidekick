@@ -42,6 +42,8 @@ Source lives in `src/`:
     main.ts           # Plugin entry point, lifecycle management
     agent.ts          # AI Agent logic and tool integration
     settings.ts       # Settings interface and defaults
+    css/              # CSS source files (compiled to styles.css)
+      main.css        # Main CSS entry point
     tools/           # AI tool implementations (note operations, etc.)
       read-note.ts
       search-notes.ts
@@ -87,7 +89,9 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 
 **Don't**
 
-- **Do not modify `main.js` directly**: It is a compiled file. Always make changes in the `src/` directory.
+- **Do not modify `main.js` or `styles.css` directly**: These are compiled/bundled files. Always make changes in the `src/` directory.
+  - JavaScript changes should be made in `src/*.ts`.
+  - CSS changes should be made in `src/css/*.css`.
 - **Do not use Notice** except for errors.
 
 **Before finishing a task**

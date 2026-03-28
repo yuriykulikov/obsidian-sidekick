@@ -131,7 +131,7 @@ export class ChatView extends ItemView {
     setIcon(this.sendButton, "paper-plane");
 
     this.stopButton = inputContainer.createEl("button", {
-      cls: "sidekick-stop-button sidekick-hidden",
+      cls: "sidekick-stop-button sidekick-button-hidden",
     });
     setIcon(this.stopButton, "circle-stop");
 
@@ -271,11 +271,11 @@ export class ChatView extends ItemView {
   private updateActionButtons(state: AgentState) {
     if (this.sendButton && this.stopButton) {
       if (state.isThinking) {
-        this.sendButton.addClass("sidekick-hidden");
-        this.stopButton.removeClass("sidekick-hidden");
+        this.sendButton.addClass("sidekick-button-hidden");
+        this.stopButton.removeClass("sidekick-button-hidden");
       } else {
-        this.sendButton.removeClass("sidekick-hidden");
-        this.stopButton.addClass("sidekick-hidden");
+        this.sendButton.removeClass("sidekick-button-hidden");
+        this.stopButton.addClass("sidekick-button-hidden");
       }
     }
   }
@@ -320,7 +320,7 @@ export class ChatView extends ItemView {
         cls: "sidekick-tool-result-details",
       });
       if (msg.collapsed) {
-        verboseElement.addClass("sidekick-hidden");
+        verboseElement.addClass("sidekick-button-hidden");
       }
       void MarkdownRenderer.render(
         this.app,
@@ -331,11 +331,11 @@ export class ChatView extends ItemView {
       );
 
       toolMsg.addEventListener("click", () => {
-        const isCollapsed = verboseElement.hasClass("sidekick-hidden");
+        const isCollapsed = verboseElement.hasClass("sidekick-button-hidden");
         this.agent.setHistoryEntryCollapsed(msg.id, !isCollapsed);
         verboseElement.toggleClass(
-          "sidekick-hidden",
-          !verboseElement.hasClass("sidekick-hidden"),
+          "sidekick-button-hidden",
+          !verboseElement.hasClass("sidekick-button-hidden"),
         );
       });
     }
