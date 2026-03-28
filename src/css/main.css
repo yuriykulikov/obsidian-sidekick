@@ -1,0 +1,10 @@
+/*
+ * This is the entry point for the plugin's CSS.
+ * It is compiled into `styles.css` in the plugin root.
+ * DO NOT modify `styles.css` directly; make changes here or in imported files.
+ */
+
+@import "./chat-view.css";
+@import "./chat-view-input.css";
+@import "./chat-view-conversation.css";
+@import "./log-view.css";

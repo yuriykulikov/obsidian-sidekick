@@ -1,0 +1,82 @@
+.sidekick-message {
+  margin-bottom: 10px;
+  padding: 5px;
+  border-radius: 5px;
+  user-select: text;
+}
+
+.user-message {
+  background-color: var(--background-secondary-alt);
+}
+
+.agent-message {
+  background-color: var(--background-primary-alt);
+  position: relative;
+}
+
+.sidekick-copy-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  opacity: 0.3;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.sidekick-copy-button:hover {
+  opacity: 1;
+  background-color: var(--background-secondary-alt);
+}
+
+.sidekick-copy-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tool-message {
+  background-color: var(--background-secondary);
+  border-left: 3px solid var(--text-accent);
+  font-size: 0.85em;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tool-message:hover {
+  background-color: var(--background-secondary-alt);
+}
+
+.sidekick-tool-result-summary {
+  font-family: var(--font-monospace);
+  color: var(--text-success);
+}
+
+.sidekick-tool-verbose-indicator {
+  font-weight: bold;
+}
+
+.tool-message.sidekick-tool-error {
+  border-left-color: var(--text-error);
+}
+
+.sidekick-tool-error .sidekick-tool-result-summary {
+  color: var(--text-error);
+}
+
+.sidekick-tool-result-details {
+  flex: 1 1 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+}

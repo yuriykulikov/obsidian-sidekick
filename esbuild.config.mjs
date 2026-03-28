@@ -10,6 +10,14 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = process.argv[2] === "production";
 
+const cssContext = await esbuild.context({
+  entryPoints: ["src/css/main.css"],
+  outfile: "styles.css",
+  bundle: true,
+  allowOverwrite: true,
+  minify: prod,
+});
+
 const context = await esbuild.context({
   banner: {
     js: banner,
@@ -42,8 +50,10 @@ const context = await esbuild.context({
 });
 
 if (prod) {
+  await cssContext.rebuild();
   await context.rebuild();
   process.exit(0);
 } else {
+  await cssContext.watch();
   await context.watch();
 }

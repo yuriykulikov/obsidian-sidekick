@@ -14,6 +14,8 @@ import { Logger } from "./utils/logger";
  *
  * It manages the plugin lifecycle and acts as the root of the **Dependency
  * Injection** chain, initializing the `AgentFactory` and the plugin's views.
+ *
+ * NOTE: This is the source file for `main.js`. Do not modify `main.js` directly.
  */
 export default class SidekickPlugin extends Plugin {
   settings: SidekickPluginSettings;
