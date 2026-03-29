@@ -280,7 +280,9 @@ export class ChatView extends ItemView {
   private scrollToBottom() {
     // Scroll to bottom after render
     setTimeout(() => {
-      this.responseContainer.scrollTo(0, this.responseContainer.scrollHeight);
+      this.responseContainer.scrollTo({
+        top: this.responseContainer.scrollHeight,
+      });
     }, 0);
   }
 

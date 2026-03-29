@@ -97,6 +97,6 @@ export class SidekickLogView extends ItemView implements LogListener {
     }
 
     // Auto-scroll to bottom
-    this.logContainer.scrollTo(0, this.logContainer.scrollHeight);
+    this.logContainer.scrollTo({ top: this.logContainer.scrollHeight });
   }
 }

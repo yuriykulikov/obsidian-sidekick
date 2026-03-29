@@ -24,11 +24,19 @@ import type { Logger } from "./utils/logger";
  * This pattern decouples the core agent logic from the Obsidian UI.
  */
 export class AgentFactory {
+  private readonly app: App;
+  private readonly logger: Logger;
+  private readonly apiKeyProvider: () => string | undefined;
+
   constructor(
-    private readonly app: App,
-    private readonly logger: Logger,
-    private readonly apiKeyProvider: () => string | undefined,
-  ) {}
+    app: App,
+    logger: Logger,
+    apiKeyProvider: () => string | undefined,
+  ) {
+    this.app = app;
+    this.logger = logger;
+    this.apiKeyProvider = apiKeyProvider;
+  }
 
   /**
    * Creates a new chat session using the Gemini API.
