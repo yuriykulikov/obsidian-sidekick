@@ -1,7 +1,6 @@
 import {
   ButtonComponent,
   ItemView,
-  MarkdownRenderer,
   setIcon,
   TFile,
   type WorkspaceLeaf,
@@ -17,6 +16,7 @@ import type { Logger } from "../utils/logger";
 import type { InputView } from "./input-view";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
 import { PlaintextInputView } from "./plaintext-input-view";
+import { renderMarkdown } from "./render-markdown";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
 
@@ -221,7 +221,7 @@ export class ChatView extends ItemView {
       const userMsg = this.responseContainer.createDiv({
         cls: "sidekick-message user-message",
       });
-      void MarkdownRenderer.render(this.app, msg.content, userMsg, "", this);
+      void renderMarkdown(this.app, msg.content, userMsg, this);
     } else {
       const agentMsg = this.responseContainer.createDiv({
         cls: "sidekick-message agent-message",
@@ -231,7 +231,7 @@ export class ChatView extends ItemView {
       copyBtn.addEventListener("click", () => {
         void navigator.clipboard.writeText(msg.content);
       });
-      void MarkdownRenderer.render(this.app, msg.content, agentMsg, "", this);
+      void renderMarkdown(this.app, msg.content, agentMsg, this);
     }
   }
 
@@ -258,13 +258,7 @@ export class ChatView extends ItemView {
       if (msg.collapsed) {
         verboseElement.addClass("sidekick-button-hidden");
       }
-      void MarkdownRenderer.render(
-        this.app,
-        msg.result.verbose,
-        verboseElement,
-        "",
-        this,
-      );
+      void renderMarkdown(this.app, msg.result.verbose, verboseElement, this);
 
       toolMsg.addEventListener("click", () => {
         const isCollapsed = verboseElement.hasClass("sidekick-button-hidden");
