@@ -379,22 +379,23 @@ export class SidekickAgent {
       );
     }
 
-    const response = await this.chatSession?.sendMessage({
-      message: [
-        ...results.map((r) => {
-          const responseBody: Record<string, unknown> = {
-            ...(r.response as Record<string, unknown>),
-          };
-          return {
-            functionResponse: {
-              name: r.name,
-              id: r.id,
-              response: responseBody,
-            } as FunctionResponse,
-          };
-        }),
-      ],
-    });
+    const response: GenerateContentResponse | undefined =
+      await this.chatSession?.sendMessage({
+        message: [
+          ...results.map((r) => {
+            const responseBody: Record<string, unknown> = {
+              ...(r.response as Record<string, unknown>),
+            };
+            return {
+              functionResponse: {
+                name: r.name,
+                id: r.id,
+                response: responseBody,
+              } as FunctionResponse,
+            };
+          }),
+        ],
+      });
 
     if (!response) {
       this.logger.error(

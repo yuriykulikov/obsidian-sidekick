@@ -1,12 +1,25 @@
 import type { FunctionDeclaration } from "@google/genai";
 
 export class AgentState {
+  /**
+   * Do not use parameter property shorthand - does not work in Webstorm.
+   */
+  public readonly history: readonly HistoryEntry[];
+  public readonly notes: ReadonlyMap<string, Note>;
+  public readonly discoveredStructure: readonly string[];
+  public readonly isThinking: boolean;
+
   constructor(
-    public readonly history: readonly HistoryEntry[] = [],
-    public readonly notes: ReadonlyMap<string, Note> = new Map(),
-    public readonly discoveredStructure: readonly string[] = [],
-    public readonly isThinking: boolean = false,
-  ) {}
+    history: readonly HistoryEntry[] = [],
+    notes: ReadonlyMap<string, Note> = new Map<string, Note>(),
+    discoveredStructure: readonly string[] = [],
+    isThinking: boolean = false,
+  ) {
+    this.history = history;
+    this.notes = notes;
+    this.discoveredStructure = discoveredStructure;
+    this.isThinking = isThinking;
+  }
 
   public appendHistoryEntry(item: HistoryEntry): AgentState {
     return new AgentState(

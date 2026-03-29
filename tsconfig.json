@@ -4,8 +4,7 @@
     "inlineSourceMap": true,
     "inlineSources": true,
     "module": "ESNext",
-    "target": "ES6",
-    "allowJs": true,
+    "target": "ES2020",
     "noImplicitAny": true,
     "noImplicitThis": true,
     "noImplicitReturns": true,
@@ -17,7 +16,8 @@
     "strictBindCallApply": true,
     "allowSyntheticDefaultImports": true,
     "useUnknownInCatchVariables": true,
-    "lib": ["DOM", "ESNext"]
+    "lib": ["ES2020", "DOM"],
+    "types": ["node", "obsidian"]
   },
   "include": ["src/**/*.ts"]
 }
