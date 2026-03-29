@@ -1,10 +1,6 @@
-import {
-  ItemView,
-  MarkdownRenderer,
-  type Menu,
-  type WorkspaceLeaf,
-} from "obsidian";
+import { ItemView, type Menu, type WorkspaceLeaf } from "obsidian";
 import type { LogEntry, Logger, LogListener } from "../utils/logger";
+import { renderMarkdown } from "./render-markdown";
 
 export const VIEW_TYPE_SIDEKICK_LOG = "sidekick-log-view";
 
@@ -91,7 +87,7 @@ export class SidekickLogView extends ItemView implements LogListener {
       const content = details.createDiv({
         cls: "sidekick-log-markdown-content",
       });
-      void MarkdownRenderer.render(this.app, entry.markdown, content, "", this);
+      void renderMarkdown(this.app, entry.markdown, content, this);
     } else {
       logEl.createSpan({ cls: "sidekick-log-message", text: entry.message });
     }
