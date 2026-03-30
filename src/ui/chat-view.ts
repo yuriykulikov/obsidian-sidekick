@@ -14,8 +14,8 @@ import type {
 } from "../types";
 import type { Logger } from "../utils/logger";
 import type { InputView } from "./input-view";
+import { createMarkdownEditor } from "./markdown-input-view";
 import { NoteSuggestionModal } from "./note-suggestion-modal";
-import { PlaintextInputView } from "./plaintext-input-view";
 import { renderMarkdown } from "./render-markdown";
 
 export const VIEW_TYPE_SIDEKICK = "sidekick-view";
@@ -114,7 +114,8 @@ export class ChatView extends ItemView {
 
     addNoteButton.buttonEl.addClass("sidekick-add-note-button");
 
-    this.inputView = PlaintextInputView.create(
+    // this.inputView = PlaintextInputView.create(
+    this.inputView = createMarkdownEditor(
       inputContainer,
       this.app,
       async (basename: string) => {

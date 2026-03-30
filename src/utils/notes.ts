@@ -302,18 +302,18 @@ export function renderDiscoveredStructure(paths: readonly string[]): string {
 /**
  * Extracts Obsidian links from a string.
  */
-function extractLinks(text: string): string[] {
+export function extractLinks(text: string): string[] {
   if (!text.includes("[[")) {
     return [];
   }
-  const linkRegex = /\[\[(.*?)(?:\|.*?)?]]/g;
+  const linkRegex = /\[\[([^\]|]+)(?:\|[^\]]+)?]]/g;
   const linksFound: string[] = [];
-  let match = linkRegex.exec(text);
-  while (match !== null) {
-    if (match[1]) {
-      linksFound.push(match[1]);
+  const matches = text.matchAll(linkRegex);
+  for (const match of matches) {
+    const basename = match[1]?.trim();
+    if (basename) {
+      linksFound.push(basename);
     }
-    match = linkRegex.exec(text);
   }
   return linksFound;
 }

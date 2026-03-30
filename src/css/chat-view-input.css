@@ -3,7 +3,7 @@
   display: flex;
   position: relative;
 }
-
+.sidekick-markdown-input,
 .sidekick-plaintext-input {
   width: 100%;
   height: 100px;
@@ -14,8 +14,27 @@
   box-shadow: 0 0 0 0 var(--background-modifier-border);
 }
 
+.sidekick-markdown-input:focus-within,
 .sidekick-plaintext-input:focus-within {
   box-shadow: 0 0 2px 2px var(--interactive-accent);
+}
+
+/*
+ * .cm-editor (Wrapper): The outermost element containing the entire editor.
+ * .cm-scroller: Handles scrolling, ensuring the editor remains contained.
+ * .cm-content (Editable Region): A div with contenteditable="true" that holds the actual text lines (cm-line).
+ * .cm-gutters: A section containing gutters, usually line numbers.
+ * .cm-tooltip: Floating elements for autocomplete, linting errors, or help information.
+ */
+.sidekick-markdown-input .cm-content {
+  height: 100px;
+  width: 100%;
+  margin: 8px;
+  font-size: 12px;
+}
+
+.sidekick-markdown-input .cm-content .cm-placeholder {
+  color: var(--text-faint);
 }
 
 .sidekick-send-button,
@@ -35,6 +54,7 @@
   color: var(--text-muted);
   border-radius: 5px;
   cursor: pointer;
+  z-index: 1;
 }
 
 .sidekick-send-button,
