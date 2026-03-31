@@ -4,6 +4,7 @@ import type {
   GenerateContentResponse,
 } from "@google/genai";
 import type { App } from "obsidian";
+import type { AgentFactory } from "./agent-factory";
 import type {
   AgentState,
   TextHistoryEntry,
@@ -36,6 +37,7 @@ export class SidekickAgent {
   logger: Logger;
   systemInstruction: string;
   tools: Tool[];
+  private agentFactory: AgentFactory | undefined;
   private onStateChange: (state: AgentState) => void;
   private stopRequested: boolean = false;
   private disposed: boolean = false;
@@ -51,6 +53,7 @@ export class SidekickAgent {
    * @param tools - The list of tools available to the agent.
    * @param onStateChange - Callback function to notify when the state changes.
    * @param initError - Error message if initialization failed.
+   * @param agentFactory - The factory used to recreate a fresh chat session per prompt.
    */
   constructor(
     app: App,
@@ -61,6 +64,7 @@ export class SidekickAgent {
     tools: Tool[] = [],
     onStateChange: (state: AgentState) => void,
     initError?: string,
+    agentFactory?: AgentFactory,
   ) {
     this.app = app;
     this.chatSession = chatSession;
@@ -70,6 +74,7 @@ export class SidekickAgent {
     this.tools = tools;
     this.onStateChange = onStateChange;
     this.initError = initError;
+    this.agentFactory = agentFactory;
   }
 
   /**
@@ -148,6 +153,26 @@ export class SidekickAgent {
       );
       return;
     }
+
+    // Create a fresh chat session for each user prompt so the Gemini API
+    // context window never grows across turns. All history and note context
+    // are included explicitly in the prompt message body.
+    if (this.agentFactory) {
+      try {
+        const newSession = this.agentFactory.createChatSession(
+          this.tools,
+          this.systemInstruction,
+        );
+        if (newSession) {
+          this.chatSession = newSession;
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to recreate chat session: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
     this.logger.user(`User prompt: ${userPrompt}`);
     this.setState(
       (await refreshNotes(this.app, this.state))
