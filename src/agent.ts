@@ -182,28 +182,41 @@ export class SidekickAgent {
     let iterations = 0;
     const maxIterations = 15;
     this.setState(this.state.setThinking(true));
+
+    // Call promptLLM once before entering the loop
+    let iterationResponse = await this.promptLLM();
+    const initialPromptTokens = this.getTokenCount(iterationResponse);
+    let toolTokensTotal = 0;
+    iterations = 1;
+
     while (true) {
-      iterations++;
-      this.logger.loop(`Iteration ${iterations}, sending prompt to LLM...`);
-      let iterationResponse = await this.promptLLM();
-
+      const earlyExit = this.stopRequested || iterations >= maxIterations;
       const functionCalls = iterationResponse.functionCalls;
-
-      if (
-        this.stopRequested ||
-        iterations >= maxIterations ||
-        !functionCalls ||
-        functionCalls.length === 0
-      ) {
+      if (earlyExit || !functionCalls || functionCalls.length === 0) {
         await this.finalizeLoop(
           iterationResponse.text ?? "",
           iterations,
           maxIterations,
+          initialPromptTokens,
+          toolTokensTotal,
         );
         return;
+      } else {
+        if (iterationResponse.text) {
+          this.logger.loop(`LLM Response: ${iterationResponse.text}`);
+          this.setState(
+            this.state.appendHistoryEntry({
+              type: "text",
+              role: "model",
+              content: iterationResponse.text,
+            }),
+          );
+        }
+        iterationResponse = await this.handleFunctionCalls(iterationResponse);
+        const toolTokens = this.getTokenCount(iterationResponse);
+        toolTokensTotal += toolTokens;
+        iterations++;
       }
-
-      iterationResponse = await this.handleFunctionCalls(iterationResponse);
     }
   }
 
@@ -211,8 +224,13 @@ export class SidekickAgent {
     finalContent: string,
     iterations: number,
     maxIterations: number,
+    initialPromptTokens: number,
+    toolTokensTotal: number,
   ): Promise<void> {
-    this.logger.markdown(`Final LLM Response`, finalContent);
+    this.logger.markdown(
+      `Final LLM Response after ${iterations} iterations (initial prompt tokens: ${initialPromptTokens}, tool tokens total: ${toolTokensTotal})`,
+      finalContent,
+    );
 
     let postfix = "";
     if (this.stopRequested) {
@@ -234,6 +252,11 @@ export class SidekickAgent {
         })
         .setThinking(false),
     );
+  }
+
+  private getTokenCount(response: GenerateContentResponse): number {
+    const tokens = response.usageMetadata?.totalTokenCount;
+    return typeof tokens === "number" ? tokens : 0;
   }
 
   /**
@@ -300,8 +323,6 @@ export class SidekickAgent {
 
     const message = `${structureStr}${contextStr}${historyStr}\n# User Question\n${prompt}`;
 
-    this.logger.markdown(`Full prompt`, message, LogLevel.CONTEXT);
-
     if (!this.chatSession) {
       throw new Error(this.initError || "Chat session not initialized");
     }
@@ -314,7 +335,17 @@ export class SidekickAgent {
       throw new Error("Failed to get response from Gemini");
     }
 
-    this.logResponse(response, "to prompt the LLM");
+    const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
+    this.logger.markdown(
+      `Full prompt (${tokens} tokens)`,
+      message,
+      LogLevel.CONTEXT,
+    );
+    if (response.promptFeedback) {
+      this.logger.info(
+        `Prompt feedback: ${JSON.stringify(response.promptFeedback)}`,
+      );
+    }
     return response;
   }
 
@@ -334,20 +365,7 @@ export class SidekickAgent {
   private async handleFunctionCalls(
     iterationResponse: GenerateContentResponse,
   ): Promise<GenerateContentResponse> {
-    const functionCalls = iterationResponse.functionCalls;
-    if (!functionCalls || functionCalls.length === 0) {
-      return iterationResponse;
-    }
-    if (iterationResponse.text) {
-      this.logger.info(`LLM Response: ${iterationResponse.text}`);
-      this.setState(
-        this.state.appendHistoryEntry({
-          type: "text",
-          role: "model",
-          content: iterationResponse.text,
-        }),
-      );
-    }
+    const functionCalls = iterationResponse.functionCalls ?? [];
 
     const results: FunctionResponse[] = [];
     for (const call of functionCalls) {
@@ -404,11 +422,9 @@ export class SidekickAgent {
       throw new Error("Chat session not initialized or failed to get response");
     }
 
-    if (response.text) {
-      this.logger.markdown(`Model responded after tool calls`, response.text);
-    }
-
-    this.logResponse(response, "to send function responses");
+    const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
+    const logMsg = `Used ${tokens} tokens to send function responses`;
+    this.logger.tool(logMsg);
 
     return response;
   }
@@ -451,24 +467,5 @@ export class SidekickAgent {
   dispose() {
     stop();
     this.disposed = true;
-  }
-
-  /**
-   * Logs detailed information about the LLM response.
-   * @param response - The GenerateContentResponse from the model.
-   * @param forWhat - Optional description of what the response was for.
-   */
-  private logResponse(
-    response: GenerateContentResponse,
-    forWhat: string,
-  ): void {
-    const tokens = response.usageMetadata?.totalTokenCount ?? "unknown";
-    const logMsg = `Used ${tokens} tokens ${forWhat}`;
-    this.logger.info(logMsg);
-    if (response.promptFeedback) {
-      this.logger.info(
-        `Prompt feedback: ${JSON.stringify(response.promptFeedback)}`,
-      );
-    }
   }
 }
