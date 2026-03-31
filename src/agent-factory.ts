@@ -12,7 +12,7 @@ import { ReadNoteLinksTool } from "./tools/read-note-links";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
 import { SearchByTagTool } from "./tools/search-by-tag";
 import { SearchNotesTool } from "./tools/search-notes";
-import { AgentState, type TextHistoryEntry, type Tool } from "./types";
+import { AgentState, type Tool } from "./types";
 import type { Logger } from "./utils/logger";
 
 /**
@@ -40,13 +40,11 @@ export class AgentFactory {
 
   /**
    * Creates a new chat session using the Gemini API.
-   * @param state - The current agent state.
    * @param tools - The list of tools available to the agent.
    * @param systemInstruction - The system instruction string.
    * @returns A new Chat session instance.
    */
   public createChatSession(
-    state: AgentState,
     tools: Tool[],
     systemInstruction: string,
   ): Chat | undefined {
@@ -70,12 +68,6 @@ export class AgentFactory {
               ]
             : undefined,
       },
-      history: state.history
-        .filter((m): m is TextHistoryEntry => m.type === "text")
-        .map((m) => ({
-          role: m.role,
-          parts: [{ text: m.content }],
-        })),
     };
 
     return genAI.chats.create(params);
@@ -144,7 +136,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
     let initError: string | undefined;
 
     try {
-      chatSession = this.createChatSession(state, tools, systemPrompt);
+      chatSession = this.createChatSession(tools, systemPrompt);
       if (!chatSession) {
         initError =
           "API key is not configured. Please set your Gemini API key in the plugin settings.";
@@ -162,6 +154,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       tools,
       onStateChange,
       initError,
+      this,
     );
   }
 }
