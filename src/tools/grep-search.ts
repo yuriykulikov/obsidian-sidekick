@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import type { App } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
 export class GrepSearchTool implements Tool {
@@ -57,12 +58,13 @@ export class GrepSearchTool implements Tool {
         const re = new RegExp(query);
         searchFn = (text: string) => re.test(text);
       } catch (error) {
+        const message = `Invalid regular expression "${regex}": ${error instanceof Error ? error.message : String(error)}`;
         return [
           state,
-          {
-            error: `Invalid regular expression: ${error instanceof Error ? error.message : String(error)}`,
-            summary: `Grep search: invalid regex${regexExplanation ? ` (${regexExplanation})` : ""}`,
-          },
+          ToolResult.createError(
+            `Grep search: invalid regex${regexExplanation ? ` (${regexExplanation})` : ""}`,
+            message,
+          ),
         ];
       }
     } else {
@@ -104,12 +106,13 @@ export class GrepSearchTool implements Tool {
     }
 
     if (results.length === 0) {
+      const message = `No matches found for "${query}" in the vault.`;
       return [
         state,
-        {
-          output: `No matches found for "${query}" in the vault.`,
-          summary: `Grep search: no matches for "${query}"${regexExplanation ? ` (${regexExplanation})` : ""}`,
-        },
+        ToolResult.createOk(
+          `Grep search: no matches for "${query}"${regexExplanation ? ` (${regexExplanation})` : ""}`,
+          message,
+        ),
       ];
     }
 
@@ -129,12 +132,12 @@ export class GrepSearchTool implements Tool {
 
     return [
       newState,
-      {
-        output: output.trim(),
-        summary: `Grep search: found matches for "${query}" in ${results.length} notes${
+      ToolResult.createOk(
+        `Grep search: found matches for "${query}" in ${results.length} notes${
           regexExplanation ? ` (${regexExplanation})` : ""
         }`,
-      },
+        output.trim(),
+      ),
     ];
   }
 }

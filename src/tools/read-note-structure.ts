@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import type { App } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 import { readNote } from "../utils/notes";
 
@@ -40,7 +41,7 @@ export class ReadNoteStructureTool implements Tool {
       this.logger.warn(message);
       return [
         state,
-        { error: message, summary: `Read note structure: ${message}` },
+        ToolResult.createError(`Read note structure: ${message}`, message),
       ];
     }
 
@@ -52,12 +53,13 @@ export class ReadNoteStructureTool implements Tool {
       this.logger.info(
         `Note [[${filename}]] already has content in context, skipping structure read.`,
       );
+      const skipMessage = `Note [[${filename}]] already has full content in the context, which includes its structure. You don't need to read its structure separately.`;
       return [
         state,
-        {
-          error: `Note [[${filename}]] already has full content in the context, which includes its structure. You don't need to read its structure separately.`,
-          summary: `Read note structure: skipped for [[${filename}]] (already in context)`,
-        },
+        ToolResult.createError(
+          `Read note structure: skipped for [[${filename}]] (already in context)`,
+          skipMessage,
+        ),
       ];
     }
 
@@ -67,15 +69,13 @@ export class ReadNoteStructureTool implements Tool {
       .appendNote(filename, newNote)
       .appendDiscoveredStructure([file.path]);
 
-    const output = `Successfully read structure of note [[${filename}]] and added it to the context.`;
-
     return [
       newState,
-      {
-        output: output,
-        summary: `Read note structure: [[${filename}]]`,
-        verbose: newNote.structure || "",
-      },
+      ToolResult.createOkShort(
+        `Read note structure: [[${filename}]]`,
+        newNote.structure || "Empty note",
+        `Successfully read structure of note [[${filename}]] and added it to the context.`,
+      ),
     ];
   }
 }

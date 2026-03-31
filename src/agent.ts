@@ -10,8 +10,8 @@ import type {
   TextHistoryEntry,
   Tool,
   ToolCallHistoryEntry,
-  ToolResult,
 } from "./types";
+import { ToolResult } from "./types";
 import type { Logger } from "./utils/logger";
 import { LogLevel } from "./utils/logger";
 import {
@@ -335,7 +335,7 @@ export class SidekickAgent {
         ? `# Tool execution history in this loop\n${loopHistory
             .map((h) => {
               const callArgs = JSON.stringify(h.call.args);
-              const resultText = this.toolResultString(h.result);
+              const resultText = h.result.historyEntry();
               this.logger.markdown(
                 h.result.summary,
                 resultText,
@@ -374,14 +374,6 @@ export class SidekickAgent {
     return response;
   }
 
-  private toolResultString(result: ToolResult) {
-    return "output" in result
-      ? typeof result.output === "string"
-        ? result.output
-        : JSON.stringify(result.output, null, 2)
-      : result.error;
-  }
-
   /**
    * Handles function calls from the model by executing tools and returning results.
    * @param iterationResponse - The model response containing function calls and potentially text.
@@ -392,7 +384,11 @@ export class SidekickAgent {
   ): Promise<GenerateContentResponse> {
     const functionCalls = iterationResponse.functionCalls ?? [];
 
-    const results: FunctionResponse[] = [];
+    const results: {
+      name: string;
+      id: string | undefined;
+      result: ToolResult;
+    }[] = [];
     for (const call of functionCalls) {
       if (!call.name) continue;
       const result = await this.executeTool(
@@ -403,7 +399,7 @@ export class SidekickAgent {
       results.push({
         name: call.name,
         id: call.id,
-        response: result,
+        result,
       });
 
       // Add this function call and its result to history immediately
@@ -426,14 +422,11 @@ export class SidekickAgent {
       await this.chatSession?.sendMessage({
         message: [
           ...results.map((r) => {
-            const responseBody: Record<string, unknown> = {
-              ...(r.response as Record<string, unknown>),
-            };
             return {
               functionResponse: {
                 name: r.name,
                 id: r.id,
-                response: responseBody,
+                response: r.result.llmOutput() as Record<string, unknown>,
               } as FunctionResponse,
             };
           }),
@@ -468,16 +461,13 @@ export class SidekickAgent {
       this.setState(newState);
     } else {
       const message = `Tool ${name} not found.`;
-      result = {
-        error: message,
-        summary: message,
-      };
+      result = ToolResult.createError(message, message);
     }
     const duration = Date.now() - startTime;
     this.logger.markdown(
       `${result.summary} (${duration}ms)`,
-      this.toolResultString(result),
-      "output" in result ? LogLevel.TOOL : LogLevel.ERROR,
+      result.llmOutputString(),
+      result.isError() ? LogLevel.ERROR : LogLevel.TOOL,
     );
     return result;
   }

@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import type { App } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 import { readNote } from "../utils/notes";
 
@@ -40,14 +41,27 @@ export class ReadNoteLinksTool implements Tool {
       this.logger.warn(error);
       return [
         state,
-        {
-          error,
-          summary: `Read note links: ${error}`,
-        },
+        ToolResult.createError(`Read note links: ${error}`, error),
       ];
     }
 
     const filename = file.basename;
+
+    const existingNote = state.notes.get(filename);
+    if (existingNote) {
+      this.logger.info(
+        `Note [[${filename}]] already has links in context, skipping links read.`,
+      );
+      const skipMessage = `Note [[${filename}]] is already in the context, and its links and backlinks are already available there. Reading note links again would be a no-op.`;
+      return [
+        state,
+        ToolResult.createError(
+          `Read note links: skipped for [[${filename}]] (already in context)`,
+          skipMessage,
+        ),
+      ];
+    }
+
     const newNote = await readNote(this.app, file, "links");
 
     const newState = state
@@ -60,11 +74,11 @@ export class ReadNoteLinksTool implements Tool {
 
     return [
       newState,
-      {
-        output: output,
-        summary: `Read note links: [[${filename}]]`,
-        verbose: `Read ${newNote.links.length} links and ${newNote.backlinks.length} backlinks of [[${filename}]]\n${output}`,
-      },
+      ToolResult.createOkShort(
+        `Read note links: [[${filename}]]`,
+        `Added ${newNote.links.length} links and ${newNote.backlinks.length} backlinks from [[${filename}]] to the context.\n${output}`,
+        output,
+      ),
     ];
   }
 }

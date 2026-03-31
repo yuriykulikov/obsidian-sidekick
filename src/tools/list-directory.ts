@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import { type App, TFile, TFolder } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
 export class ListDirectoryTool implements Tool {
@@ -36,12 +37,13 @@ export class ListDirectoryTool implements Tool {
     const folder = await this.getFolder(path);
 
     if (!folder) {
+      const message = `Path not found or is not a folder: ${path}`;
       return [
         state,
-        {
-          error: `Path not found or is not a folder: ${path}`,
-          summary: `List directory: ${path} not found or is not a folder`,
-        },
+        ToolResult.createError(
+          `List directory: ${path} not found or is not a folder`,
+          message,
+        ),
       ];
     }
 
@@ -95,7 +97,13 @@ export class ListDirectoryTool implements Tool {
       ...folder.children.map((c) => c.path),
     ]);
 
-    return [newState, { output, summary }];
+    const discoveredCount = totalItems + 1;
+    const shortOutput =
+      totalItems === 0
+        ? `Listed directory ${folderPath}. Added ${folderPath} to the discovered vault structure in context.`
+        : `Listed directory ${folderPath}. Added this folder and its ${totalItems} child item${totalItems === 1 ? "" : "s"} (${discoveredCount} paths total) to the discovered vault structure in context.`;
+
+    return [newState, ToolResult.createOkShort(summary, output, shortOutput)];
   }
 
   /**

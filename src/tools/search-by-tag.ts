@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import { type App, getAllTags, type TFile } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
 export class SearchByTagTool implements Tool {
@@ -50,12 +51,10 @@ export class SearchByTagTool implements Tool {
     }
 
     if (matches.length === 0) {
+      const message = `No notes found with tag "${tag}".`;
       return [
         state,
-        {
-          output: `No notes found with tag "${tag}".`,
-          summary: `Search by tag: no matches for "${tag}"`,
-        },
+        ToolResult.createOk(`Search by tag: no matches for "${tag}"`, message),
       ];
     }
 
@@ -69,11 +68,10 @@ export class SearchByTagTool implements Tool {
 
     return [
       newState,
-      {
-        output: output.trim(),
-        summary: `Search by tag: found ${matches.length} matches for "${tag}"`,
-        verbose: output.trim(),
-      },
+      ToolResult.createOk(
+        `Search by tag: found ${matches.length} matches for "${tag}"`,
+        output.trim(),
+      ),
     ];
   }
 }

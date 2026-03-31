@@ -240,36 +240,32 @@ export class ChatView extends ItemView {
     const toolMsg = this.responseContainer.createDiv({
       cls: "sidekick-message tool-message",
     });
-    if ("error" in msg.result) {
+    if (msg.result.isError()) {
       toolMsg.addClass("sidekick-tool-error");
     }
     const summary = msg.result.summary;
     toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
-    if (msg.result.verbose) {
-      toolMsg.createSpan({
-        text: "...",
-        cls: "sidekick-tool-verbose-indicator",
-      });
+    const verboseElement = toolMsg.createDiv({
+      cls: "sidekick-tool-result-details",
+    });
+    if (msg.collapsed) {
+      verboseElement.addClass("sidekick-button-hidden");
     }
+    void renderMarkdown(
+      this.app,
+      msg.result.llmOutputString(),
+      verboseElement,
+      this,
+    );
 
-    if (msg.result.verbose) {
-      const verboseElement = toolMsg.createDiv({
-        cls: "sidekick-tool-result-details",
-      });
-      if (msg.collapsed) {
-        verboseElement.addClass("sidekick-button-hidden");
-      }
-      void renderMarkdown(this.app, msg.result.verbose, verboseElement, this);
-
-      toolMsg.addEventListener("click", () => {
-        const isCollapsed = verboseElement.hasClass("sidekick-button-hidden");
-        this.agent.setHistoryEntryCollapsed(msg.id, !isCollapsed);
-        verboseElement.toggleClass(
-          "sidekick-button-hidden",
-          !verboseElement.hasClass("sidekick-button-hidden"),
-        );
-      });
-    }
+    toolMsg.addEventListener("click", () => {
+      const isCollapsed = verboseElement.hasClass("sidekick-button-hidden");
+      this.agent.setHistoryEntryCollapsed(msg.id, !isCollapsed);
+      verboseElement.toggleClass(
+        "sidekick-button-hidden",
+        !verboseElement.hasClass("sidekick-button-hidden"),
+      );
+    });
   }
 
   private scrollToBottom() {

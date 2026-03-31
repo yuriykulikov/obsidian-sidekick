@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import { type App, TFile } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
 export class SearchNotesTool implements Tool {
@@ -43,12 +44,10 @@ export class SearchNotesTool implements Tool {
     });
 
     if (matches.length === 0) {
+      const message = `No notes or folders found matching "${query}".`;
       return [
         state,
-        {
-          output: `No notes or folders found matching "${query}".`,
-          summary: `Search notes: no matches for "${query}"`,
-        },
+        ToolResult.createOk(`Search notes: no matches for "${query}"`, message),
       ];
     }
 
@@ -73,11 +72,10 @@ export class SearchNotesTool implements Tool {
 
     return [
       newState,
-      {
-        output: output.trim(),
-        summary: `Search notes: found ${matches.length} matches for "${query}"`,
-        verbose: output.trim(),
-      },
+      ToolResult.createOk(
+        `Search notes: found ${matches.length} matches for "${query}"`,
+        output.trim(),
+      ),
     ];
   }
 }
