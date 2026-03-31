@@ -1,6 +1,7 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import type { App } from "obsidian";
-import type { AgentState, Tool, ToolResult } from "../types";
+import type { AgentState, Tool } from "../types";
+import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 import { readNote } from "../utils/notes";
 
@@ -38,7 +39,7 @@ export class ReadNoteTool implements Tool {
     if (!file) {
       const message = `Note [[${path}]] not found.`;
       this.logger.warn(message);
-      return [state, { error: message, summary: `Read note: ${message}` }];
+      return [state, ToolResult.createError(`Read note: ${message}`, message)];
     }
 
     const filename = file.basename;
@@ -48,14 +49,13 @@ export class ReadNoteTool implements Tool {
       .appendNote(filename, newNote)
       .appendDiscoveredStructure([file.path]);
 
-    const output = `Successfully read content of note [[${filename}]] and added it to the context.`;
-
     return [
       newState,
-      {
-        output: output,
-        summary: `Read note: [[${filename}]]`,
-      },
+      ToolResult.createOkShort(
+        `Read note: [[${filename}]]`,
+        newNote.content ?? "Empty note",
+        `Successfully read content of note [[${filename}]] and added it to the context.`,
+      ),
     ];
   }
 }

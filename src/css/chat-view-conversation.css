@@ -61,10 +61,6 @@
   color: var(--text-success);
 }
 
-.sidekick-tool-verbose-indicator {
-  font-weight: bold;
-}
-
 .tool-message.sidekick-tool-error {
   border-left-color: var(--text-error);
 }

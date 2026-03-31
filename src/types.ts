@@ -133,12 +133,95 @@ export interface ToolCallHistoryEntry {
 }
 
 /**
- * Result return from Tool. output and error are given to the LLM, other properties are used in UI and logs.
+ * Result returned from a Tool.
+ * - `summary`: one-line human-readable description shown in the UI tool card header.
+ * - `verbose`: full human-readable detail shown when the tool card is expanded.
+ * - `llmOutput()`: the `{ output } | { error }` object passed to the LLM as the function response.
+ * - `historyEntry()`: the condensed string stored in tool-call history (prefers shortOutput over output).
  */
-export type ToolResult = ({ output: unknown } | { error: string }) & {
-  verbose?: string;
-  summary: string;
-};
+export class ToolResult {
+  public readonly summary: string;
+  private readonly _output: unknown | undefined;
+  private readonly _shortOutput: unknown | undefined;
+  private readonly _error: string | undefined;
+
+  private constructor(
+    summary: string,
+    _verbose: string,
+    output: unknown | undefined,
+    shortOutput: unknown | undefined,
+    error: string | undefined,
+  ) {
+    this.summary = summary;
+    this._output = output;
+    this._shortOutput = shortOutput;
+    this._error = error;
+  }
+
+  /** Creates a successful result where the LLM and history both receive `output`. */
+  static createOk(summary: string, output: unknown): ToolResult {
+    const verbose =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    return new ToolResult(summary, verbose, output, undefined, undefined);
+  }
+
+  /**
+   * Creates a successful result with a separate short form for the LLM history entry.
+   * `output` is used as the full verbose display and as the LLM function-response body.
+   * `shortOutput` is used as the condensed history entry passed back into the LLM context.
+   */
+  static createOkShort(
+    summary: string,
+    output: unknown,
+    shortOutput: unknown,
+  ): ToolResult {
+    const verbose =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    return new ToolResult(summary, verbose, output, shortOutput, undefined);
+  }
+
+  /** Creates an error result. */
+  static createError(summary: string, error: string): ToolResult {
+    return new ToolResult(summary, error, undefined, undefined, error);
+  }
+
+  /** Returns true if this result represents an error. */
+  isError(): boolean {
+    return this._error !== undefined;
+  }
+
+  /**
+   * Returns the object suitable for passing as a function response to the LLM.
+   * Shape: `{ output: unknown } | { error: string }`.
+   */
+  llmOutput(): { output: unknown } | { error: string } {
+    if (this._error !== undefined) {
+      return { error: this._error };
+    }
+    return { output: this._output };
+  }
+
+  /**
+   * Returns the function response payload value as a string (either `output` or `error`).
+   */
+  llmOutputString(): string {
+    const llmOutput = this.llmOutput();
+    const value = "error" in llmOutput ? llmOutput.error : llmOutput.output;
+    return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  }
+
+  /**
+   * Returns the condensed string for tool-call history entries (and shown under
+   * collapsed history cards). Prefers `shortOutput` over `output`; falls back to `error`.
+   */
+  historyEntry(): string {
+    const value =
+      this._error !== undefined
+        ? this._error
+        : (this._shortOutput ?? this._output ?? "");
+    return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  }
+}
 
 export interface Note {
   filename: string;
