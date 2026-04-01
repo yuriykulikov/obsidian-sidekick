@@ -83,7 +83,7 @@ export class ChatView extends ItemView {
     });
     // This is required because otherwise [[ do not work
     this.inputView.clear();
-    if (this.agent.state.notes.isEmpty()) {
+    if (this.agent.state.notes.entries.length === 0) {
       const activeFile = this.app.workspace.getActiveFile();
       if (activeFile) {
         await this.agent.setActiveNote(activeFile.basename);
