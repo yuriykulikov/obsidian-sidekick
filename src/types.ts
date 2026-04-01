@@ -141,13 +141,12 @@ export interface ToolCallHistoryEntry {
  */
 export class ToolResult {
   public readonly summary: string;
-  private readonly _output: unknown | undefined;
-  private readonly _shortOutput: unknown | undefined;
-  private readonly _error: string | undefined;
+  public readonly output: unknown | undefined;
+  public readonly shortOutput: unknown | undefined;
+  public readonly error: string | undefined;
 
-  private constructor(
+  constructor(
     summary: string,
-    _verbose: string,
     output: unknown | undefined,
     shortOutput: unknown | undefined,
     error: string | undefined,
@@ -160,9 +159,7 @@ export class ToolResult {
 
   /** Creates a successful result where the LLM and history both receive `output`. */
   static createOk(summary: string, output: unknown): ToolResult {
-    const verbose =
-      typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    return new ToolResult(summary, verbose, output, undefined, undefined);
+    return new ToolResult(summary, output, undefined, undefined);
   }
 
   /**
@@ -175,14 +172,12 @@ export class ToolResult {
     output: unknown,
     shortOutput: unknown,
   ): ToolResult {
-    const verbose =
-      typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    return new ToolResult(summary, verbose, output, shortOutput, undefined);
+    return new ToolResult(summary, output, shortOutput, undefined);
   }
 
   /** Creates an error result. */
   static createError(summary: string, error: string): ToolResult {
-    return new ToolResult(summary, error, undefined, undefined, error);
+    return new ToolResult(summary, undefined, undefined, error);
   }
 
   /** Returns true if this result represents an error. */
