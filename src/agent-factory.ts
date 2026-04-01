@@ -5,6 +5,7 @@ import {
 } from "@google/genai";
 import type { App } from "obsidian";
 import { SidekickAgent } from "./agent";
+import { AgentStateStore } from "./agent-state-store";
 import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
 import { ReadNoteTool } from "./tools/read-note";
@@ -27,7 +28,7 @@ export class AgentFactory {
   private readonly app: App;
   private readonly logger: Logger;
   private readonly apiKeyProvider: () => string | undefined;
-
+  private readonly stateStore: AgentStateStore;
   constructor(
     app: App,
     logger: Logger,
@@ -36,6 +37,7 @@ export class AgentFactory {
     this.app = app;
     this.logger = logger;
     this.apiKeyProvider = apiKeyProvider;
+    this.stateStore = new AgentStateStore(this.app, this.logger);
   }
 
   /**
@@ -112,6 +114,25 @@ Include these reflections in a 'Feedback' section at the end of your final respo
   }
 
   /**
+   * Restores the agent from persisted state and returns a fully constructed {@link SidekickAgent}.
+   *
+   * This method:
+   * 1) Loads the last saved {@link AgentState} from {@link AgentStateStore}.
+   * 2) Immediately notifies the UI via {@link onStateChange} with the restored state.
+   * 3) Creates a new agent instance initialized with that restored state.
+   *
+   * @param onStateChange - Callback invoked when the state is loaded and whenever the agent later changes state.
+   * @returns A {@link SidekickAgent} initialized with the restored state.
+   */
+  public async restoreAgentInstance(
+    onStateChange: (state: AgentState) => void,
+  ): Promise<SidekickAgent> {
+    const restored = await this.stateStore.load();
+    onStateChange(restored);
+    return this.createAgentInstanceWithState(restored, onStateChange);
+  }
+
+  /**
    * Creates a new instance of the SidekickAgent with all required tools and configuration.
    * @param onStateChange - Callback function to notify when the state changes.
    * @returns A new SidekickAgent instance.
@@ -119,7 +140,19 @@ Include these reflections in a 'Feedback' section at the end of your final respo
   public createAgentInstance(
     onStateChange: (state: AgentState) => void,
   ): SidekickAgent {
-    const state: AgentState = new AgentState();
+    return this.createAgentInstanceWithState(new AgentState(), onStateChange);
+  }
+
+  /**
+   * Creates a new instance of the SidekickAgent with all required tools and configuration.
+   * @param state - initial agent state
+   * @param onStateChange - Callback function to notify when the state changes.
+   * @returns A new SidekickAgent instance.
+   */
+  private createAgentInstanceWithState(
+    state: AgentState,
+    onStateChange: (state: AgentState) => void,
+  ): SidekickAgent {
     const tools = [
       new ReadNoteTool(this.app, this.logger),
       new ReadNoteLinksTool(this.app, this.logger),
@@ -145,6 +178,11 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       initError = `Failed to initialize Gemini session: ${error instanceof Error ? error.message : String(error)}`;
     }
 
+    const wrappedOnStateChange = (state: AgentState) => {
+      onStateChange(state);
+      this.stateStore.store(state);
+    };
+
     return new SidekickAgent(
       this.app,
       chatSession,
@@ -152,7 +190,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       this.logger,
       systemPrompt,
       tools,
-      onStateChange,
+      wrappedOnStateChange,
       initError,
       this,
     );

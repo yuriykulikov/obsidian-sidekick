@@ -152,9 +152,9 @@ export class ToolResult {
     error: string | undefined,
   ) {
     this.summary = summary;
-    this._output = output;
-    this._shortOutput = shortOutput;
-    this._error = error;
+    this.output = output;
+    this.shortOutput = shortOutput;
+    this.error = error;
   }
 
   /** Creates a successful result where the LLM and history both receive `output`. */
@@ -182,7 +182,7 @@ export class ToolResult {
 
   /** Returns true if this result represents an error. */
   isError(): boolean {
-    return this._error !== undefined;
+    return this.error !== undefined;
   }
 
   /**
@@ -190,10 +190,10 @@ export class ToolResult {
    * Shape: `{ output: unknown } | { error: string }`.
    */
   llmOutput(): { output: unknown } | { error: string } {
-    if (this._error !== undefined) {
-      return { error: this._error };
+    if (this.error !== undefined) {
+      return { error: this.error };
     }
-    return { output: this._output };
+    return { output: this.output };
   }
 
   /**
@@ -211,9 +211,9 @@ export class ToolResult {
    */
   historyEntry(): string {
     const value =
-      this._error !== undefined
-        ? this._error
-        : (this._shortOutput ?? this._output ?? "");
+      this.error !== undefined
+        ? this.error
+        : (this.shortOutput ?? this.output ?? "");
     return typeof value === "string" ? value : JSON.stringify(value, null, 2);
   }
 }
