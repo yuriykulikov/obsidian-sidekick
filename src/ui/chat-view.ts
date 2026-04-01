@@ -37,7 +37,6 @@ export class ChatView extends ItemView {
     super(leaf);
     this.agentFactory = agentFactory;
     this.logger = logger;
-    this.initAgent();
   }
 
   getViewType() {
@@ -79,7 +78,17 @@ export class ChatView extends ItemView {
       }),
     );
 
-    await this.resetChat();
+    this.agent = await this.agentFactory.restoreAgentInstance((state) => {
+      this.render(state);
+    });
+    // This is required because otherwise [[ do not work
+    this.inputView.clear();
+    if (this.agent.state.notes.isEmpty()) {
+      const activeFile = this.app.workspace.getActiveFile();
+      if (activeFile) {
+        await this.agent.setActiveNote(activeFile.basename);
+      }
+    }
   }
 
   private renderHeader(container: HTMLElement) {
