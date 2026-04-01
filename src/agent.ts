@@ -345,8 +345,9 @@ export class SidekickAgent {
             })
             .join("\n")}\n`
         : "";
+    const chatHistoryStr = this.renderChatHistory();
 
-    const message = `${structureStr}${contextStr}${historyStr}\n# User Question\n${prompt}`;
+    const message = `${structureStr}${contextStr}${historyStr}${chatHistoryStr}\n# User Question\n${prompt}`;
 
     if (!this.chatSession) {
       throw new Error(this.initError || "Chat session not initialized");
@@ -372,6 +373,29 @@ export class SidekickAgent {
       );
     }
     return response;
+  }
+
+  /**
+   * Include full chat transcript, excluding the most recent text entry, since the
+   * latest user prompt is appended separately at the end under "User Question".
+   */
+  private renderChatHistory(): string {
+    const textHistory = this.state.history.filter(
+      (h): h is TextHistoryEntry => h.type === "text",
+    );
+    const previousTextEntries = textHistory.slice(0, -1);
+    if (previousTextEntries.length === 0) return "";
+
+    const renderedChatHistory = previousTextEntries
+      .map((h) => {
+        const roleLabel = h.role === "user" ? "User" : "Agent";
+        return `## ${roleLabel}\n\n${h.content}`;
+      })
+      .join("\n\n");
+
+    const chatHistoryStr = `# Chat History\n\n${renderedChatHistory}\n\n`;
+    this.logger.markdown("Chat history", chatHistoryStr, LogLevel.CONTEXT);
+    return chatHistoryStr;
   }
 
   /**
@@ -480,7 +504,7 @@ export class SidekickAgent {
   }
 
   dispose() {
-    stop();
+    this.stop();
     this.disposed = true;
   }
 }
