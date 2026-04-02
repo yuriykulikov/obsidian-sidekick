@@ -89,6 +89,7 @@ export class ChatView extends ItemView {
         await this.agent.setActiveNote(activeFile.basename);
       }
     }
+    this.render(this.agent.state);
   }
 
   private renderHeader(container: HTMLElement) {
@@ -154,16 +155,6 @@ export class ChatView extends ItemView {
         this.agent.stop();
       }
     });
-  }
-
-  /**
-   * Initializes the agent with the current state and settings.
-   */
-  private initAgent(): SidekickAgent {
-    this.agent = this.agentFactory.createAgentInstance((state) => {
-      this.render(state);
-    });
-    return this.agent;
   }
 
   /**
@@ -331,14 +322,16 @@ export class ChatView extends ItemView {
     this.agent.stop();
     this.agent.dispose();
     this.logger.clear();
-    this.initAgent();
+    this.agent = this.agentFactory.createAgentInstance((state) => {
+      this.render(state);
+    });
     const activeFile = this.app.workspace.getActiveFile();
     if (activeFile) {
       await this.agent.setActiveNote(activeFile.basename);
     }
-
     if (this.inputView) {
       this.inputView.clear();
     }
+    this.render(this.agent.state);
   }
 }
