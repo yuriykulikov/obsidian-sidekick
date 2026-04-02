@@ -128,7 +128,6 @@ Include these reflections in a 'Feedback' section at the end of your final respo
     onStateChange: (state: AgentState) => void,
   ): Promise<SidekickAgent> {
     const restored = await this.stateStore.load();
-    onStateChange(restored);
     return this.createAgentInstanceWithState(restored, onStateChange);
   }
 
@@ -140,7 +139,9 @@ Include these reflections in a 'Feedback' section at the end of your final respo
   public createAgentInstance(
     onStateChange: (state: AgentState) => void,
   ): SidekickAgent {
-    return this.createAgentInstanceWithState(new AgentState(), onStateChange);
+    const emptyState = new AgentState();
+    this.stateStore.store(emptyState);
+    return this.createAgentInstanceWithState(emptyState, onStateChange);
   }
 
   /**
