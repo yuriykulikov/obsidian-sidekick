@@ -112,7 +112,10 @@ export interface Tool {
   ): Promise<[AgentState, ToolResult]>;
 }
 
-export type HistoryEntry = TextHistoryEntry | ToolCallHistoryEntry;
+export type HistoryEntry =
+  | TextHistoryEntry
+  | ToolCallHistoryEntry
+  | NoteRemovedHistoryEntry;
 
 export interface TextHistoryEntry {
   type: "text";
@@ -130,6 +133,12 @@ export interface ToolCallHistoryEntry {
   };
   result: ToolResult;
   collapsed: boolean;
+}
+
+export interface NoteRemovedHistoryEntry {
+  type: "note_removed";
+  role: "user";
+  filename: string;
 }
 
 /**

@@ -110,7 +110,13 @@ export class SidekickAgent {
    * @param filename - The name of the note to remove.
    */
   public removeNote(filename: string): void {
-    this.setState(this.state.removeNote(filename));
+    this.setState(
+      this.state.removeNote(filename).appendHistoryEntry({
+        type: "note_removed",
+        role: "user",
+        filename,
+      }),
+    );
   }
 
   /**
@@ -416,6 +422,8 @@ export class SidekickAgent {
           const roleLabel =
             h.role === "user" ? "User prompt" : "Agent response";
           return `## ${roleLabel}\n${h.content}`;
+        } else if (h.type === "note_removed") {
+          return `## User action\nRemoved note from context: ${h.filename}`;
         } else {
           const callArgs = JSON.stringify(h.call.args);
           const toolCall = `## Tool Call\n\`${h.call.name}(${callArgs})\``;

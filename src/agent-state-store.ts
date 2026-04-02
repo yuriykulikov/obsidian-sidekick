@@ -2,6 +2,7 @@ import type { App } from "obsidian";
 import {
   AgentState,
   type Note,
+  type NoteRemovedHistoryEntry,
   type TextHistoryEntry,
   ToolResult,
 } from "./types";
@@ -14,7 +15,10 @@ export type AgentStateJson = {
   isThinking: boolean;
 };
 
-export type HistoryEntryJson = TextHistoryEntry | ToolCallHistoryEntryJson;
+export type HistoryEntryJson =
+  | TextHistoryEntry
+  | ToolCallHistoryEntryJson
+  | NoteRemovedHistoryEntry;
 
 export interface ToolCallHistoryEntryJson {
   id: string;
