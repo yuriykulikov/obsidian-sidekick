@@ -283,36 +283,8 @@ export class SidekickAgent {
     const lastUserEntry = userEntries[userEntries.length - 1];
     const prompt = lastUserEntry ? lastUserEntry.content : "";
     // Prepare context for the prompt from notes
-    const structureStr =
-      this.state.discoveredStructure.length > 0
-        ? (() => {
-            const rendered = renderDiscoveredStructure(
-              this.state.discoveredStructure,
-            );
-            this.logger.markdown(
-              "Discovered Vault Structure",
-              `\`\`\`\n${rendered}\n\`\`\``,
-              LogLevel.CONTEXT,
-            );
-            return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n\n`;
-          })()
-        : "";
-
-    const contextStr =
-      this.state.notes.size > 0
-        ? `# Notes\n\n${Array.from(this.state.notes.values())
-            .map((note) => {
-              const md = renderNoteToMarkdown(note);
-              this.logger.markdown(
-                `${note.content ? "Note content " : "Note structure "} ${note.filename}`,
-                md,
-                LogLevel.CONTEXT,
-              );
-              return md;
-            })
-            .join("\n")}\n\n`
-        : "";
-
+    const structureStr = this.renderDiscoveredNoteStructureSection();
+    const contextStr = this.renderNotesSection();
     const activityLogStr = this.renderConversationAndActivityLog();
 
     const message = `${structureStr}${contextStr}${activityLogStr}\n# User Question\n${prompt}`;
@@ -341,6 +313,38 @@ export class SidekickAgent {
       );
     }
     return response;
+  }
+
+  private renderNotesSection() {
+    return this.state.notes.size > 0
+      ? `# Notes\n\n${Array.from(this.state.notes.values())
+          .map((note) => {
+            const md = renderNoteToMarkdown(note);
+            this.logger.markdown(
+              `${note.content ? "Note content " : "Note structure "} ${note.filename}`,
+              md,
+              LogLevel.CONTEXT,
+            );
+            return md;
+          })
+          .join("\n")}\n---\n`
+      : "";
+  }
+
+  private renderDiscoveredNoteStructureSection() {
+    return this.state.discoveredStructure.length > 0
+      ? (() => {
+          const rendered = renderDiscoveredStructure(
+            this.state.discoveredStructure,
+          );
+          this.logger.markdown(
+            "Discovered Vault Structure",
+            `\`\`\`\n${rendered}\n\`\`\``,
+            LogLevel.CONTEXT,
+          );
+          return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n---\n`;
+        })()
+      : "";
   }
 
   /**
