@@ -19,9 +19,8 @@ describe("notes utils", () => {
 
       const result = renderNoteToMarkdown(note);
 
-      const expected = `# Note [[Test Note]]
+      const expected = `## Note [[Test Note]]
 Path: one/two/Test Note.md
-## Context
 ### Links
 - [[Link1]]
 - [[Link2]]
@@ -63,9 +62,8 @@ This is the content of the note.
 
       const result = renderNoteToMarkdown(note);
 
-      const expected = `# Note [[Structured Note]]
+      const expected = `## Note [[Structured Note]]
 Path: one/two/three/Structured Note.md
-## Context
 ### Links
 ### Tags
 ### Backlinks
@@ -77,7 +75,7 @@ Path: one/two/three/Structured Note.md
       - 📄 Structured Note.md
 \`\`\`
 
-## Structure
+### Structure
 \`\`\`
 # Header 1
 ## Header 2
@@ -98,9 +96,8 @@ Path: one/two/three/Structured Note.md
       };
 
       const result = renderNoteToMarkdown(note);
-      const expected = `# Note [[Empty Note]]
+      const expected = `## Note [[Empty Note]]
 Path: Deep/Path/To/Empty Note.md
-## Context
 ### Links
 ### Tags
 ### Backlinks
