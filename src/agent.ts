@@ -3,9 +3,9 @@ import type {
   FunctionResponse,
   GenerateContentResponse,
 } from "@google/genai";
-import type { App } from "obsidian";
+import { type App, TFile } from "obsidian";
 import type { AgentFactory } from "./agent-factory";
-import type { AgentState, TextHistoryEntry, Tool } from "./types";
+import type { AgentState, Note, TextHistoryEntry, Tool } from "./types";
 import { ToolResult } from "./types";
 import type { Logger } from "./utils/logger";
 import { LogLevel } from "./utils/logger";
@@ -122,6 +122,38 @@ export class SidekickAgent {
     this.setStateDeferNotify(
       this.state.setHistoryEntryCollapsed(id, collapsed),
     );
+  }
+
+  /**
+   * Persist any notes that have pending suggestions (`hasSuggestions`) to disk.
+   *
+   * This keeping-the-vault-in-sync step lives in the agent layer (not the UI)
+   * so it can be reused by other frontends and keeps file IO centralized.
+   */
+  private async persistSuggestedEdits(): Promise<void> {
+    for (const [, note] of this.state.notes) {
+      if (!note.hasSuggestions) continue;
+      await this.writeSuggestedContentToDisk(note);
+    }
+  }
+
+  private async writeSuggestedContentToDisk(note: Note): Promise<void> {
+    const abstractFile = this.app.vault.getAbstractFileByPath(note.path);
+    if (!(abstractFile instanceof TFile)) {
+      this.logger.warn(
+        `Cannot write suggestions for ${note.filename}: ${note.path}`,
+      );
+      return;
+    }
+
+    try {
+      await this.app.vault.modify(abstractFile, note.content || "");
+      this.logger.info(`Wrote suggestions to ${note.path}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to write suggestions for ${note.filename} (${note.path}): ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   /**
@@ -255,6 +287,7 @@ export class SidekickAgent {
       postfix = `\n\nMax iterations (${maxIterations}) reached. Breaking loop.`;
     }
 
+    await this.persistSuggestedEdits();
     this.setState(
       this.state
         .appendHistoryEntry({
