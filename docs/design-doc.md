@@ -25,6 +25,10 @@ The agent should follow the interaction patterns of a modern coding agent (e.g.,
 	  the [Obsidian Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin, allowing the agent to read,
 	  create, and update tasks.
 
+## Suggestions
+
+Agent can suggest note edits. This feature is described in detail in [edit-note.md](edit-note.md).
+
 ## Concepts & Architecture
 
 In a nutshell, the agent is a program that receives user input and a tool catalog and iterates

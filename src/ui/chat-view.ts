@@ -290,6 +290,9 @@ export class ChatView extends ItemView {
         cls: "sidekick-note-tag",
         text: filename,
       });
+      if (note.hasSuggestions) {
+        noteTag.addClass("sidekick-note-proposed");
+      }
       if (note.active) {
         noteTag.addClass("sidekick-note-active");
       }

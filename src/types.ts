@@ -229,4 +229,5 @@ export interface Note {
   active?: boolean;
   parentPath?: string;
   folderSiblings?: string[] | null;
+  hasSuggestions?: boolean;
 }
