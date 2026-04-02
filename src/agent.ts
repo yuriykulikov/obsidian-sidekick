@@ -5,12 +5,7 @@ import type {
 } from "@google/genai";
 import type { App } from "obsidian";
 import type { AgentFactory } from "./agent-factory";
-import type {
-  AgentState,
-  TextHistoryEntry,
-  Tool,
-  ToolCallHistoryEntry,
-} from "./types";
+import type { AgentState, TextHistoryEntry, Tool } from "./types";
 import { ToolResult } from "./types";
 import type { Logger } from "./utils/logger";
 import { LogLevel } from "./utils/logger";
@@ -130,14 +125,6 @@ export class SidekickAgent {
   }
 
   /**
-   * Updates the thinking status of the agent.
-   * @param isThinking - The new thinking status.
-   */
-  public setThinking(isThinking: boolean): void {
-    this.setState(this.state.setThinking(isThinking));
-  }
-
-  /**
    * Processes the next user prompt by updating the state and running the agent loop.
    * @param userPrompt - The user's input message.
    * @returns A promise that resolves when the agent finishes processing.
@@ -204,7 +191,7 @@ export class SidekickAgent {
 
   private async agentLoop(): Promise<void> {
     this.stopRequested = false;
-    let iterations = 0;
+    let iterations: number;
     const maxIterations = 15;
     this.setState(this.state.setThinking(true));
 
@@ -289,7 +276,7 @@ export class SidekickAgent {
    * @returns A promise that resolves to the LLM response.
    */
   private async promptLLM(): Promise<GenerateContentResponse> {
-    // Find the last user prompt in history
+    // Find the last user prompt in history (used as the current question at the end)
     const userEntries = this.state.history.filter(
       (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
     );
@@ -326,28 +313,9 @@ export class SidekickAgent {
             .join("\n")}\n\n`
         : "";
 
-    // Prepare history for the prompt to make it clear we are in a loop
-    const loopHistory = this.state.history.filter(
-      (h): h is ToolCallHistoryEntry => h.type === "function_call",
-    );
-    const historyStr =
-      loopHistory.length > 0
-        ? `# Tool execution history in this loop\n${loopHistory
-            .map((h) => {
-              const callArgs = JSON.stringify(h.call.args);
-              const resultText = h.result.historyEntry();
-              this.logger.markdown(
-                h.result.summary,
-                resultText,
-                LogLevel.CONTEXT,
-              );
-              return `## Used tool: \`${h.call.name}(${callArgs})\n${resultText}`;
-            })
-            .join("\n")}\n`
-        : "";
-    const chatHistoryStr = this.renderChatHistory();
+    const activityLogStr = this.renderConversationAndActivityLog();
 
-    const message = `${structureStr}${contextStr}${historyStr}${chatHistoryStr}\n# User Question\n${prompt}`;
+    const message = `${structureStr}${contextStr}${activityLogStr}\n# User Question\n${prompt}`;
 
     if (!this.chatSession) {
       throw new Error(this.initError || "Chat session not initialized");
@@ -376,26 +344,58 @@ export class SidekickAgent {
   }
 
   /**
-   * Include full chat transcript, excluding the most recent text entry, since the
-   * latest user prompt is appended separately at the end under "User Question".
+   * Render a unified, chronological log interleaving user/agent messages with
+   * tool calls and tool results.
+   *
+   * This is intentionally "AI-first": it preserves the timeline that led to
+   * each tool invocation, helping the model avoid mixing tool outputs across
+   * unrelated sub-threads.
+   *
+   * The most recent text entry is excluded because the latest user prompt is
+   * appended separately at the end under "User Question".
    */
-  private renderChatHistory(): string {
-    const textHistory = this.state.history.filter(
-      (h): h is TextHistoryEntry => h.type === "text",
-    );
-    const previousTextEntries = textHistory.slice(0, -1);
-    if (previousTextEntries.length === 0) return "";
+  private renderConversationAndActivityLog(): string {
+    const fullHistory = this.state.history;
+    if (fullHistory.length === 0) return "";
 
-    const renderedChatHistory = previousTextEntries
+    // Exclude last text entry (the latest prompt or latest agent message), to avoid duplication
+    const lastTextIdx = (() => {
+      for (let i = fullHistory.length - 1; i >= 0; i--) {
+        if (fullHistory[i]?.type === "text") return i;
+      }
+      return -1;
+    })();
+    const history =
+      lastTextIdx >= 0
+        ? [
+            ...fullHistory.slice(0, lastTextIdx),
+            ...fullHistory.slice(lastTextIdx + 1),
+          ]
+        : fullHistory;
+
+    const rendered = history
       .map((h) => {
-        const roleLabel = h.role === "user" ? "User" : "Agent";
-        return `## ${roleLabel}\n\n${h.content}`;
+        if (h.type === "text") {
+          const roleLabel =
+            h.role === "user" ? "User prompt" : "Agent response";
+          return `## ${roleLabel}\n${h.content}`;
+        } else {
+          const callArgs = JSON.stringify(h.call.args);
+          const toolCall = `## Tool Call\n\`${h.call.name}(${callArgs})\``;
+          const resultText = h.result.historyEntry();
+          const toolResult = `### Tool Result\n${resultText}`;
+          return `${toolCall}\n${toolResult}`;
+        }
       })
-      .join("\n\n");
+      .join("\n");
 
-    const chatHistoryStr = `# Chat History\n\n${renderedChatHistory}\n\n`;
-    this.logger.markdown("Chat history", chatHistoryStr, LogLevel.CONTEXT);
-    return chatHistoryStr;
+    const logStr = `# Conversation & Activity Log\n${rendered}\n---\n`;
+    this.logger.markdown(
+      "Conversation & activity log",
+      logStr,
+      LogLevel.CONTEXT,
+    );
+    return logStr;
   }
 
   /**
