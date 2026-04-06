@@ -6,7 +6,7 @@ import {
   type WorkspaceLeaf,
 } from "obsidian";
 import type { SidekickAgent } from "../agent";
-import type { AgentFactory } from "../agent-factory";
+import type { Agents } from "../agents";
 import type {
   AgentState,
   TextHistoryEntry,
@@ -24,7 +24,7 @@ export const VIEW_TYPE_SIDEKICK = "sidekick-view";
  * The SidekickView class provides a custom sidebar view for interacting with the AI agent.
  */
 export class ChatView extends ItemView {
-  agentFactory: AgentFactory;
+  agentFactory: Agents;
   agent: SidekickAgent;
   responseContainer: HTMLElement;
   notesContainer: HTMLElement;
@@ -33,7 +33,7 @@ export class ChatView extends ItemView {
   stopButton: HTMLButtonElement;
   logger: Logger;
 
-  constructor(leaf: WorkspaceLeaf, agentFactory: AgentFactory, logger: Logger) {
+  constructor(leaf: WorkspaceLeaf, agentFactory: Agents, logger: Logger) {
     super(leaf);
     this.agentFactory = agentFactory;
     this.logger = logger;

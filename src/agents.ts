@@ -25,11 +25,12 @@ import type { Logger } from "./utils/logger";
  * **Tool Catalog** and preparing the necessary `ChatSession` and system prompts.
  * This pattern decouples the core agent logic from the Obsidian UI.
  */
-export class AgentFactory {
+export class Agents {
   private readonly app: App;
   private readonly logger: Logger;
   private readonly apiKeyProvider: () => string | undefined;
   private readonly stateStore: AgentStateStore;
+  current?: SidekickAgent = undefined;
   constructor(
     app: App,
     logger: Logger,
@@ -186,7 +187,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       this.stateStore.store(state);
     };
 
-    return new SidekickAgent(
+    const sidekickAgent = new SidekickAgent(
       this.app,
       chatSession,
       state,
@@ -197,5 +198,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       initError,
       this,
     );
+    this.current = sidekickAgent;
+    return sidekickAgent;
   }
 }

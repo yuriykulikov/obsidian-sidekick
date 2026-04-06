@@ -1,5 +1,5 @@
 import { Plugin, type WorkspaceLeaf } from "obsidian";
-import { AgentFactory } from "./agent-factory";
+import { Agents } from "./agents";
 import {
   DEFAULT_SETTINGS,
   type SidekickPluginSettings,
@@ -20,6 +20,7 @@ import { Logger } from "./utils/logger";
 export default class SidekickPlugin extends Plugin {
   settings: SidekickPluginSettings;
   logger: Logger;
+  agents: Agents;
 
   /**
    * Called when the plugin is loaded by Obsidian.
@@ -29,7 +30,7 @@ export default class SidekickPlugin extends Plugin {
     this.logger = new Logger();
     await this.loadSettings();
 
-    const agentFactory = new AgentFactory(
+    this.agents = new Agents(
       this.app,
       this.logger,
       () => this.settings.geminiApiKey,
@@ -37,7 +38,7 @@ export default class SidekickPlugin extends Plugin {
 
     this.registerView(
       VIEW_TYPE_SIDEKICK,
-      (leaf) => new ChatView(leaf, agentFactory, this.logger),
+      (leaf) => new ChatView(leaf, this.agents, this.logger),
     );
 
     this.registerView(
