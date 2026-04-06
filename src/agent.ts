@@ -4,7 +4,7 @@ import type {
   GenerateContentResponse,
 } from "@google/genai";
 import { type App, TFile } from "obsidian";
-import type { AgentFactory } from "./agent-factory";
+import type { Agents } from "./agents";
 import type { AgentState, Note, TextHistoryEntry, Tool } from "./types";
 import { ToolResult } from "./types";
 import type { Logger } from "./utils/logger";
@@ -32,7 +32,7 @@ export class SidekickAgent {
   logger: Logger;
   systemInstruction: string;
   tools: Tool[];
-  private agentFactory: AgentFactory | undefined;
+  private agentFactory: Agents | undefined;
   private onStateChange: (state: AgentState) => void;
   private stopRequested: boolean = false;
   private disposed: boolean = false;
@@ -59,7 +59,7 @@ export class SidekickAgent {
     tools: Tool[] = [],
     onStateChange: (state: AgentState) => void,
     initError?: string,
-    agentFactory?: AgentFactory,
+    agentFactory?: Agents,
   ) {
     this.app = app;
     this.chatSession = chatSession;
