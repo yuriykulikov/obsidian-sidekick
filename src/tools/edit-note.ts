@@ -84,7 +84,10 @@ export class EditNoteTool implements Tool {
             suggestion.textToReplace,
             suggestion.replacement,
           ),
-          hasSuggestions: true,
+          state: {
+            ...note.state,
+            hasSuggestions: true,
+          },
         };
 
         modifiedState = modifiedState.appendNote(

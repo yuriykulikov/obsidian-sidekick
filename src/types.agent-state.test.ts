@@ -17,7 +17,10 @@ describe("AgentState serialization", () => {
       links: ["b.md"],
       backlinks: [],
       tags: ["#tag"],
-      active: true,
+      state: {
+        active: true,
+        hasSuggestions: true,
+      },
       parentPath: "",
       folderSiblings: null,
     };

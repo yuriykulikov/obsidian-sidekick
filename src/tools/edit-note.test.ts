@@ -48,7 +48,7 @@ describe("SuggestEditTool", () => {
 
     const updated = newState.notes.get("Sidekick suggestions test");
     expect(updated?.content).toBe("new text");
-    expect(updated?.hasSuggestions).toBe(true);
+    expect(updated?.state?.hasSuggestions).toBe(true);
     expect(result.summary).toBe("Suggest edit: applied suggestions");
     expect(result.llmOutputString()).toContain(
       "# Note [[Sidekick suggestions test]]",

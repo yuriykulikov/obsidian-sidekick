@@ -19,9 +19,15 @@ export async function setActiveNote(
 
   // Deactivate or remove other active notes
   for (const [name, note] of notesCopy) {
-    if (note.active && name !== basename) {
+    if (note.state?.active && name !== basename) {
       if (hasPrompts) {
-        notesCopy.set(name, { ...note, active: false });
+        notesCopy.set(name, {
+          ...note,
+          state: {
+            ...note.state,
+            active: false,
+          },
+        });
       } else {
         notesCopy.delete(name);
       }
@@ -41,7 +47,13 @@ export async function setActiveNote(
   }
 
   if (current) {
-    notesCopy.set(basename, { ...current, active: true });
+    notesCopy.set(basename, {
+      ...current,
+      state: {
+        ...current.state,
+        active: true,
+      },
+    });
   }
 
   return state
@@ -89,9 +101,13 @@ export async function refreshNotes(
       const refreshedNote = await readNote(
         app,
         file,
-        note.content ? "text" : "structure",
+        note.content ? "text" : note.structure ? "structure" : "links",
       );
-      newNotes.set(basename, { ...refreshedNote, active: note.active });
+      newNotes.set(basename, {
+        ...refreshedNote,
+        // keep the state
+        state: note.state,
+      });
     } else {
       // If file is gone, remove it from context
       currentDiscoveredStructure.delete(note.path);

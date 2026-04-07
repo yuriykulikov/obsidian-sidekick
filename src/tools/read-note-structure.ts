@@ -65,6 +65,10 @@ export class ReadNoteStructureTool implements Tool {
 
     const newNote = await readNote(this.app, file, "structure");
 
+    // Preserve in-memory note state (active flag, suggestion state, etc.)
+    // when re-reading the note from disk.
+    newNote.state = state.notes.get(filename)?.state;
+
     const newState = state
       .appendNote(filename, newNote)
       .appendDiscoveredStructure([file.path]);

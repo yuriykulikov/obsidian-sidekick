@@ -16,7 +16,7 @@ export async function persistSuggestedEdits(
   notes: ReadonlyMap<string, Note>,
 ): Promise<void> {
   for (const [, note] of notes) {
-    if (!note.hasSuggestions) continue;
+    if (!note.state?.hasSuggestions) continue;
     await writeSuggestedContentToDisk(app, logger, note);
   }
 }
