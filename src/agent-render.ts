@@ -1,0 +1,218 @@
+import type { AgentState, Note, TextHistoryEntry } from "./types";
+import { type Logger, LogLevel } from "./utils/logger";
+
+export type AgentPromptSections = {
+  structureStr: string;
+  contextStr: string;
+  activityLogStr: string;
+};
+
+export function renderPromptSections(
+  state: AgentState,
+  logger: Logger,
+): AgentPromptSections {
+  const structureStr = renderDiscoveredNoteStructureSection(state, logger);
+  const contextStr = renderNotesSection(state, logger);
+  const activityLogStr = renderConversationAndActivityLog(state, logger);
+
+  return {
+    structureStr,
+    contextStr,
+    activityLogStr,
+  };
+}
+
+export function renderNotesSection(state: AgentState, logger: Logger): string {
+  if (state.notes.size === 0) return "";
+
+  const notesMd = Array.from(state.notes.values())
+    .map((note) => {
+      const md = renderNoteToMarkdown(note);
+      logger.markdown(
+        `${note.content ? "Note content " : "Note structure "} ${note.filename}`,
+        md,
+        LogLevel.CONTEXT,
+      );
+      return md;
+    })
+    .join("\n");
+
+  return `# Notes\n\n${notesMd}\n---\n`;
+}
+
+/**
+ * Renders a list of paths as a markdown tree.
+ */
+export function renderDiscoveredStructure(paths: readonly string[]): string {
+  if (paths.length === 0) {
+    return "No structure discovered yet.";
+  }
+
+  interface TreeNode {
+    [key: string]: TreeNode;
+  }
+
+  const sortedPaths = [...paths].sort();
+  const root: TreeNode = {};
+
+  for (const path of sortedPaths) {
+    const parts = path.split("/");
+    let current = root;
+    for (const part of parts) {
+      if (!current[part]) {
+        current[part] = {};
+      }
+      current = current[part];
+    }
+  }
+
+  let tree = "";
+  const buildTree = (obj: TreeNode, indent = 0) => {
+    const keys = Object.keys(obj).sort();
+    for (const key of keys) {
+      const child = obj[key];
+      if (child) {
+        const isFolder = Object.keys(child).length > 0;
+        tree += `${"  ".repeat(indent) + (isFolder ? "- 📁 " : "- 📄 ") + key}\n`;
+        buildTree(child, indent + 1);
+      }
+    }
+  };
+
+  buildTree(root);
+  return tree.trim();
+}
+
+/**
+ * Renders a note's context for the LLM.
+ *
+ * Kept outside `utils/notes.ts` because this is specifically prompt rendering
+ * (LLM-facing) rather than note manipulation.
+ */
+export function renderNoteToMarkdown(note: Note): string {
+  let noteMd = `## Note [[${note.filename}]]\n`;
+  noteMd += `Path: ${note.path}\n`;
+
+  noteMd += "### Links\n";
+  for (const l of note.links || []) {
+    noteMd += `- [[${l}]]\n`;
+  }
+
+  noteMd += "### Tags\n";
+  for (const t of note.tags || []) {
+    noteMd += `- ${t}\n`;
+  }
+
+  noteMd += "### Backlinks\n";
+  for (const b of note.backlinks || []) {
+    noteMd += `- [[${b}]]\n`;
+  }
+
+  noteMd += "### Directory Structure\n```\n";
+  const contextPaths = [
+    note.path,
+    ...(note.folderSiblings || []).map((s) => {
+      const dir =
+        !note.parentPath || note.parentPath === "/"
+          ? ""
+          : `${note.parentPath}/`;
+      return `${dir}${s}.md`;
+    }),
+  ];
+  noteMd += renderDiscoveredStructure(contextPaths);
+  noteMd += "\n```\n";
+
+  if (note.content) {
+    noteMd += "### Content\n```\n";
+    noteMd += note.content.trim();
+    noteMd += "\n```\n";
+  } else if (note.structure) {
+    noteMd += "\n### Structure\n```\n";
+    noteMd += note.structure.trim();
+    noteMd += "\n```\n";
+  }
+  return noteMd;
+}
+
+export function renderDiscoveredNoteStructureSection(
+  state: AgentState,
+  logger: Logger,
+): string {
+  if (state.discoveredStructure.length === 0) return "";
+
+  const rendered = renderDiscoveredStructure(state.discoveredStructure);
+  logger.markdown(
+    "Discovered Vault Structure",
+    `\`\`\`\n${rendered}\n\`\`\``,
+    LogLevel.CONTEXT,
+  );
+
+  return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n---\n`;
+}
+
+/**
+ * Render a unified, chronological log interleaving user/agent messages with
+ * tool calls and tool results.
+ *
+ * This is intentionally "AI-first": it preserves the timeline that led to
+ * each tool invocation, helping the model avoid mixing tool outputs across
+ * unrelated sub-threads.
+ *
+ * The most recent text entry is excluded because the latest user prompt is
+ * appended separately at the end under "User Question".
+ */
+export function renderConversationAndActivityLog(
+  state: AgentState,
+  logger: Logger,
+): string {
+  const fullHistory = state.history;
+  if (fullHistory.length === 0) return "";
+
+  // Exclude last text entry (the latest prompt or latest agent message), to avoid duplication
+  const lastTextIdx = (() => {
+    for (let i = fullHistory.length - 1; i >= 0; i--) {
+      if (fullHistory[i]?.type === "text") return i;
+    }
+    return -1;
+  })();
+
+  const history =
+    lastTextIdx >= 0
+      ? [
+          ...fullHistory.slice(0, lastTextIdx),
+          ...fullHistory.slice(lastTextIdx + 1),
+        ]
+      : fullHistory;
+
+  const rendered = history
+    .map((h) => {
+      if (h.type === "text") {
+        const roleLabel = h.role === "user" ? "User prompt" : "Agent response";
+        return `## ${roleLabel}\n${h.content}`;
+      }
+
+      if (h.type === "note_removed") {
+        return `## User action\nRemoved note from context: ${h.filename}`;
+      }
+
+      const callArgs = JSON.stringify(h.call.args);
+      const toolCall = `## Tool Call\n\`${h.call.name}(${callArgs})\``;
+      const resultText = h.result.historyEntry();
+      const toolResult = `### Tool Result\n${resultText}`;
+      return `${toolCall}\n${toolResult}`;
+    })
+    .join("\n");
+
+  const logStr = `# Conversation & Activity Log\n${rendered}\n---\n`;
+  logger.markdown("Conversation & activity log", logStr, LogLevel.CONTEXT);
+
+  return logStr;
+}
+
+export function getLastUserPrompt(state: AgentState): string {
+  const userEntries = state.history.filter(
+    (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
+  );
+  const lastUserEntry = userEntries[userEntries.length - 1];
+  return lastUserEntry ? lastUserEntry.content : "";
+}

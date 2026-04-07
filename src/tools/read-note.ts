@@ -3,7 +3,7 @@ import type { App } from "obsidian";
 import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
-import { readNote } from "../utils/notes";
+import { readNote } from "../utils/read-note";
 
 export class ReadNoteTool implements Tool {
   constructor(
