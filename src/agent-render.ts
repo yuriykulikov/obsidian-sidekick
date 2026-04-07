@@ -193,13 +193,18 @@ export function renderConversationAndActivityLog(
 
       if (h.type === "note_removed") {
         return `## User action\nRemoved note from context: ${h.filename}`;
+      } else if (h.type === "notes_rollback") {
+        const notesMd = Array.isArray(h.notes)
+          ? `Rolled back changes in:\n${h.notes.map((n) => `- \`${n}\``).join("\n")}`
+          : `Rolled back changes in: \`${h.notes}\``;
+        return `## User action\n\n${notesMd}`;
+      } else {
+        const callArgs = JSON.stringify(h.call.args);
+        const toolCall = `## Tool Call\n\`${h.call.name}(${callArgs})\``;
+        const resultText = h.result.historyEntry();
+        const toolResult = `### Tool Result\n${resultText}`;
+        return `${toolCall}\n${toolResult}`;
       }
-
-      const callArgs = JSON.stringify(h.call.args);
-      const toolCall = `## Tool Call\n\`${h.call.name}(${callArgs})\``;
-      const resultText = h.result.historyEntry();
-      const toolResult = `### Tool Result\n${resultText}`;
-      return `${toolCall}\n${toolResult}`;
     })
     .join("\n");
 

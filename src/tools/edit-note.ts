@@ -20,7 +20,7 @@ export class EditNoteTool implements Tool {
     return {
       name: "edit-note",
       description:
-        "Suggests changes to notes. These suggestions are stored in a staging area for user confirmation.",
+        "Suggests changes to notes currently in the conversation context. Suggestions update the note content (written to disk). The user can rollback suggested edits from the UI.",
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -87,6 +87,11 @@ export class EditNoteTool implements Tool {
           state: {
             ...note.state,
             hasSuggestions: true,
+            originalContent:
+              note.state?.hasSuggestions ||
+              note.state?.originalContent !== undefined
+                ? note.state.originalContent
+                : note.content,
           },
         };
 

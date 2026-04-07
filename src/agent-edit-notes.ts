@@ -1,7 +1,7 @@
 import type { App } from "obsidian";
 import { TFile } from "obsidian";
 
-import type { Note } from "./types";
+import type { AgentState, Note } from "./types";
 import type { Logger } from "./utils/logger";
 
 /**
@@ -19,6 +19,56 @@ export async function persistSuggestedEdits(
     if (!note.state?.hasSuggestions) continue;
     await writeSuggestedContentToDisk(app, logger, note);
   }
+}
+
+/**
+ * Roll back any in-session suggested edits, restoring notes to their original content.
+ * Clears suggestion metadata and persists the reverted content to disk.
+ */
+export async function rollbackSuggestedEdits(
+  app: App,
+  logger: Logger,
+  state: AgentState,
+): Promise<AgentState> {
+  const notesToRollback: Note[] = [];
+  const updatedNotes = new Map<string, Note>(state.notes);
+
+  for (const [basename, note] of state.notes) {
+    if (!note.state?.hasSuggestions) continue;
+    const originalContent = note.state.originalContent;
+    if (originalContent === undefined || originalContent === null) {
+      continue;
+    }
+
+    const rolledBack: Note = {
+      ...note,
+      content: originalContent,
+      state: {
+        ...note.state,
+        originalContent: null,
+        hasSuggestions: false,
+      },
+    };
+    updatedNotes.set(basename, rolledBack);
+    notesToRollback.push(rolledBack);
+  }
+
+  if (notesToRollback.length === 0) {
+    return state;
+  }
+
+  // Update state first so UI reflects rollback even if disk write fails.
+  const nextState = state.replaceNotes(updatedNotes).appendHistoryEntry({
+    type: "notes_rollback",
+    role: "user",
+    notes: notesToRollback.map((n) => n.filename),
+  });
+
+  for (const note of notesToRollback) {
+    await writeSuggestedContentToDisk(app, logger, note);
+  }
+
+  return nextState;
 }
 
 async function writeSuggestedContentToDisk(
