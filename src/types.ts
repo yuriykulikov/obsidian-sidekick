@@ -253,5 +253,7 @@ export interface Note {
      * Only set for notes with suggestions.
      */
     originalContent?: string | null;
+    /** Optional highlight snippet from the editor that should be treated as extra context for this note. */
+    highlight?: string | null;
   };
 }

@@ -66,6 +66,10 @@
   border: 1px solid var(--interactive-accent);
 }
 
+.sidekick-note-has-selection {
+  color: var(--interactive-accent);
+}
+
 .sidekick-note-remove {
   margin-left: 4px;
   cursor: pointer;

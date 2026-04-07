@@ -328,6 +328,11 @@ export class ChatView extends ItemView {
       if (note.state?.active) {
         noteTag.addClass("sidekick-note-active");
       }
+      const highlight = note.state?.highlight;
+      if (highlight && highlight.trim().length > 0) {
+        noteTag.addClass("sidekick-note-has-selection");
+        noteTag.setAttr("title", "Selection stored in context");
+      }
       if (note.content) {
         noteTag.addClass("sidekick-note-full");
         noteTag.setAttr("title", "Full content in context");
