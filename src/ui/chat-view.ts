@@ -31,6 +31,7 @@ export class ChatView extends ItemView {
   inputView: InputView;
   sendButton: HTMLButtonElement;
   stopButton: HTMLButtonElement;
+  rollbackButton: HTMLButtonElement;
   logger: Logger;
 
   constructor(leaf: WorkspaceLeaf, agentFactory: Agents, logger: Logger) {
@@ -94,6 +95,15 @@ export class ChatView extends ItemView {
 
   private renderHeader(container: HTMLElement) {
     const headerContainer = container.createDiv({ cls: "sidekick-header" });
+
+    const rollbackButton = new ButtonComponent(headerContainer)
+      .setButtonText("Rollback")
+      .setTooltip("Rollback suggested edits")
+      .onClick(() => {
+        void this.agent.rollbackSuggestions();
+      });
+    rollbackButton.buttonEl.addClass("sidekick-header-button");
+    this.rollbackButton = rollbackButton.buttonEl;
 
     const newTaskButton = new ButtonComponent(headerContainer)
       .setButtonText("New task")
@@ -192,6 +202,8 @@ export class ChatView extends ItemView {
         this.renderTextMessage(msg);
       } else if (msg.type === "function_call") {
         this.renderToolMessage(msg);
+      } else if (msg.type === "notes_rollback") {
+        this.renderRollbackMessage(msg.notes);
       }
     }
 
@@ -215,6 +227,26 @@ export class ChatView extends ItemView {
         this.stopButton.addClass("sidekick-button-hidden");
       }
     }
+
+    if (this.rollbackButton) {
+      const hasAnySuggestions = Array.from(state.notes.values()).some(
+        (n) => n.state?.hasSuggestions,
+      );
+      this.rollbackButton.disabled = state.isThinking || !hasAnySuggestions;
+    }
+  }
+
+  private renderRollbackMessage(notes: string[]) {
+    const msgEl = this.responseContainer.createDiv({
+      cls: "sidekick-message user-message",
+    });
+    const noteList = notes.map((n) => `[[${n}]]`).join(", ");
+    void renderMarkdown(
+      this.app,
+      `Rolled back suggested edits for: ${noteList}`,
+      msgEl,
+      this,
+    );
   }
 
   private renderTextMessage(msg: TextHistoryEntry) {

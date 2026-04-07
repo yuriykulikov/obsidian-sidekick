@@ -4,7 +4,10 @@ import type {
   GenerateContentResponse,
 } from "@google/genai";
 import type { App } from "obsidian";
-import { persistSuggestedEdits } from "./agent-edit-notes";
+import {
+  persistSuggestedEdits,
+  rollbackSuggestedEdits,
+} from "./agent-edit-notes";
 import { addNote, refreshNotes, setActiveNote } from "./agent-notes";
 import { getLastUserPrompt, renderPromptSections } from "./agent-render";
 import type { Agents } from "./agents";
@@ -113,6 +116,21 @@ export class SidekickAgent {
         filename,
       }),
     );
+  }
+
+  /**
+   * Rolls back any in-session suggested edits, restoring notes to their original content.
+   * Clears suggestion metadata and persists the reverted content to disk.
+   */
+  public async rollbackSuggestions(): Promise<void> {
+    const nextState = await rollbackSuggestedEdits(
+      this.app,
+      this.logger,
+      this.state,
+    );
+    if (nextState !== this.state) {
+      this.setState(nextState);
+    }
   }
 
   /**

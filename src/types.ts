@@ -115,7 +115,8 @@ export interface Tool {
 export type HistoryEntry =
   | TextHistoryEntry
   | ToolCallHistoryEntry
-  | NoteRemovedHistoryEntry;
+  | NoteRemovedHistoryEntry
+  | NotesRollbackHistoryEntry;
 
 export interface TextHistoryEntry {
   type: "text";
@@ -139,6 +140,13 @@ export interface NoteRemovedHistoryEntry {
   type: "note_removed";
   role: "user";
   filename: string;
+}
+
+export interface NotesRollbackHistoryEntry {
+  type: "notes_rollback";
+  role: "user";
+  /** basenames of notes that were rolled back */
+  notes: string[];
 }
 
 /**
@@ -240,5 +248,10 @@ export interface Note {
   state?: {
     active?: boolean;
     hasSuggestions?: boolean;
+    /**
+     * Snapshot of the note content before any in-session suggestions were applied.
+     * Only set for notes with suggestions.
+     */
+    originalContent?: string | null;
   };
 }

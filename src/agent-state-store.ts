@@ -3,6 +3,7 @@ import {
   AgentState,
   type Note,
   type NoteRemovedHistoryEntry,
+  type NotesRollbackHistoryEntry,
   type TextHistoryEntry,
   ToolResult,
 } from "./types";
@@ -18,7 +19,8 @@ export type AgentStateJson = {
 export type HistoryEntryJson =
   | TextHistoryEntry
   | ToolCallHistoryEntryJson
-  | NoteRemovedHistoryEntry;
+  | NoteRemovedHistoryEntry
+  | NotesRollbackHistoryEntry;
 
 export interface ToolCallHistoryEntryJson {
   id: string;
