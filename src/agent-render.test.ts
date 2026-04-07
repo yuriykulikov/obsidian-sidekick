@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Note } from "../types";
-import { renderDiscoveredStructure, renderNoteToMarkdown } from "./notes";
+import {
+  renderDiscoveredStructure,
+  renderNoteToMarkdown,
+} from "./agent-render";
+import type { Note } from "./types";
 
-describe("notes utils", () => {
+describe("agent-render", () => {
   describe("renderNoteToMarkdown", () => {
     it("should render a note with content correctly", () => {
       const note: Note = {
@@ -14,7 +17,6 @@ describe("notes utils", () => {
         backlinks: ["Backlink1"],
         tags: ["#tag1", "#tag2"],
         folderSiblings: ["Sibling1"],
-        active: true,
       };
 
       const result = renderNoteToMarkdown(note);
@@ -57,7 +59,6 @@ This is the content of the note.
         backlinks: [],
         tags: [],
         folderSiblings: [],
-        active: false,
       };
 
       const result = renderNoteToMarkdown(note);
@@ -116,7 +117,6 @@ Empty
       expect(result).toBe(expected);
     });
   });
-
   describe("renderDiscoveredStructure", () => {
     it("should return a message when no paths are provided", () => {
       expect(renderDiscoveredStructure([])).toBe(

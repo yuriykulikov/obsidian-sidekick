@@ -3,19 +3,15 @@ import type {
   FunctionResponse,
   GenerateContentResponse,
 } from "@google/genai";
-import { type App, TFile } from "obsidian";
+import type { App } from "obsidian";
+import { persistSuggestedEdits } from "./agent-edit-notes";
+import { addNote, refreshNotes, setActiveNote } from "./agent-notes";
+import { getLastUserPrompt, renderPromptSections } from "./agent-render";
 import type { Agents } from "./agents";
-import type { AgentState, Note, TextHistoryEntry, Tool } from "./types";
+import type { AgentState, Tool } from "./types";
 import { ToolResult } from "./types";
 import type { Logger } from "./utils/logger";
 import { LogLevel } from "./utils/logger";
-import {
-  addNote,
-  refreshNotes,
-  renderDiscoveredStructure,
-  renderNoteToMarkdown,
-  setActiveNote,
-} from "./utils/notes";
 
 /**
  * `SidekickAgent` is the core engine of the AI assistant, implementing a
@@ -128,38 +124,6 @@ export class SidekickAgent {
     this.setStateDeferNotify(
       this.state.setHistoryEntryCollapsed(id, collapsed),
     );
-  }
-
-  /**
-   * Persist any notes that have pending suggestions (`hasSuggestions`) to disk.
-   *
-   * This keeping-the-vault-in-sync step lives in the agent layer (not the UI)
-   * so it can be reused by other frontends and keeps file IO centralized.
-   */
-  private async persistSuggestedEdits(): Promise<void> {
-    for (const [, note] of this.state.notes) {
-      if (!note.hasSuggestions) continue;
-      await this.writeSuggestedContentToDisk(note);
-    }
-  }
-
-  private async writeSuggestedContentToDisk(note: Note): Promise<void> {
-    const abstractFile = this.app.vault.getAbstractFileByPath(note.path);
-    if (!(abstractFile instanceof TFile)) {
-      this.logger.warn(
-        `Cannot write suggestions for ${note.filename}: ${note.path}`,
-      );
-      return;
-    }
-
-    try {
-      await this.app.vault.modify(abstractFile, note.content || "");
-      this.logger.info(`Wrote suggestions to ${note.path}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to write suggestions for ${note.filename} (${note.path}): ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
   }
 
   /**
@@ -293,7 +257,7 @@ export class SidekickAgent {
       postfix = `\n\nMax iterations (${maxIterations}) reached. Breaking loop.`;
     }
 
-    await this.persistSuggestedEdits();
+    await persistSuggestedEdits(this.app, this.logger, this.state.notes);
     this.setState(
       this.state
         .appendHistoryEntry({
@@ -316,15 +280,13 @@ export class SidekickAgent {
    */
   private async promptLLM(): Promise<GenerateContentResponse> {
     // Find the last user prompt in history (used as the current question at the end)
-    const userEntries = this.state.history.filter(
-      (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
-    );
-    const lastUserEntry = userEntries[userEntries.length - 1];
-    const prompt = lastUserEntry ? lastUserEntry.content : "";
+    const prompt = getLastUserPrompt(this.state);
+
     // Prepare context for the prompt from notes
-    const structureStr = this.renderDiscoveredNoteStructureSection();
-    const contextStr = this.renderNotesSection();
-    const activityLogStr = this.renderConversationAndActivityLog();
+    const { structureStr, contextStr, activityLogStr } = renderPromptSections(
+      this.state,
+      this.logger,
+    );
 
     const message = `${structureStr}${contextStr}${activityLogStr}\n# User Question\n${prompt}`;
 
@@ -352,95 +314,6 @@ export class SidekickAgent {
       );
     }
     return response;
-  }
-
-  private renderNotesSection() {
-    return this.state.notes.size > 0
-      ? `# Notes\n\n${Array.from(this.state.notes.values())
-          .map((note) => {
-            const md = renderNoteToMarkdown(note);
-            this.logger.markdown(
-              `${note.content ? "Note content " : "Note structure "} ${note.filename}`,
-              md,
-              LogLevel.CONTEXT,
-            );
-            return md;
-          })
-          .join("\n")}\n---\n`
-      : "";
-  }
-
-  private renderDiscoveredNoteStructureSection() {
-    return this.state.discoveredStructure.length > 0
-      ? (() => {
-          const rendered = renderDiscoveredStructure(
-            this.state.discoveredStructure,
-          );
-          this.logger.markdown(
-            "Discovered Vault Structure",
-            `\`\`\`\n${rendered}\n\`\`\``,
-            LogLevel.CONTEXT,
-          );
-          return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n---\n`;
-        })()
-      : "";
-  }
-
-  /**
-   * Render a unified, chronological log interleaving user/agent messages with
-   * tool calls and tool results.
-   *
-   * This is intentionally "AI-first": it preserves the timeline that led to
-   * each tool invocation, helping the model avoid mixing tool outputs across
-   * unrelated sub-threads.
-   *
-   * The most recent text entry is excluded because the latest user prompt is
-   * appended separately at the end under "User Question".
-   */
-  private renderConversationAndActivityLog(): string {
-    const fullHistory = this.state.history;
-    if (fullHistory.length === 0) return "";
-
-    // Exclude last text entry (the latest prompt or latest agent message), to avoid duplication
-    const lastTextIdx = (() => {
-      for (let i = fullHistory.length - 1; i >= 0; i--) {
-        if (fullHistory[i]?.type === "text") return i;
-      }
-      return -1;
-    })();
-    const history =
-      lastTextIdx >= 0
-        ? [
-            ...fullHistory.slice(0, lastTextIdx),
-            ...fullHistory.slice(lastTextIdx + 1),
-          ]
-        : fullHistory;
-
-    const rendered = history
-      .map((h) => {
-        if (h.type === "text") {
-          const roleLabel =
-            h.role === "user" ? "User prompt" : "Agent response";
-          return `## ${roleLabel}\n${h.content}`;
-        } else if (h.type === "note_removed") {
-          return `## User action\nRemoved note from context: ${h.filename}`;
-        } else {
-          const callArgs = JSON.stringify(h.call.args);
-          const toolCall = `## Tool Call\n\`${h.call.name}(${callArgs})\``;
-          const resultText = h.result.historyEntry();
-          const toolResult = `### Tool Result\n${resultText}`;
-          return `${toolCall}\n${toolResult}`;
-        }
-      })
-      .join("\n");
-
-    const logStr = `# Conversation & Activity Log\n${rendered}\n---\n`;
-    this.logger.markdown(
-      "Conversation & activity log",
-      logStr,
-      LogLevel.CONTEXT,
-    );
-    return logStr;
   }
 
   /**

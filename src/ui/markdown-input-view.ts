@@ -6,7 +6,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import type { App, Constructor, TFile } from "obsidian";
-import { extractLinks } from "../utils/notes";
+import { extractLinks } from "../utils/read-note";
 import type { InputView } from "./input-view";
 
 let cachedMarkdownInputViewClass: Constructor<InputView> | null = null;
