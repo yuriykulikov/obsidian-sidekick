@@ -122,6 +122,16 @@ export function renderNoteToMarkdown(note: Note): string {
   noteMd += renderDiscoveredStructure(contextPaths);
   noteMd += "\n```\n";
 
+  const highlight = note.state?.highlight;
+  if (highlight && highlight.trim().length > 0) {
+    noteMd +=
+      "### Highlighted text (subset of the note)\n" +
+      "The user highlighted this exact excerpt. Prefer acting on this section; any edits/suggestions should apply within it.\n" +
+      "```\n";
+    noteMd += highlight.trim();
+    noteMd += "\n```\n";
+  }
+
   if (note.content) {
     noteMd += "### Content\n```\n";
     noteMd += note.content.trim();

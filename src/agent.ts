@@ -11,7 +11,7 @@ import {
 import { addNote, refreshNotes, setActiveNote } from "./agent-notes";
 import { getLastUserPrompt, renderPromptSections } from "./agent-render";
 import type { Agents } from "./agents";
-import type { AgentState, Tool } from "./types";
+import type { AgentState, Note, Tool } from "./types";
 import { ToolResult } from "./types";
 import type { Logger } from "./utils/logger";
 import { LogLevel } from "./utils/logger";
@@ -131,6 +131,39 @@ export class SidekickAgent {
     if (nextState !== this.state) {
       this.setState(nextState);
     }
+  }
+
+  /**
+   * Attach the provided selection snippet to the active note in the agent context
+   * as `note.selection`.
+   */
+  public async addHighlight(
+    basename: string,
+    selection: string,
+  ): Promise<void> {
+    let note: Note | undefined = this.state.notes.get(basename);
+
+    // If note was not present - add it
+    if (!note) {
+      this.setState(await addNote(this.app, this.state, basename));
+      note = this.state.notes.get(basename);
+    }
+
+    if (!note) {
+      this.logger.warn(`Cannot apply selection: note not found(${basename})`);
+      return;
+    }
+
+    if (note.state?.highlight === selection) return;
+
+    const notesCopy = new Map(this.state.notes);
+
+    notesCopy.set(basename, {
+      ...note,
+      state: { ...note.state, highlight: selection },
+    });
+
+    this.setState(this.state.replaceNotes(notesCopy));
   }
 
   /**

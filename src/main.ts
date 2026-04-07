@@ -8,6 +8,7 @@ import {
 import { ChatView, VIEW_TYPE_SIDEKICK } from "./ui/chat-view";
 import { SidekickLogView, VIEW_TYPE_SIDEKICK_LOG } from "./ui/log-view";
 import { Logger } from "./utils/logger";
+import { getCurrentSelectionFromMostRecentLeaf } from "./utils/selection";
 
 /**
  * `SidekickPlugin` is the entry point for the Obsidian Sidekick plugin.
@@ -54,6 +55,24 @@ export default class SidekickPlugin extends Plugin {
       id: "open-sidekick-log",
       name: "Open log",
       callback: () => this.activateLogView(),
+    });
+
+    this.addCommand({
+      id: "sidekick-add-highlight",
+      name: "Add highlight",
+      hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "C" }],
+      callback: () => {
+        void (async () => {
+          const selectionResult = getCurrentSelectionFromMostRecentLeaf(
+            this.logger,
+            this.app,
+          );
+          if (!selectionResult) return;
+          const { file, selection } = selectionResult;
+          await this.activateView();
+          this.agents.current?.addHighlight(file.basename, selection);
+        })();
+      },
     });
 
     // This adds a settings tab so the user can configure various aspects of the plugin
