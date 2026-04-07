@@ -109,13 +109,26 @@ export class SidekickAgent {
    * @param filename - The name of the note to remove.
    */
   public removeNote(filename: string): void {
-    this.setState(
-      this.state.removeNote(filename).appendHistoryEntry({
-        type: "note_removed",
-        role: "user",
-        filename,
-      }),
-    );
+    const note = this.state.notes.get(filename);
+    const highlight = note?.state?.highlight;
+    if (note && highlight && highlight.trim().length > 0) {
+      const notesCopy = new Map(this.state.notes);
+      notesCopy.set(filename, {
+        ...note,
+        state: { ...note.state, highlight: null },
+      });
+
+      this.setState(this.state.replaceNotes(notesCopy));
+      return;
+    } else {
+      this.setState(
+        this.state.removeNote(filename).appendHistoryEntry({
+          type: "note_removed",
+          role: "user",
+          filename,
+        }),
+      );
+    }
   }
 
   /**
