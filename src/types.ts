@@ -235,8 +235,10 @@ export interface Note {
   links: string[];
   backlinks: string[];
   tags: string[];
-  active?: boolean;
   parentPath?: string;
   folderSiblings?: string[] | null;
-  hasSuggestions?: boolean;
+  state?: {
+    active?: boolean;
+    hasSuggestions?: boolean;
+  };
 }

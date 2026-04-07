@@ -47,6 +47,10 @@ export class ReadNoteLinksTool implements Tool {
 
     const filename = file.basename;
 
+    // If the note is already in context, this tool is a no-op.
+    // (Keeping the old behavior: return an error-like result so the LLM learns
+    // it shouldn't call this again.)
+
     const existingNote = state.notes.get(filename);
     if (existingNote) {
       this.logger.info(
@@ -63,6 +67,13 @@ export class ReadNoteLinksTool implements Tool {
     }
 
     const newNote = await readNote(this.app, file, "links");
+
+    // Preserve in-memory note state (active flag, suggestion state, etc.)
+    // when re-reading the note from disk.
+    const existingState = state.notes.get(filename)?.state;
+    if (existingState) {
+      newNote.state = existingState;
+    }
 
     const newState = state
       .appendNote(filename, newNote)

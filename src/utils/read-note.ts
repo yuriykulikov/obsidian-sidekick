@@ -96,7 +96,6 @@ export async function readNote(
     links: [...new Set(links)],
     backlinks: [...new Set(backlinks)],
     tags: [...new Set(tags)],
-    active: false,
     structure: structureOrText ? structure.join("\n") : null,
     parentPath: parentFolder?.path || "/",
     folderSiblings: structureOrText ? folderSiblings : null,
