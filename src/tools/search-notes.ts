@@ -4,6 +4,8 @@ import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 
+type SearchNotesScope = "path" | "basename";
+
 export class SearchNotesTool implements Tool {
   constructor(
     private app: App,
@@ -14,13 +16,18 @@ export class SearchNotesTool implements Tool {
     return {
       name: "search_notes",
       description:
-        "Searches for notes and folders by name when you don't have a direct link. Returns a list of matching paths. Do NOT use this if you already have a [[Link]] to the note you want to look up.",
+        "Searches for Markdown notes by name when you don't have a direct link. Returns a list of matching note paths. Do NOT use this if you already have a [[Link]] to the note you want to look up.",
       parameters: {
         type: Type.OBJECT,
         properties: {
           query: {
             type: Type.STRING,
-            description: "The search query (part of the note or folder name).",
+            description: "The search query (part of the note name).",
+          },
+          scope: {
+            type: Type.STRING,
+            description:
+              "Where to search: 'path' (default) searches the full note path; 'basename' searches only the file name without extension.",
           },
         },
         required: ["query"],
@@ -33,18 +40,22 @@ export class SearchNotesTool implements Tool {
     params: Record<string, unknown>,
   ): Promise<[AgentState, ToolResult]> {
     const query = (params.query as string).toLowerCase();
+    const scopeParam = params.scope;
+    const scope: SearchNotesScope =
+      scopeParam === "basename" || scopeParam === "path" ? scopeParam : "path";
 
     const allFiles = this.app.vault.getAllLoadedFiles();
-    const matches = allFiles.filter((file) => {
-      if (file instanceof TFile && file.extension !== "md") {
-        return false;
-      }
-      const nameToSearch = file instanceof TFile ? file.basename : file.name;
-      return nameToSearch.toLowerCase().includes(query);
-    });
+    const matches = allFiles.filter(
+      (file): file is TFile =>
+        file instanceof TFile &&
+        file.extension === "md" &&
+        (scope === "path"
+          ? file.path.toLowerCase().includes(query)
+          : file.basename.toLowerCase().includes(query)),
+    );
 
     if (matches.length === 0) {
-      const message = `No notes or folders found matching "${query}".`;
+      const message = `No notes found matching "${query}" (${scope}).`;
       return [
         state,
         ToolResult.createOk(`Search notes: no matches for "${query}"`, message),
@@ -55,20 +66,9 @@ export class SearchNotesTool implements Tool {
       matches.map((m) => m.path),
     );
 
-    const notes = matches.filter((m) => m instanceof TFile);
-    const folders = matches.filter((m) => !(m instanceof TFile));
-
-    let output = `Found ${matches.length} matches for "${query}":\n\n`;
-
-    if (notes.length > 0) {
-      output += `### Notes\n`;
-      output += `${notes.map((m) => `- [[${m.path}]]`).join("\n")}\n\n`;
-    }
-
-    if (folders.length > 0) {
-      output += `### Folders\n`;
-      output += `${folders.map((m) => `- \`${m.path}/\``).join("\n")}\n\n`;
-    }
+    let output = `Found ${matches.length} notes for "${query}" (${scope}):\n\n`;
+    output += `### Notes\n`;
+    output += `${matches.map((m) => `- [[${m.path}]]`).join("\n")}\n\n`;
 
     return [
       newState,
