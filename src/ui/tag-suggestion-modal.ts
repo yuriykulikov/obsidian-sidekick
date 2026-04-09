@@ -1,4 +1,4 @@
-import { type App, FuzzySuggestModal, getAllTags } from "obsidian";
+import { type App, FuzzySuggestModal } from "obsidian";
 
 /**
  * A fuzzy search modal for selecting a tag from the vault.
@@ -16,22 +16,20 @@ export class TagSuggestionModal extends FuzzySuggestModal<string> {
    * Returns all tags in the vault.
    */
   getItems(): string[] {
-    const tags = new Set<string>();
-    const files = this.app.vault.getMarkdownFiles();
-
-    for (const file of files) {
-      const cache = this.app.metadataCache.getFileCache(file);
-      if (cache) {
-        const fileTags = getAllTags(cache);
-        if (fileTags) {
-          for (const tag of fileTags) {
-            tags.add(tag);
-          }
-        }
+    // Prefer Obsidian's tag index (fast/canonical).
+    const getTagsFn = (
+      this.app.metadataCache as unknown as {
+        getTags?: () => Record<string, number>;
       }
+    ).getTags;
+
+    if (typeof getTagsFn !== "function") {
+      return [];
     }
 
-    return Array.from(tags);
+    return Object.keys(getTagsFn.call(this.app.metadataCache)).sort((a, b) =>
+      a.localeCompare(b),
+    );
   }
 
   /**
