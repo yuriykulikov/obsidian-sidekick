@@ -9,6 +9,7 @@ import { AgentStateStore } from "./agent-state-store";
 import { EditNoteTool } from "./tools/edit-note";
 import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
+import { ListTagsTool } from "./tools/list-tags";
 import { ReadNoteTool } from "./tools/read-note";
 import { ReadNoteLinksTool } from "./tools/read-note-links";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
@@ -160,6 +161,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       new ReadNoteTool(this.app, this.logger),
       new ReadNoteLinksTool(this.app, this.logger),
       new ReadNoteStructureTool(this.app, this.logger),
+      new ListTagsTool(this.app, this.logger),
       new SearchByTagTool(this.app, this.logger),
       new SearchNotesTool(this.app, this.logger),
       new ListDirectoryTool(this.app, this.logger),
