@@ -29,6 +29,16 @@ export class SearchNotesTool implements Tool {
             description:
               "Where to search: 'path' (default) searches the full note path; 'basename' searches only the file name without extension.",
           },
+          offset: {
+            type: Type.NUMBER,
+            description:
+              "Paging: number of matches to skip before returning results (default: 0).",
+          },
+          limit: {
+            type: Type.NUMBER,
+            description:
+              "Paging: maximum number of matches to return (default: 30).",
+          },
         },
         required: ["query"],
       },
@@ -44,6 +54,16 @@ export class SearchNotesTool implements Tool {
     const scope: SearchNotesScope =
       scopeParam === "basename" || scopeParam === "path" ? scopeParam : "path";
 
+    const defaultOffset = 0;
+    const defaultLimit = 30;
+
+    const offset = Number.isFinite(params.offset as number)
+      ? Math.max(0, Math.floor(params.offset as number))
+      : defaultOffset;
+    const limit = Number.isFinite(params.limit as number)
+      ? Math.max(1, Math.floor(params.limit as number))
+      : defaultLimit;
+
     const allFiles = this.app.vault.getAllLoadedFiles();
     const matches = allFiles.filter(
       (file): file is TFile =>
@@ -54,6 +74,8 @@ export class SearchNotesTool implements Tool {
           : file.basename.toLowerCase().includes(query)),
     );
 
+    matches.sort((a, b) => a.path.localeCompare(b.path));
+
     if (matches.length === 0) {
       const message = `No notes found matching "${query}" (${scope}).`;
       return [
@@ -62,18 +84,34 @@ export class SearchNotesTool implements Tool {
       ];
     }
 
-    const newState = state.appendDiscoveredStructure(
-      matches.map((m) => m.path),
-    );
+    const total = matches.length;
+    const page = matches.slice(offset, offset + limit);
+    const shownStart = total === 0 ? 0 : Math.min(offset, total);
+    const shownEndExclusive = Math.min(offset + limit, total);
+    const omitted = total - shownEndExclusive;
 
-    let output = `Found ${matches.length} notes for "${query}" (${scope}):\n\n`;
-    output += `### Notes\n`;
-    output += `${matches.map((m) => `- [[${m.path}]]`).join("\n")}\n\n`;
+    const newState = state.appendDiscoveredStructure(page.map((m) => m.path));
+
+    let output = `Found ${total} notes for "${query}" (${scope}).\n`;
+    output += `Showing ${shownStart}..${shownEndExclusive - 1} (${page.length} notes).\n`;
+    if (omitted > 0) {
+      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
+    }
+    output += `\n### Notes\n`;
+    output += `${page.map((m) => `- [[${m.path}]]`).join("\n")}\n\n`;
 
     return [
       newState,
       ToolResult.createOk(
-        `Search notes: found ${matches.length} matches for "${query}"`,
+        (() => {
+          const isDefaultPaging =
+            offset === defaultOffset && limit === defaultLimit;
+          const pagingSuffix = !isDefaultPaging
+            ? ` (offset=${offset}, limit=${limit})`
+            : "";
+          const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
+          return `Search notes: found ${total} matches for "${query}"${pagingSuffix}${omittedSuffix}`;
+        })(),
         output.trim(),
       ),
     ];
