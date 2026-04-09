@@ -89,15 +89,16 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 
 **Don't**
 
-- **Do not modify `main.js` or `styles.css` directly**: These are compiled/bundled files. Always make changes in the `src/` directory.
-  - JavaScript changes should be made in `src/*.ts`.
-  - CSS changes should be made in `src/css/*.css`.
+- **Do not modify `main.js` or `styles.css` directly**: These are compiled/bundled files. Always make changes in the
+  `src/` directory.
+	- JavaScript changes should be made in `src/*.ts`.
+	- CSS changes should be made in `src/css/*.css`.
 - **Do not use Notice** except for errors.
 
 **Before finishing a task**
 
-- **Run linting**: Run `npm run lint` or `npm run lint:fix` to ensure code follows Biome's formatting and linting rules.
-- **Run build**: Run `npm run build` to ensure the project compiles and bundles correctly.
+- **Verify changes locally**: Run `npm run lint:fix && npm run test && npm run build` to ensure formatting/linting,
+  tests, and bundling all succeed.
 
 ## Common tasks
 
