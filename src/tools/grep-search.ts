@@ -37,6 +37,16 @@ export class GrepSearchTool implements Tool {
             description:
               "The number of lines of context to include before and after each match (default: 1).",
           },
+          offset: {
+            type: Type.NUMBER,
+            description:
+              "Paging: number of result files to skip before returning results (default: 0).",
+          },
+          limit: {
+            type: Type.NUMBER,
+            description:
+              "Paging: maximum number of result files to return (default: 30).",
+          },
         },
         required: ["query"],
       },
@@ -51,6 +61,16 @@ export class GrepSearchTool implements Tool {
     const regex = (params.regex as boolean) ?? false;
     const regexExplanation = params.regexExplanation as string | undefined;
     const contextLines = (params.contextLines as number) ?? 1;
+
+    const defaultOffset = 0;
+    const defaultLimit = 30;
+
+    const offset = Number.isFinite(params.offset as number)
+      ? Math.max(0, Math.floor(params.offset as number))
+      : defaultOffset;
+    const limit = Number.isFinite(params.limit as number)
+      ? Math.max(1, Math.floor(params.limit as number))
+      : defaultLimit;
 
     let searchFn: (text: string) => boolean;
     if (regex) {
@@ -105,6 +125,8 @@ export class GrepSearchTool implements Tool {
       }
     }
 
+    results.sort((a, b) => a.path.localeCompare(b.path));
+
     if (results.length === 0) {
       const message = `No matches found for "${query}" in the vault.`;
       return [
@@ -116,11 +138,23 @@ export class GrepSearchTool implements Tool {
       ];
     }
 
-    const matchingPaths = results.map((r) => r.path);
+    const total = results.length;
+    const page = results.slice(offset, offset + limit);
+    const shownStart = Math.min(offset, total);
+    const shownEndExclusive = Math.min(offset + limit, total);
+    const omitted = total - shownEndExclusive;
+
+    const matchingPaths = page.map((r) => r.path);
     const newState = state.appendDiscoveredStructure(matchingPaths);
 
-    let output = `Found matches for "${query}" in ${results.length} notes:\n\n`;
-    for (const res of results) {
+    let output = `Found matches for "${query}" in ${total} notes.\n`;
+    output += `Showing ${shownStart}..${shownEndExclusive - 1} (${page.length} notes).\n`;
+    if (omitted > 0) {
+      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
+    }
+    output += "\n";
+
+    for (const res of page) {
       output += `### [[${res.path}]]\n`;
       for (const match of res.matches) {
         output += "```text\n";
@@ -133,9 +167,18 @@ export class GrepSearchTool implements Tool {
     return [
       newState,
       ToolResult.createOk(
-        `Grep search: found matches for "${query}" in ${results.length} notes${
-          regexExplanation ? ` (${regexExplanation})` : ""
-        }`,
+        (() => {
+          const explanationSuffix = regexExplanation
+            ? ` (${regexExplanation})`
+            : "";
+          const isDefaultPaging =
+            offset === defaultOffset && limit === defaultLimit;
+          const pagingSuffix = !isDefaultPaging
+            ? ` (offset=${offset}, limit=${limit})`
+            : "";
+          const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
+          return `Grep search: found matches for "${query}" in ${total} notes${explanationSuffix}${pagingSuffix}${omittedSuffix}`;
+        })(),
         output.trim(),
       ),
     ];

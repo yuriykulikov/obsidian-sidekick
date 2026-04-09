@@ -22,6 +22,16 @@ export class SearchByTagTool implements Tool {
             type: Type.STRING,
             description: "The tag to search for (e.g., '#work' or 'work').",
           },
+          offset: {
+            type: Type.NUMBER,
+            description:
+              "Paging: number of matches to skip before returning results (default: 0).",
+          },
+          limit: {
+            type: Type.NUMBER,
+            description:
+              "Paging: maximum number of matches to return (default: 30).",
+          },
         },
         required: ["tag"],
       },
@@ -37,6 +47,16 @@ export class SearchByTagTool implements Tool {
       tag = `#${tag}`;
     }
 
+    const defaultOffset = 0;
+    const defaultLimit = 30;
+
+    const offset = Number.isFinite(params.offset as number)
+      ? Math.max(0, Math.floor(params.offset as number))
+      : defaultOffset;
+    const limit = Number.isFinite(params.limit as number)
+      ? Math.max(1, Math.floor(params.limit as number))
+      : defaultLimit;
+
     const matches: TFile[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
 
@@ -50,6 +70,8 @@ export class SearchByTagTool implements Tool {
       }
     }
 
+    matches.sort((a, b) => a.path.localeCompare(b.path));
+
     if (matches.length === 0) {
       const message = `No notes found with tag "${tag}".`;
       return [
@@ -58,18 +80,34 @@ export class SearchByTagTool implements Tool {
       ];
     }
 
-    const newState = state.appendDiscoveredStructure(
-      matches.map((m) => m.path),
-    );
+    const total = matches.length;
+    const page = matches.slice(offset, offset + limit);
+    const shownStart = Math.min(offset, total);
+    const shownEndExclusive = Math.min(offset + limit, total);
+    const omitted = total - shownEndExclusive;
 
-    const output = `Found ${matches.length} notes with tag "${tag}":\n\n${matches
-      .map((m) => `- [[${m.path}]]`)
-      .join("\n")}\n`;
+    const newState = state.appendDiscoveredStructure(page.map((m) => m.path));
+
+    let output = `Found ${total} notes with tag "${tag}".\n`;
+    output += `Showing ${shownStart}..${shownEndExclusive - 1} (${page.length} notes).\n`;
+    if (omitted > 0) {
+      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
+    }
+    output += "\n";
+    output += `${page.map((m) => `- [[${m.path}]]`).join("\n")}\n`;
 
     return [
       newState,
       ToolResult.createOk(
-        `Search by tag: found ${matches.length} matches for "${tag}"`,
+        (() => {
+          const isDefaultPaging =
+            offset === defaultOffset && limit === defaultLimit;
+          const pagingSuffix = !isDefaultPaging
+            ? ` (offset=${offset}, limit=${limit})`
+            : "";
+          const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
+          return `Search by tag: found ${total} matches for "${tag}"${pagingSuffix}${omittedSuffix}`;
+        })(),
         output.trim(),
       ),
     ];
