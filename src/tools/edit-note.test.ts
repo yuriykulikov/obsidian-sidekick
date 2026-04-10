@@ -49,13 +49,64 @@ describe("SuggestEditTool", () => {
     const updated = newState.notes.get("Sidekick suggestions test");
     expect(updated?.content).toBe("new text");
     expect(updated?.state?.hasSuggestions).toBe(true);
-    expect(result.summary).toBe("Suggest edit: applied suggestions");
+    expect(result.summary).toBe("Edited note: Sidekick suggestions test");
     expect(result.llmOutputString()).toContain(
       "# Note [[Sidekick suggestions test]]",
     );
     expect(result.llmOutputString()).toContain("1 suggestion:");
     expect(result.llmOutputString()).toContain("-old text");
     expect(result.llmOutputString()).toContain("+new text");
+  });
+
+  it("pluralizes summary when multiple notes were edited", async () => {
+    const noteA: Note = {
+      filename: "Note A",
+      path: "Folder/Note A.md",
+      content: "old a",
+      links: [],
+      backlinks: [],
+      tags: [],
+    };
+    const noteB: Note = {
+      filename: "Note B",
+      path: "Folder/Note B.md",
+      content: "old b",
+      links: [],
+      backlinks: [],
+      tags: [],
+    };
+
+    const state = new AgentState(
+      [],
+      new Map([
+        [noteA.filename, noteA],
+        [noteB.filename, noteB],
+      ]),
+    );
+
+    const tool = new EditNoteTool(
+      {
+        metadataCache: {
+          getFirstLinkpathDest(path: string) {
+            if (path === noteA.path || path === noteA.filename)
+              return { basename: noteA.filename };
+            if (path === noteB.path || path === noteB.filename)
+              return { basename: noteB.filename };
+            return null;
+          },
+        },
+      } as unknown as App,
+      {} as Logger,
+    );
+
+    const [, result] = await tool.execute(state, {
+      suggestions: [
+        { note: noteA.filename, textToReplace: "old a", replacement: "new a" },
+        { note: noteB.filename, textToReplace: "old b", replacement: "new b" },
+      ],
+    });
+
+    expect(result.summary).toBe("Edited notes: Note A, Note B");
   });
 
   it("accepts note title without path", async () => {
