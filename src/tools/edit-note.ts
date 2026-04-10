@@ -117,13 +117,10 @@ export class EditNoteTool implements Tool {
     } else {
       const formattedResult = this.formatAppliedSuggestions(appliedEditsByNote);
 
-      return [
-        modifiedState,
-        ToolResult.createOk(
-          "Suggest edit: applied suggestions",
-          formattedResult,
-        ),
-      ];
+      const editedNoteNames = Array.from(appliedEditsByNote.keys());
+      const summary = `Edited ${this.pluralize(editedNoteNames.length, "note")}: ${editedNoteNames.join(", ")}`;
+
+      return [modifiedState, ToolResult.createOk(summary, formattedResult)];
     }
   }
 
