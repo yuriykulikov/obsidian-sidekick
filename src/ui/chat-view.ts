@@ -272,6 +272,25 @@ export class ChatView extends ItemView {
     const toolMsg = this.responseContainer.createDiv({
       cls: "sidekick-message tool-message",
     });
+
+    const toolName = msg.call.name;
+    const readSearchTools = new Set([
+      "read_note",
+      "read_note_structure",
+      "read_note_links",
+      "search_notes",
+      "search_by_tag",
+      "grep_search",
+      "list_directory",
+      "list_tags",
+    ]);
+    const modifyTools = new Set(["edit-note"]);
+
+    if (readSearchTools.has(toolName)) {
+      toolMsg.addClass("sidekick-tool-read");
+    } else if (modifyTools.has(toolName)) {
+      toolMsg.addClass("sidekick-tool-modify");
+    }
     if (msg.result.isError()) {
       toolMsg.addClass("sidekick-tool-error");
     }

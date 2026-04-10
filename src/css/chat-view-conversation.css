@@ -40,7 +40,7 @@
 
 .tool-message {
   background-color: var(--background-secondary);
-  border-left: 3px solid var(--text-accent);
+  border-left: 3px solid var(--background-modifier-border);
   font-size: 0.85em;
   padding: 4px 8px;
   margin-bottom: 4px;
@@ -52,6 +52,14 @@
   flex-wrap: wrap;
 }
 
+.tool-message.sidekick-tool-read {
+  border-left-color: var(--text-success);
+}
+
+.tool-message.sidekick-tool-modify {
+  border-left-color: var(--text-accent);
+}
+
 .tool-message:hover {
   background-color: var(--background-secondary-alt);
 }
@@ -59,6 +67,10 @@
 .sidekick-tool-result-summary {
   font-family: var(--font-monospace);
   color: var(--text-success);
+}
+
+.tool-message.sidekick-tool-modify .sidekick-tool-result-summary {
+  color: var(--text-accent);
 }
 
 .tool-message.sidekick-tool-error {
