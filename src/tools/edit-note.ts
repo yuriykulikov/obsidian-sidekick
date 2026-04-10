@@ -140,14 +140,31 @@ export class EditNoteTool implements Tool {
       );
 
       for (const edit of noteEdits) {
-        lines.push(`-${edit.textToReplace}`);
-        lines.push(`+${edit.replacement}`);
+        const removedLines = this.toDiffLines(edit.textToReplace);
+        const addedLines = this.toDiffLines(edit.replacement);
+
+        for (const l of removedLines) lines.push(`-${l}`);
+        lines.push("");
+        for (const l of addedLines) lines.push(`+${l}`);
+        lines.push("");
       }
 
       lines.push("");
     }
 
     return lines.join("\n").trim();
+  }
+
+  private toDiffLines(text: string): string[] {
+    // Normalize CRLF and avoid emitting an extra empty diff line when the input
+    // ends with a newline.
+    const normalized = text.replace(/\r\n/g, "\n");
+    const withoutTrailingNewline = normalized.endsWith("\n")
+      ? normalized.slice(0, -1)
+      : normalized;
+
+    // Preserve internal empty lines (they become '-' / '+' lines with no text).
+    return withoutTrailingNewline.split("\n");
   }
 
   resolveNote(state: AgentState, noteRef: string): Note | undefined {

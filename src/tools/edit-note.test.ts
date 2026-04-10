@@ -168,4 +168,34 @@ describe("SuggestEditTool", () => {
       "Text to replace not found in note",
     );
   });
+
+  it("formats multi-line edits as a line-by-line diff", async () => {
+    const note: Note = {
+      filename: "Multi line",
+      path: "Folder/Multi line.md",
+      content: "prev line 1\nprev line 2\nlast line",
+      links: [],
+      backlinks: [],
+      tags: [],
+    };
+
+    const tool = new EditNoteTool(
+      buildApp(note.path, note.filename),
+      {} as Logger,
+    );
+    const [, result] = await tool.execute(buildState(note), {
+      suggestions: [
+        {
+          note: note.filename,
+          textToReplace: "prev line 1\nprev line 2",
+          replacement: "new line 1\nnew line 2\nnew line 3",
+        },
+      ],
+    });
+
+    const out = result.llmOutputString();
+    expect(out).toContain(
+      "-prev line 1\n-prev line 2\n\n+new line 1\n+new line 2\n+new line 3",
+    );
+  });
 });
