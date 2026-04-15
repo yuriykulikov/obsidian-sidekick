@@ -6,7 +6,7 @@ import type { Logger } from "../utils/logger";
 
 export interface Suggestion {
   note: string;
-  textToReplace: string;
+  textToReplace?: string;
   replacement: string;
 }
 
@@ -36,14 +36,15 @@ export class EditNoteTool implements Tool {
                 },
                 textToReplace: {
                   type: Type.STRING,
-                  description: "The exact text in the note to be replaced.",
+                  description:
+                    "The exact text in the note to be replaced. If omitted, the replacement text will be appended to the end of the note.",
                 },
                 replacement: {
                   type: Type.STRING,
                   description: "The suggested new text.",
                 },
               },
-              required: ["note", "textToReplace", "replacement"],
+              required: ["note", "replacement"],
             },
           },
         },
@@ -64,26 +65,30 @@ export class EditNoteTool implements Tool {
     for (const suggestion of suggestions) {
       const note = this.resolveNote(modifiedState, suggestion.note);
 
-      if (!note || note.content === null) {
+      if (!note) {
         errors.push(
           `Note [[${suggestion.note}]] not found in current context. You can only edit notes that are already in the conversation.`,
         );
         continue;
       }
 
-      const content = note.content;
+      const content = note.content || "";
 
-      if (!content.includes(suggestion.textToReplace)) {
+      if (
+        suggestion.textToReplace &&
+        !content.includes(suggestion.textToReplace)
+      ) {
         errors.push(
           `Text to replace not found in note [[${note.filename}]]. Make sure you provided the exact text, including whitespace and formatting.`,
         );
       } else {
+        const newContent = suggestion.textToReplace
+          ? content.replace(suggestion.textToReplace, suggestion.replacement)
+          : `${content}${content.endsWith("\n") || content === "" ? "" : "\n"}${suggestion.replacement}`;
+
         const updatedNote: Note = {
           ...note,
-          content: content.replace(
-            suggestion.textToReplace,
-            suggestion.replacement,
-          ),
+          content: newContent,
           state: {
             ...note.state,
             hasSuggestions: true,
@@ -140,11 +145,13 @@ export class EditNoteTool implements Tool {
       );
 
       for (const edit of noteEdits) {
-        const removedLines = this.toDiffLines(edit.textToReplace);
-        const addedLines = this.toDiffLines(edit.replacement);
+        if (edit.textToReplace) {
+          const removedLines = this.toDiffLines(edit.textToReplace);
+          for (const l of removedLines) lines.push(`-${l}`);
+          lines.push("");
+        }
 
-        for (const l of removedLines) lines.push(`-${l}`);
-        lines.push("");
+        const addedLines = this.toDiffLines(edit.replacement);
         for (const l of addedLines) lines.push(`+${l}`);
         lines.push("");
       }

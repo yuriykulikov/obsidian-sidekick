@@ -198,4 +198,87 @@ describe("SuggestEditTool", () => {
       "-prev line 1\n-prev line 2\n\n+new line 1\n+new line 2\n+new line 3",
     );
   });
+
+  it("appends text when textToReplace is omitted", async () => {
+    const note: Note = {
+      filename: "Append test",
+      path: "Append test.md",
+      content: "line 1",
+      links: [],
+      backlinks: [],
+      tags: [],
+    };
+
+    const tool = new EditNoteTool(
+      buildApp(note.path, note.filename),
+      {} as Logger,
+    );
+    const [newState, result] = await tool.execute(buildState(note), {
+      suggestions: [
+        {
+          note: note.filename,
+          replacement: "line 2",
+        },
+      ],
+    });
+
+    const updated = newState.notes.get("Append test");
+    expect(updated?.content).toBe("line 1\nline 2");
+    expect(result.llmOutputString()).toContain("+line 2");
+    expect(result.llmOutputString()).not.toContain("-");
+  });
+
+  it("appends text with correct newline when note ends with newline", async () => {
+    const note: Note = {
+      filename: "Append test newline",
+      path: "Append test newline.md",
+      content: "line 1\n",
+      links: [],
+      backlinks: [],
+      tags: [],
+    };
+
+    const tool = new EditNoteTool(
+      buildApp(note.path, note.filename),
+      {} as Logger,
+    );
+    const [newState] = await tool.execute(buildState(note), {
+      suggestions: [
+        {
+          note: note.filename,
+          replacement: "line 2",
+        },
+      ],
+    });
+
+    const updated = newState.notes.get("Append test newline");
+    expect(updated?.content).toBe("line 1\nline 2");
+  });
+
+  it("appends text to empty note", async () => {
+    const note: Note = {
+      filename: "Empty note",
+      path: "Empty note.md",
+      content: "",
+      links: [],
+      backlinks: [],
+      tags: [],
+    };
+
+    const tool = new EditNoteTool(
+      buildApp(note.path, note.filename),
+      {} as Logger,
+    );
+    const [newState] = await tool.execute(buildState(note), {
+      suggestions: [
+        {
+          note: note.filename,
+          replacement: "first line",
+        },
+      ],
+    });
+
+    const updated = newState.notes.get("Empty note");
+    expect(updated?.content).toBe("first line");
+  });
 });
