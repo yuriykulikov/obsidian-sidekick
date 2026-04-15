@@ -16,6 +16,10 @@ export async function persistSuggestedEdits(
   notes: ReadonlyMap<string, Note>,
 ): Promise<void> {
   for (const [, note] of notes) {
+    if (note.state?.deleted) {
+      await deleteNoteFromDisk(app, logger, note);
+      continue;
+    }
     if (!note.state?.hasSuggestions) continue;
     await writeSuggestedContentToDisk(app, logger, note);
   }
@@ -32,12 +36,26 @@ export async function rollbackSuggestedEdits(
 ): Promise<AgentState> {
   const notesToRollback: Note[] = [];
   const notesToDelete: Note[] = [];
+  const notesToRestore: Note[] = [];
   const updatedNotes = new Map<string, Note>(state.notes);
 
   for (const [basename, note] of state.notes) {
     if (note.state?.created) {
       notesToDelete.push(note);
       updatedNotes.delete(basename);
+      continue;
+    }
+
+    if (note.state?.deleted) {
+      const restored: Note = {
+        ...note,
+        state: {
+          ...note.state,
+          deleted: false,
+        },
+      };
+      updatedNotes.set(basename, restored);
+      notesToRestore.push(restored);
       continue;
     }
 
@@ -60,7 +78,11 @@ export async function rollbackSuggestedEdits(
     notesToRollback.push(rolledBack);
   }
 
-  if (notesToRollback.length === 0 && notesToDelete.length === 0) {
+  if (
+    notesToRollback.length === 0 &&
+    notesToDelete.length === 0 &&
+    notesToRestore.length === 0
+  ) {
     return state;
   }
 
@@ -71,6 +93,7 @@ export async function rollbackSuggestedEdits(
     notes: [
       ...notesToRollback.map((n) => n.filename),
       ...notesToDelete.map((n) => n.filename),
+      ...notesToRestore.map((n) => n.filename),
     ],
   });
 
@@ -113,5 +136,23 @@ async function writeSuggestedContentToDisk(
     logger.error(
       `Failed to write suggestions for ${note.filename} (${note.path}): ${error instanceof Error ? error.message : String(error)}`,
     );
+  }
+}
+
+async function deleteNoteFromDisk(
+  app: App,
+  logger: Logger,
+  note: Note,
+): Promise<void> {
+  const abstractFile = app.vault.getAbstractFileByPath(note.path);
+  if (abstractFile instanceof TFile) {
+    try {
+      await app.vault.delete(abstractFile);
+      logger.info(`Deleted note ${note.path}`);
+    } catch (error) {
+      logger.error(
+        `Failed to delete note ${note.path}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 }

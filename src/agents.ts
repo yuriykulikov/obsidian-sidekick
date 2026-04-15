@@ -7,6 +7,7 @@ import type { App } from "obsidian";
 import { SidekickAgent } from "./agent";
 import { AgentStateStore } from "./agent-state-store";
 import { CreateNoteTool } from "./tools/create-note";
+import { DeleteNoteTool } from "./tools/delete-note";
 import { EditNoteTool } from "./tools/edit-note";
 import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
@@ -171,6 +172,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       new GrepSearchTool(this.app, this.logger),
       new EditNoteTool(this.app, this.logger),
       new CreateNoteTool(this.app, this.logger),
+      new DeleteNoteTool(this.app, this.logger),
     ];
 
     const systemPrompt = this.getSystemPrompt();
