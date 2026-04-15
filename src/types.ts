@@ -255,6 +255,8 @@ export interface Note {
     originalContent?: string | null;
     /** Whether this note was created during the current session. */
     created?: boolean;
+    /** Whether this note is marked for deletion in the current session. */
+    deleted?: boolean;
     /** Optional highlight snippet from the editor that should be treated as extra context for this note. */
     highlight?: string | null;
   };

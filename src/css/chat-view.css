@@ -70,6 +70,10 @@
   border: 1px solid var(--text-success);
 }
 
+.sidekick-note-deleted {
+  border: 1px solid var(--text-error);
+}
+
 .sidekick-note-has-selection {
   color: var(--interactive-accent);
 }
