@@ -10,7 +10,7 @@ export async function readNote(
   detail: "links" | "structure" | "text",
 ): Promise<Note> {
   const filename = file.basename;
-  const content = await app.vault.read(file);
+  const content = (await app.vault.read(file)) || "";
 
   const links: string[] = [];
   const backlinks: string[] = [];
