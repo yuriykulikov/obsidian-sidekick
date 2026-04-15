@@ -230,7 +230,7 @@ export class ChatView extends ItemView {
 
     if (this.rollbackButton) {
       const hasAnySuggestions = Array.from(state.notes.values()).some(
-        (n) => n.state?.hasSuggestions,
+        (n) => n.state?.hasSuggestions || n.state?.created,
       );
       this.rollbackButton.disabled = state.isThinking || !hasAnySuggestions;
     }
@@ -284,7 +284,7 @@ export class ChatView extends ItemView {
       "list_directory",
       "list_tags",
     ]);
-    const modifyTools = new Set(["edit-note"]);
+    const modifyTools = new Set(["edit-note", "create-note"]);
 
     if (readSearchTools.has(toolName)) {
       toolMsg.addClass("sidekick-tool-read");
@@ -343,6 +343,9 @@ export class ChatView extends ItemView {
       });
       if (note.state?.hasSuggestions) {
         noteTag.addClass("sidekick-note-proposed");
+      }
+      if (note.state?.created) {
+        noteTag.addClass("sidekick-note-created");
       }
       if (note.state?.active) {
         noteTag.addClass("sidekick-note-active");

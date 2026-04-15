@@ -6,6 +6,7 @@ import {
 import type { App } from "obsidian";
 import { SidekickAgent } from "./agent";
 import { AgentStateStore } from "./agent-state-store";
+import { CreateNoteTool } from "./tools/create-note";
 import { EditNoteTool } from "./tools/edit-note";
 import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
@@ -169,6 +170,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       new ListUnlinkedNotesTool(this.app, this.logger),
       new GrepSearchTool(this.app, this.logger),
       new EditNoteTool(this.app, this.logger),
+      new CreateNoteTool(this.app, this.logger),
     ];
 
     const systemPrompt = this.getSystemPrompt();
