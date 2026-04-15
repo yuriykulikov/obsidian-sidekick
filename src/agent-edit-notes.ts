@@ -31,9 +31,16 @@ export async function rollbackSuggestedEdits(
   state: AgentState,
 ): Promise<AgentState> {
   const notesToRollback: Note[] = [];
+  const notesToDelete: Note[] = [];
   const updatedNotes = new Map<string, Note>(state.notes);
 
   for (const [basename, note] of state.notes) {
+    if (note.state?.created) {
+      notesToDelete.push(note);
+      updatedNotes.delete(basename);
+      continue;
+    }
+
     if (!note.state?.hasSuggestions) continue;
     const originalContent = note.state.originalContent;
     if (originalContent === undefined || originalContent === null) {
@@ -53,7 +60,7 @@ export async function rollbackSuggestedEdits(
     notesToRollback.push(rolledBack);
   }
 
-  if (notesToRollback.length === 0) {
+  if (notesToRollback.length === 0 && notesToDelete.length === 0) {
     return state;
   }
 
@@ -61,11 +68,28 @@ export async function rollbackSuggestedEdits(
   const nextState = state.replaceNotes(updatedNotes).appendHistoryEntry({
     type: "notes_rollback",
     role: "user",
-    notes: notesToRollback.map((n) => n.filename),
+    notes: [
+      ...notesToRollback.map((n) => n.filename),
+      ...notesToDelete.map((n) => n.filename),
+    ],
   });
 
   for (const note of notesToRollback) {
     await writeSuggestedContentToDisk(app, logger, note);
+  }
+
+  for (const note of notesToDelete) {
+    const abstractFile = app.vault.getAbstractFileByPath(note.path);
+    if (abstractFile instanceof TFile) {
+      try {
+        await app.vault.delete(abstractFile);
+        logger.info(`Deleted note ${note.path} due to rollback`);
+      } catch (error) {
+        logger.error(
+          `Failed to delete note ${note.path}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   return nextState;

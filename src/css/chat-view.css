@@ -66,6 +66,10 @@
   border: 1px solid var(--interactive-accent);
 }
 
+.sidekick-note-created {
+  border: 1px solid var(--text-success);
+}
+
 .sidekick-note-has-selection {
   color: var(--interactive-accent);
 }
