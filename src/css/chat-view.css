@@ -74,6 +74,15 @@
   border: 1px solid var(--text-error);
 }
 
+.sidekick-note-renamed {
+  border: 2px solid var(--interactive-accent);
+}
+
+.sidekick-note-renamed-original {
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
 .sidekick-note-has-selection {
   color: var(--interactive-accent);
 }

@@ -37,6 +37,7 @@ export async function rollbackSuggestedEdits(
   const notesToRollback: Note[] = [];
   const notesToDelete: Note[] = [];
   const notesToRestore: Note[] = [];
+  const notesToMoveBack: Note[] = [];
   const updatedNotes = new Map<string, Note>(state.notes);
 
   for (const [basename, note] of state.notes) {
@@ -56,6 +57,15 @@ export async function rollbackSuggestedEdits(
       };
       updatedNotes.set(basename, restored);
       notesToRestore.push(restored);
+      continue;
+    }
+
+    if (
+      note.state?.originalPath &&
+      note.state.originalPath !== note.path &&
+      note.state.originalFilename
+    ) {
+      notesToMoveBack.push(note);
       continue;
     }
 
@@ -81,9 +91,41 @@ export async function rollbackSuggestedEdits(
   if (
     notesToRollback.length === 0 &&
     notesToDelete.length === 0 &&
-    notesToRestore.length === 0
+    notesToRestore.length === 0 &&
+    notesToMoveBack.length === 0
   ) {
     return state;
+  }
+
+  for (const note of notesToMoveBack) {
+    const file = app.vault.getAbstractFileByPath(note.path);
+    if (file instanceof TFile && note.state?.originalPath) {
+      try {
+        await app.fileManager.renameFile(file, note.state.originalPath);
+        updatedNotes.delete(note.filename);
+        // We will re-read it after move to ensure correct state.
+        const restoredFile = app.vault.getAbstractFileByPath(
+          note.state.originalPath,
+        );
+        if (restoredFile instanceof TFile) {
+          const restoredNote: Note = {
+            ...note,
+            filename: restoredFile.basename,
+            path: restoredFile.path,
+            state: {
+              ...note.state,
+              originalPath: null,
+              originalFilename: null,
+            },
+          };
+          updatedNotes.set(restoredNote.filename, restoredNote);
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to rollback move for ${note.filename}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   // Update state first so UI reflects rollback even if disk write fails.
@@ -94,6 +136,7 @@ export async function rollbackSuggestedEdits(
       ...notesToRollback.map((n) => n.filename),
       ...notesToDelete.map((n) => n.filename),
       ...notesToRestore.map((n) => n.filename),
+      ...notesToMoveBack.map((n) => n.filename),
     ],
   });
 

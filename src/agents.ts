@@ -13,6 +13,7 @@ import { GrepSearchTool } from "./tools/grep-search";
 import { ListDirectoryTool } from "./tools/list-directory";
 import { ListTagsTool } from "./tools/list-tags";
 import { ListUnlinkedNotesTool } from "./tools/list-unlinked-notes";
+import { MoveRenameNoteTool } from "./tools/move-rename-note";
 import { ReadNoteTool } from "./tools/read-note";
 import { ReadNoteLinksTool } from "./tools/read-note-links";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
@@ -173,6 +174,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       new EditNoteTool(this.app, this.logger),
       new CreateNoteTool(this.app, this.logger),
       new DeleteNoteTool(this.app, this.logger),
+      new MoveRenameNoteTool(this.app, this.logger),
     ];
 
     const systemPrompt = this.getSystemPrompt();

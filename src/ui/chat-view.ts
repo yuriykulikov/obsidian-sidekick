@@ -284,7 +284,12 @@ export class ChatView extends ItemView {
       "list_directory",
       "list_tags",
     ]);
-    const modifyTools = new Set(["edit-note", "create-note", "delete-note"]);
+    const modifyTools = new Set([
+      "edit-note",
+      "create-note",
+      "delete-note",
+      "move_rename_note",
+    ]);
 
     if (readSearchTools.has(toolName)) {
       toolMsg.addClass("sidekick-tool-read");
@@ -339,8 +344,21 @@ export class ChatView extends ItemView {
     for (const [filename, note] of state.notes) {
       const noteTag = notesWrapper.createEl("span", {
         cls: "sidekick-note-tag",
+      });
+      const _noteName = noteTag.createSpan({
         text: filename,
       });
+      if (
+        (note.state?.originalFilename &&
+          note.state.originalFilename !== filename) ||
+        (note.state?.originalPath && note.state.originalPath !== note.path)
+      ) {
+        noteTag.addClass("sidekick-note-renamed");
+        noteTag.createSpan({
+          text: ` (${note.state?.originalPath ?? note.state?.originalFilename ?? "unknown"} -> ${note.path})`,
+          cls: "sidekick-note-renamed-original",
+        });
+      }
       if (note.state?.hasSuggestions) {
         noteTag.addClass("sidekick-note-proposed");
       }

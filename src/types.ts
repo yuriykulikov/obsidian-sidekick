@@ -257,6 +257,10 @@ export interface Note {
     created?: boolean;
     /** Whether this note is marked for deletion in the current session. */
     deleted?: boolean;
+    /** Original filename (basename) of the note before being renamed in this session. */
+    originalFilename?: string | null;
+    /** Original full path of the note before being moved in this session. */
+    originalPath?: string | null;
     /** Optional highlight snippet from the editor that should be treated as extra context for this note. */
     highlight?: string | null;
   };
