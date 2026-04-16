@@ -6,10 +6,16 @@ import type SidekickPlugin from "./main";
  */
 export interface SidekickPluginSettings {
   geminiApiKey: string;
+  /**
+   * Hard cap of the agent transducer-loop iterations per user prompt.
+   * An iteration is one model turn plus any tool calls executed from that turn.
+   */
+  maxIterations: number;
 }
 
 export const DEFAULT_SETTINGS: SidekickPluginSettings = {
   geminiApiKey: "",
+  maxIterations: 30,
 };
 
 /**
@@ -17,6 +23,11 @@ export const DEFAULT_SETTINGS: SidekickPluginSettings = {
  */
 export class SidekickSettingTab extends PluginSettingTab {
   plugin: SidekickPlugin;
+
+  private clampMaxIterations(value: number): number {
+    if (!Number.isFinite(value)) return DEFAULT_SETTINGS.maxIterations;
+    return Math.max(5, Math.min(100, Math.trunc(value)));
+  }
 
   constructor(app: App, plugin: SidekickPlugin) {
     super(app, plugin);
@@ -40,6 +51,23 @@ export class SidekickSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.geminiApiKey)
           .onChange(async (value) => {
             this.plugin.settings.geminiApiKey = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Agent max iterations")
+      .setDesc(
+        "Hard cap on agent loop iterations per prompt (one model turn + its tool calls). Lower = faster/cheaper, higher = more thorough.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder(String(DEFAULT_SETTINGS.maxIterations))
+          .setValue(String(this.plugin.settings.maxIterations))
+          .onChange(async (value) => {
+            const parsed = Number.parseInt(value, 10);
+            this.plugin.settings.maxIterations =
+              this.clampMaxIterations(parsed);
             await this.plugin.saveSettings();
           }),
       );
