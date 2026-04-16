@@ -22,21 +22,17 @@ describe("agent-render", () => {
       const result = renderNoteToMarkdown(note);
 
       const expected = `## Note [[Test Note]]
-Path: one/two/Test Note.md
-### Links
-- [[Link1]]
-- [[Link2]]
-### Tags
-- #tag1
-- #tag2
-### Backlinks
-- [[Backlink1]]
-### Directory Structure
-\`\`\`
-- 📁 one
-  - 📁 two
-    - 📄 Sibling1.md
-    - 📄 Test Note.md
+### Note metadata
+\`\`\`yaml
+path: one/two/Test Note.md
+links:
+  - [[Link1]]
+  - [[Link2]]
+tags:
+  - #tag1
+  - #tag2
+backlinks:
+  - [[Backlink1]]
 \`\`\`
 ### Content
 \`\`\`
@@ -64,16 +60,12 @@ This is the content of the note.
       const result = renderNoteToMarkdown(note);
 
       const expected = `## Note [[Structured Note]]
-Path: one/two/three/Structured Note.md
-### Links
-### Tags
-### Backlinks
-### Directory Structure
-\`\`\`
-- 📁 one
-  - 📁 two
-    - 📁 three
-      - 📄 Structured Note.md
+### Note metadata
+\`\`\`yaml
+path: one/two/three/Structured Note.md
+links:
+tags:
+backlinks:
 \`\`\`
 
 ### Structure
@@ -98,21 +90,44 @@ Path: one/two/three/Structured Note.md
 
       const result = renderNoteToMarkdown(note);
       const expected = `## Note [[Empty Note]]
-Path: Deep/Path/To/Empty Note.md
-### Links
-### Tags
-### Backlinks
-### Directory Structure
-\`\`\`
-- 📁 Deep
-  - 📁 Path
-    - 📁 To
-      - 📄 Empty Note.md
+### Note metadata
+\`\`\`yaml
+path: Deep/Path/To/Empty Note.md
+links:
+tags:
+backlinks:
 \`\`\`
 ### Content
 \`\`\`
 Empty
 \`\`\`
+`;
+      expect(result).toBe(expected);
+    });
+
+    it("should render a message when both content and structure are missing", () => {
+      const note: Note = {
+        filename: "Meta Only Note",
+        path: "Meta Only Note.md",
+        content: null,
+        structure: null,
+        links: [],
+        backlinks: [],
+        tags: [],
+        folderSiblings: [],
+      };
+
+      const result = renderNoteToMarkdown(note);
+      const expected = `## Note [[Meta Only Note]]
+### Note metadata
+\`\`\`yaml
+path: Meta Only Note.md
+links:
+tags:
+backlinks:
+\`\`\`
+
+Only note metadata is available. Use tools to read the note text or note structure.
 `;
       expect(result).toBe(expected);
     });
