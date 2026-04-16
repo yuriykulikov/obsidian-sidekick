@@ -35,6 +35,7 @@ export default class SidekickPlugin extends Plugin {
       this.app,
       this.logger,
       () => this.settings.geminiApiKey,
+      () => this.settings.maxIterations,
     );
 
     this.registerView(

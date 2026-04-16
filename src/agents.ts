@@ -34,17 +34,26 @@ export class Agents {
   private readonly app: App;
   private readonly logger: Logger;
   private readonly apiKeyProvider: () => string | undefined;
+  private readonly maxIterationsProvider: () => number;
   private readonly stateStore: AgentStateStore;
   current?: SidekickAgent = undefined;
   constructor(
     app: App,
     logger: Logger,
     apiKeyProvider: () => string | undefined,
+    maxIterationsProvider: () => number,
   ) {
     this.app = app;
     this.logger = logger;
     this.apiKeyProvider = apiKeyProvider;
+    this.maxIterationsProvider = maxIterationsProvider;
     this.stateStore = new AgentStateStore(this.app, this.logger);
+  }
+
+  private getMaxIterations(): number {
+    const raw = this.maxIterationsProvider();
+    if (!Number.isFinite(raw)) return 30;
+    return Math.max(5, Math.min(100, Math.trunc(raw)));
   }
 
   /**
@@ -87,8 +96,12 @@ export class Agents {
    * @returns The system prompt string.
    */
   private getSystemPrompt(): string {
+    const maxIterations = this.getMaxIterations();
     return `You are a helpful assistant for Obsidian. 
 Answer the user's question or ask follow-up questions based on the provided context.
+
+**Runtime limit (important):**
+You have a hard limit of **${maxIterations}** agent-loop iterations. An iteration is one model turn plus executing 0..n tool calls returned by that turn, followed by sending tool results back to the model. If you are approaching the limit, prioritize producing a best-effort final answer and avoid extra exploratory tool calls.
 
 **Knowledge Organization:**
 The vault is organized in a tree structure of folders and notes. Relevant notes are often located in the same folder or in nearby branches of the tree. Use the file system explorer to discover related information.
@@ -178,6 +191,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
     ];
 
     const systemPrompt = this.getSystemPrompt();
+    const maxIterations = this.getMaxIterations();
 
     let chatSession: Chat | undefined;
     let initError: string | undefined;
@@ -203,6 +217,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
       state,
       this.logger,
       systemPrompt,
+      maxIterations,
       tools,
       wrappedOnStateChange,
       initError,

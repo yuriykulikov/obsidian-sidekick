@@ -30,6 +30,7 @@ export class SidekickAgent {
   state: AgentState;
   logger: Logger;
   systemInstruction: string;
+  private maxIterations: number;
   tools: Tool[];
   private agentFactory: Agents | undefined;
   private onStateChange: (state: AgentState) => void;
@@ -55,6 +56,7 @@ export class SidekickAgent {
     state: AgentState,
     logger: Logger,
     systemInstruction: string,
+    maxIterations: number,
     tools: Tool[] = [],
     onStateChange: (state: AgentState) => void,
     initError?: string,
@@ -65,6 +67,7 @@ export class SidekickAgent {
     this.state = state;
     this.logger = logger;
     this.systemInstruction = systemInstruction;
+    this.maxIterations = maxIterations;
     this.tools = tools;
     this.onStateChange = onStateChange;
     this.initError = initError;
@@ -258,7 +261,7 @@ export class SidekickAgent {
   private async agentLoop(): Promise<void> {
     this.stopRequested = false;
     let iterations: number;
-    const maxIterations = 15;
+    const maxIterations = this.maxIterations;
     this.setState(this.state.setThinking(true));
 
     // Call promptLLM once before entering the loop
