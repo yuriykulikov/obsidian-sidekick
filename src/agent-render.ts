@@ -90,7 +90,14 @@ export function renderDiscoveredStructure(paths: readonly string[]): string {
  * (LLM-facing) rather than note manipulation.
  */
 export function renderNoteToMarkdown(note: Note): string {
-  let noteMd = `## Note [[${note.filename}]]\n`;
+  let noteHeader = `[[${note.filename}]]`;
+  if (
+    note.state?.originalFilename &&
+    note.state.originalFilename !== note.filename
+  ) {
+    noteHeader = `${note.filename} (renamed from ${note.state.originalFilename})`;
+  }
+  let noteMd = `## Note ${noteHeader}\n`;
   noteMd += `Path: ${note.path}\n`;
 
   noteMd += "### Links\n";
