@@ -98,36 +98,29 @@ export function renderNoteToMarkdown(note: Note): string {
     noteHeader = `${note.filename} (renamed from ${note.state.originalFilename})`;
   }
   let noteMd = `## Note ${noteHeader}\n`;
-  noteMd += `Path: ${note.path}\n`;
 
-  noteMd += "### Links\n";
-  for (const l of note.links || []) {
-    noteMd += `- [[${l}]]\n`;
+  noteMd += "### Note metadata\n";
+  noteMd += "```yaml\n";
+  noteMd += `path: ${note.path}\n`;
+
+  const links = (note.links || []).map((l) => `[[${l}]]`);
+  noteMd += "links:\n";
+  for (const l of links) {
+    noteMd += `  - ${l}\n`;
   }
 
-  noteMd += "### Tags\n";
-  for (const t of note.tags || []) {
-    noteMd += `- ${t}\n`;
+  const tags = note.tags || [];
+  noteMd += "tags:\n";
+  for (const t of tags) {
+    noteMd += `  - ${t}\n`;
   }
 
-  noteMd += "### Backlinks\n";
-  for (const b of note.backlinks || []) {
-    noteMd += `- [[${b}]]\n`;
+  const backlinks = (note.backlinks || []).map((b) => `[[${b}]]`);
+  noteMd += "backlinks:\n";
+  for (const b of backlinks) {
+    noteMd += `  - ${b}\n`;
   }
-
-  noteMd += "### Directory Structure\n```\n";
-  const contextPaths = [
-    note.path,
-    ...(note.folderSiblings || []).map((s) => {
-      const dir =
-        !note.parentPath || note.parentPath === "/"
-          ? ""
-          : `${note.parentPath}/`;
-      return `${dir}${s}.md`;
-    }),
-  ];
-  noteMd += renderDiscoveredStructure(contextPaths);
-  noteMd += "\n```\n";
+  noteMd += "```\n";
 
   const highlight = note.state?.highlight;
   if (highlight && highlight.trim().length > 0) {
@@ -147,6 +140,9 @@ export function renderNoteToMarkdown(note: Note): string {
     noteMd += "\n### Structure\n```\n";
     noteMd += note.structure.trim();
     noteMd += "\n```\n";
+  } else {
+    noteMd +=
+      "\nOnly note metadata is available. Use tools to read the note text or note structure.\n";
   }
   return noteMd;
 }
