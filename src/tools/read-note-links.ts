@@ -1,5 +1,6 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import type { App } from "obsidian";
+import { renderNoteToMarkdown } from "../agent-render";
 import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
@@ -79,16 +80,12 @@ export class ReadNoteLinksTool implements Tool {
       .appendNote(filename, newNote)
       .appendDiscoveredStructure([file.path]);
 
-    let output = `## Links for [[${filename}]]\n\n`;
-    output += `### Links\n${newNote.links.map((l) => `- [[${l}]]`).join("\n") || "_No links found._"}\n\n`;
-    output += `### Backlinks\n${newNote.backlinks.map((b) => `- [[${b}]]`).join("\n") || "_No backlinks found._"}`;
-
     return [
       newState,
       ToolResult.createOkShort(
         `Read note links: [[${filename}]]`,
-        `Added ${newNote.links.length} links and ${newNote.backlinks.length} backlinks from [[${filename}]] to the context.\n${output}`,
-        output,
+        renderNoteToMarkdown(newNote),
+        `Successfully read metadata of note [[${filename}]] and added it to the context.`,
       ),
     ];
   }

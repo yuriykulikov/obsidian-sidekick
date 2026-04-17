@@ -1,5 +1,6 @@
 import { type FunctionDeclaration, Type } from "@google/genai";
 import type { App } from "obsidian";
+import { renderNoteToMarkdown } from "../agent-render";
 import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
@@ -57,7 +58,7 @@ export class ReadNoteTool implements Tool {
       newState,
       ToolResult.createOkShort(
         `Read note: [[${filename}]]`,
-        newNote.content ?? "Empty note",
+        renderNoteToMarkdown(newNote),
         `Successfully read content of note [[${filename}]] and added it to the context.`,
       ),
     ];
