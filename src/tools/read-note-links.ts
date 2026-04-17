@@ -66,7 +66,7 @@ export class ReadNoteLinksTool implements Tool {
       ];
     }
 
-    const newNote = await readNote(this.app, file, "links");
+    const newNote = await readNote(this.app, file, "metadata");
 
     // Preserve in-memory note state (active flag, suggestion state, etc.)
     // when re-reading the note from disk.
