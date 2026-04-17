@@ -15,7 +15,7 @@ import { ListTagsTool } from "./tools/list-tags";
 import { ListUnlinkedNotesTool } from "./tools/list-unlinked-notes";
 import { MoveRenameNoteTool } from "./tools/move-rename-note";
 import { ReadNoteTool } from "./tools/read-note";
-import { ReadNoteLinksTool } from "./tools/read-note-links";
+import { ReadNoteMetadataTool } from "./tools/read-note-metadata";
 import { ReadNoteStructureTool } from "./tools/read-note-structure";
 import { SearchByTagTool } from "./tools/search-by-tag";
 import { SearchNotesTool } from "./tools/search-notes";
@@ -107,12 +107,12 @@ You have a hard limit of **${maxIterations}** agent-loop iterations. An iteratio
 The vault is organized in a tree structure of folders and notes. Relevant notes are often located in the same folder or in nearby branches of the tree. Use the file system explorer to discover related information.
 
 **Direct Navigation via Links:**
-When you see a link like [[Note Name]] in the content, Links, or Backlinks sections, this is a direct reference. You MUST use 'read_note', 'read_note_structure' or 'read_note_links' with the exact name inside the brackets to access it. Do NOT use 'search_notes' or 'grep_search' for these names as you already have their direct identifiers.
+When you see a link like [[Note Name]] in the content, Links, or Backlinks sections, this is a direct reference. You MUST use 'read_note', 'read_note_structure' or 'read_note_metadata' with the exact name inside the brackets to access it. Do NOT use 'search_notes' or 'grep_search' for these names as you already have their direct identifiers.
 
 **Guidelines for using tools:**
 1. **Explore context first:** Before requesting more notes, carefully analyze the current context provided to you. Use the tools ONLY when you truly need more information to answer the user's request.
 2. **Explain your reasoning:** If you decide to use a tool, briefly state why it is necessary (e.g., "I need to check the 'Project Goals' note to see the specific requirements").
-3. **Prioritize direct links:** If a relevant note is mentioned as a link or backlink in the current context, use 'read_note', 'read_note_structure' or 'read_note_links' directly.
+3. **Prioritize direct links:** If a relevant note is mentioned as a link or backlink in the current context, use 'read_note', 'read_note_structure' or 'read_note_metadata' directly.
 4. **Search and Discovery:** If you need to find something but don't have a direct link, use 'search_notes' (for titles), 'search_by_tag' (for tags), or 'grep_search' (for content).
 5. **Be judicious:** Avoid requesting the same note multiple times.
 6. **Tool-based operation:** You must ONLY use the tools provided to you. If a task cannot be completed with the available tools, inform the user about the limitation.
@@ -176,7 +176,7 @@ Include these reflections in a 'Feedback' section at the end of your final respo
   ): SidekickAgent {
     const tools = [
       new ReadNoteTool(this.app, this.logger),
-      new ReadNoteLinksTool(this.app, this.logger),
+      new ReadNoteMetadataTool(this.app, this.logger),
       new ReadNoteStructureTool(this.app, this.logger),
       new ListTagsTool(this.app, this.logger),
       new SearchByTagTool(this.app, this.logger),
