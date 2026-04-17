@@ -6,7 +6,7 @@ import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
 import { readNote } from "../utils/read-note";
 
-export class ReadNoteLinksTool implements Tool {
+export class ReadNoteMetadataTool implements Tool {
   constructor(
     private app: App,
     private logger: Logger,
@@ -14,16 +14,16 @@ export class ReadNoteLinksTool implements Tool {
 
   getDeclaration(): FunctionDeclaration {
     return {
-      name: "read_note_links",
+      name: "read_note_metadata",
       description:
-        "Reads the links and backlinks of a note. Use this when you need to understand the relationships between this note and others in the vault. Once you have these links, use 'read_note', 'read_note_structure' or 'read_note_links' for direct navigation.",
+        "Retrieves note properties including file path, tags, outgoing links, and inbound backlinks. Use this for graph navigation and metadata discovery without reading full content.",
       parameters: {
         type: Type.OBJECT,
         properties: {
           path: {
             type: Type.STRING,
             description:
-              "The path or title of the note to read links for (e.g., 'Project Alpha' or 'Work/Projects/Project Alpha').",
+              "The path or title of the note to read metadata for (e.g., 'Project Alpha' or 'Work/Projects/Project Alpha').",
           },
         },
         required: ["path"],
@@ -42,7 +42,7 @@ export class ReadNoteLinksTool implements Tool {
       this.logger.warn(error);
       return [
         state,
-        ToolResult.createError(`Read note links: ${error}`, error),
+        ToolResult.createError(`Read note metadata: ${error}`, error),
       ];
     }
 
@@ -55,13 +55,13 @@ export class ReadNoteLinksTool implements Tool {
     const existingNote = state.notes.get(filename);
     if (existingNote) {
       this.logger.info(
-        `Note [[${filename}]] already has links in context, skipping links read.`,
+        `Note [[${filename}]] already has metadata in context, skipping metadata read.`,
       );
-      const skipMessage = `Note [[${filename}]] is already in the context, and its links and backlinks are already available there. Reading note links again would be a no-op.`;
+      const skipMessage = `Note [[${filename}]] is already in the context, and its metadata (links, tags, etc.) is already available there. Reading note metadata again would be a no-op.`;
       return [
         state,
         ToolResult.createError(
-          `Read note links: skipped for [[${filename}]] (already in context)`,
+          `Read note metadata: skipped for [[${filename}]] (already in context)`,
           skipMessage,
         ),
       ];
@@ -83,7 +83,7 @@ export class ReadNoteLinksTool implements Tool {
     return [
       newState,
       ToolResult.createOkShort(
-        `Read note links: [[${filename}]]`,
+        `Read note metadata: [[${filename}]]`,
         renderNoteToMarkdown(newNote),
         `Successfully read metadata of note [[${filename}]] and added it to the context.`,
       ),
