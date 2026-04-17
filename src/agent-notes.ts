@@ -101,7 +101,7 @@ export async function refreshNotes(
       const refreshedNote = await readNote(
         app,
         file,
-        note.content ? "text" : note.structure ? "structure" : "links",
+        note.content ? "text" : note.structure ? "structure" : "metadata",
       );
       newNotes.set(basename, {
         ...refreshedNote,

@@ -7,7 +7,7 @@ import type { Note } from "../types";
 export async function readNote(
   app: App,
   file: TFile,
-  detail: "links" | "structure" | "text",
+  detail: "metadata" | "structure" | "text",
 ): Promise<Note> {
   const filename = file.basename;
   const content = (await app.vault.read(file)) || "";

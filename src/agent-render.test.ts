@@ -13,8 +13,8 @@ describe("agent-render", () => {
         path: "one/two/Test Note.md",
         parentPath: "one/two",
         content: "This is the content of the note.",
-        links: ["Link1", "Link2"],
-        backlinks: ["Backlink1"],
+        links: ["Link1", "Link2", "Bidirectional"],
+        backlinks: ["Backlink1", "Bidirectional"],
         tags: ["#tag1", "#tag2"],
         folderSiblings: ["Sibling1"],
       };
@@ -25,12 +25,11 @@ describe("agent-render", () => {
 ### Note metadata
 \`\`\`yaml
 path: one/two/Test Note.md
+bidirectional_links:
+  - [[Bidirectional]]
 links:
   - [[Link1]]
   - [[Link2]]
-tags:
-  - #tag1
-  - #tag2
 backlinks:
   - [[Backlink1]]
 \`\`\`
@@ -63,8 +62,8 @@ This is the content of the note.
 ### Note metadata
 \`\`\`yaml
 path: one/two/three/Structured Note.md
+bidirectional_links:
 links:
-tags:
 backlinks:
 \`\`\`
 
@@ -93,8 +92,8 @@ backlinks:
 ### Note metadata
 \`\`\`yaml
 path: Deep/Path/To/Empty Note.md
+bidirectional_links:
 links:
-tags:
 backlinks:
 \`\`\`
 ### Content
@@ -122,8 +121,8 @@ Empty
 ### Note metadata
 \`\`\`yaml
 path: Meta Only Note.md
+bidirectional_links:
 links:
-tags:
 backlinks:
 \`\`\`
 

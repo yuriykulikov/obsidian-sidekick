@@ -102,23 +102,28 @@ export function renderNoteToMarkdown(note: Note): string {
   noteMd += "### Note metadata\n";
   noteMd += "```yaml\n";
   noteMd += `path: ${note.path}\n`;
+  const links = note.links || [];
+  const backlinks = note.backlinks || [];
 
-  const links = (note.links || []).map((l) => `[[${l}]]`);
+  const bidirectionalLinks = links.filter((l) => backlinks.includes(l));
+  const uniqueLinks = links.filter((l) => !bidirectionalLinks.includes(l));
+  const uniqueBacklinks = backlinks.filter(
+    (b) => !bidirectionalLinks.includes(b),
+  );
+
+  noteMd += "bidirectional_links:\n";
+  for (const l of bidirectionalLinks) {
+    noteMd += `  - [[${l}]]\n`;
+  }
+
   noteMd += "links:\n";
-  for (const l of links) {
-    noteMd += `  - ${l}\n`;
+  for (const l of uniqueLinks) {
+    noteMd += `  - [[${l}]]\n`;
   }
 
-  const tags = note.tags || [];
-  noteMd += "tags:\n";
-  for (const t of tags) {
-    noteMd += `  - ${t}\n`;
-  }
-
-  const backlinks = (note.backlinks || []).map((b) => `[[${b}]]`);
   noteMd += "backlinks:\n";
-  for (const b of backlinks) {
-    noteMd += `  - ${b}\n`;
+  for (const b of uniqueBacklinks) {
+    noteMd += `  - [[${b}]]\n`;
   }
   noteMd += "```\n";
 
