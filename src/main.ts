@@ -7,6 +7,7 @@ import {
 } from "./settings";
 import { ChatView, VIEW_TYPE_SIDEKICK } from "./ui/chat-view";
 import { SidekickLogView, VIEW_TYPE_SIDEKICK_LOG } from "./ui/log-view";
+import { ProjectView, VIEW_TYPE_PROJECTS } from "./ui/project-view";
 import { Logger } from "./utils/logger";
 import { getCurrentSelectionFromMostRecentLeaf } from "./utils/selection";
 
@@ -48,6 +49,11 @@ export default class SidekickPlugin extends Plugin {
       (leaf) => new SidekickLogView(leaf, this.logger),
     );
 
+    this.registerView(
+      VIEW_TYPE_PROJECTS,
+      (leaf) => new ProjectView(leaf, this.logger),
+    );
+
     this.addRibbonIcon("bot", "Sidekick", (_evt: MouseEvent) => {
       void this.activateView();
     });
@@ -56,6 +62,12 @@ export default class SidekickPlugin extends Plugin {
       id: "open-sidekick-log",
       name: "Open log",
       callback: () => this.activateLogView(),
+    });
+
+    this.addCommand({
+      id: "open-sidekick-projects",
+      name: "Open project list",
+      callback: () => this.activateProjectsView(),
     });
 
     this.addCommand({
@@ -140,5 +152,12 @@ export default class SidekickPlugin extends Plugin {
    */
   async activateLogView() {
     await this.activateViewByType(VIEW_TYPE_SIDEKICK_LOG);
+  }
+
+  /**
+   * Opens or reveals the Sidekick Projects view in the workspace.
+   */
+  async activateProjectsView() {
+    await this.activateViewByType(VIEW_TYPE_PROJECTS);
   }
 }

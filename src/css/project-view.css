@@ -1,0 +1,128 @@
+.sidekick-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sidekick-project-header h4 {
+  margin: 0;
+}
+
+.sidekick-project-reload-button {
+  padding: 4px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.sidekick-project-reload-button:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.sidekick-project-container {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidekick-project-board {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sidekick-project-swimlane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidekick-project-swimlane-heading {
+  margin: 0;
+  padding: 8px 12px;
+  background-color: var(--background-secondary-alt);
+  border-radius: 4px;
+  border-left: 4px solid var(--interactive-accent);
+  font-size: 1em;
+}
+
+.sidekick-project-row {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  padding: 0 5px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.sidekick-project-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 200px;
+  background-color: var(--background-primary-alt);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.sidekick-project-column-title {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: bold;
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sidekick-project-card {
+  width: 100%;
+  max-width: 250px;
+  padding: 10px;
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease;
+}
+
+.sidekick-project-card:hover {
+  background-color: var(--background-modifier-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.sidekick-project-link {
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text-accent);
+  font-weight: 500;
+  font-size: 0.9em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sidekick-project-link:hover {
+  text-decoration: underline;
+}
+
+.sidekick-project-path {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
