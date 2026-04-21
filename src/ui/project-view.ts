@@ -10,6 +10,8 @@ import type { Logger } from "../utils/logger";
 export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
 
 export class ProjectView extends ItemView {
+  private projectAreaEl: HTMLElement;
+
   constructor(leaf: WorkspaceLeaf, _logger: Logger) {
     super(leaf);
   }
@@ -33,10 +35,6 @@ export class ProjectView extends ItemView {
     const _start = performance.now();
     const container = this.containerEl.children[1] as HTMLElement;
 
-    // Capture scroll position
-    const scrollTop = container.scrollTop;
-    const scrollLeft = container.scrollLeft;
-
     container.empty();
     container.addClass("sidekick-project-container");
 
@@ -49,8 +47,17 @@ export class ProjectView extends ItemView {
     });
     setIcon(reloadButton, "refresh-cw");
     reloadButton.addEventListener("click", () => {
-      this.render();
+      this.renderProjectArea();
     });
+
+    this.projectAreaEl = container.createDiv();
+
+    this.renderProjectArea();
+  }
+
+  private renderProjectArea() {
+    const container = this.projectAreaEl;
+    container.empty();
 
     const projectFiles = this.getProjectFiles();
 
@@ -59,76 +66,45 @@ export class ProjectView extends ItemView {
       return;
     }
 
-    const { groupedProjects, statuses } =
-      this.groupAndIdentifyStatuses(projectFiles);
+    // 1. Build an inventory of all possible statuses
+    const statuses = this.getUniqueStatuses(projectFiles);
 
-    if (statuses.length === 0) {
-      statuses.push("No Status");
-    }
+    // 2. Group all projects based on the tag (project/ski and so on)
+    const groupedProjects = this.groupProjectsByTag(projectFiles);
 
     const board = container.createDiv({ cls: "sidekick-project-board" });
 
-    // Render Swimlanes (Tags)
-    for (const [tag, statusGroups] of Object.entries(groupedProjects)) {
-      const swimlane = board.createDiv({ cls: "sidekick-project-swimlane" });
-      swimlane.createEl("h5", {
-        cls: "sidekick-project-swimlane-heading",
-        text: tag,
-      });
-
-      const row = swimlane.createDiv({ cls: "sidekick-project-row" });
-
-      for (const status of statuses) {
-        const files = statusGroups[status] || [];
-        if (files.length === 0) continue;
-
-        const column = row.createDiv({ cls: "sidekick-project-column" });
-        column.createEl("div", {
-          cls: "sidekick-project-column-title",
-          text: status,
-        });
-
-        for (const file of files) {
-          const card = column.createDiv({ cls: "sidekick-project-card" });
-          const link = card.createEl("a", {
-            cls: "sidekick-project-link",
-            text: file.basename,
-          });
-
-          link.addEventListener("click", (e) => {
-            e.preventDefault();
-            this.app.workspace.getLeaf(false).openFile(file);
-          });
-
-          const path = card.createEl("div", {
-            cls: "sidekick-project-path",
-            text: file.path,
-          });
-          path.style.fontSize = "0.7em";
-          path.style.color = "var(--text-muted)";
-        }
-      }
+    // 3. Render Swimlanes (Tags)
+    for (const [tag, tagGroup] of Object.entries(groupedProjects)) {
+      this.renderSwimlane(board, tag, tagGroup, statuses);
     }
-
-    // Restore scroll position
-    container.scrollTop = scrollTop;
-    container.scrollLeft = scrollLeft;
-
-    const _end = performance.now();
   }
 
-  private groupAndIdentifyStatuses(files: TFile[]): {
-    groupedProjects: Record<string, Record<string, TFile[]>>;
-    statuses: string[];
-  } {
-    const grouped: Record<string, Record<string, TFile[]>> = {};
+  private getUniqueStatuses(files: TFile[]): string[] {
     const statusSet = new Set<string>();
+
+    for (const file of files) {
+      const cache = this.app.metadataCache.getFileCache(file);
+      const status = cache?.frontmatter?.status || "No Status";
+      statusSet.add(status);
+    }
+
+    if (statusSet.size === 0) {
+      statusSet.add("No Status");
+    }
+
+    return Array.from(statusSet).sort();
+  }
+
+  private groupProjectsByTag(
+    files: TFile[],
+  ): Record<string, Record<string, TFile[]>> {
+    const grouped: Record<string, Record<string, TFile[]>> = {};
 
     for (const file of files) {
       const cache = this.app.metadataCache.getFileCache(file);
       const frontmatter = cache?.frontmatter;
       const status = frontmatter?.status || "No Status";
-      statusSet.add(status);
 
       const allTags = cache ? getAllTags(cache) : [];
       const projectTags =
@@ -173,12 +149,55 @@ export class ProjectView extends ItemView {
       }
     }
 
-    return {
-      groupedProjects: sortedGrouped,
-      statuses: Array.from(statusSet).sort(),
-    };
+    return sortedGrouped;
   }
 
+  private renderSwimlane(
+    container: HTMLElement,
+    tag: string,
+    statusGroups: Record<string, TFile[]>,
+    statuses: string[],
+  ) {
+    const swimlane = container.createDiv({ cls: "sidekick-project-swimlane" });
+    swimlane.createEl("h5", {
+      cls: "sidekick-project-swimlane-heading",
+      text: tag,
+    });
+
+    const row = swimlane.createDiv({ cls: "sidekick-project-row" });
+
+    for (const status of statuses) {
+      const files = statusGroups[status] || [];
+
+      const column = row.createDiv({ cls: "sidekick-project-column" });
+      column.createEl("div", {
+        cls: "sidekick-project-column-title",
+        text: status,
+      });
+
+      for (const file of files) {
+        const card = column.createDiv({ cls: "sidekick-project-card" });
+        const link = card.createEl("a", {
+          cls: "sidekick-project-link",
+          text: file.basename,
+        });
+
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          this.app.workspace.getLeaf(false).openFile(file);
+        });
+
+        const path = card.createEl("div", {
+          cls: "sidekick-project-path",
+          text: file.path,
+        });
+        path.style.fontSize = "0.7em";
+        path.style.color = "var(--text-muted)";
+      }
+    }
+  }
+
+  /** Returns a list of all files which has #project tag or any subtag */
   private getProjectFiles(): TFile[] {
     const _start = performance.now();
     const files = this.app.vault.getMarkdownFiles();
@@ -195,11 +214,7 @@ export class ProjectView extends ItemView {
             t.startsWith("project/")
           );
         });
-        const isArchived = tags.some((tag) => {
-          const _t = tag.toLowerCase();
-          return false; // t === "#archive" || t === "archive";
-        });
-        return hasProjectTag && !isArchived;
+        return hasProjectTag;
       }
       return false;
     });
