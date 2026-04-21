@@ -13,27 +13,30 @@ describe("agent-render", () => {
         path: "one/two/Test Note.md",
         parentPath: "one/two",
         content: "This is the content of the note.",
-        links: ["Link1", "Link2", "Bidirectional"],
-        backlinks: ["Backlink1", "Bidirectional"],
+        links: ["other/Link1", "one/two/Link2", "one/two/Bidirectional"],
+        backlinks: ["one/two/Backlink1", "one/two/Bidirectional"],
         tags: ["#tag1", "#tag2"],
         folderSiblings: ["Sibling1"],
       };
 
       const result = renderNoteToMarkdown(note);
 
-      const expected = `## Note [[Test Note]]
-### Note metadata
+      const expected = `# Test Note
+## Metadata
 \`\`\`yaml
-path: one/two/Test Note.md
+path: one/two/Test Note
 bidirectional_links:
-  - [[Bidirectional]]
+  - one/two/Bidirectional
 links:
-  - [[Link1]]
-  - [[Link2]]
+  - other/Link1
+  - one/two/Link2
 backlinks:
-  - [[Backlink1]]
+  - one/two/Backlink1
+tags:
+  - #tag1
+  - #tag2
 \`\`\`
-### Content
+## Content
 \`\`\`
 This is the content of the note.
 \`\`\`
@@ -45,6 +48,7 @@ This is the content of the note.
       const note: Note = {
         filename: "Structured Note",
         path: "one/two/three/Structured Note.md",
+        parentPath: "one/two/three",
         content: null,
         structure: `
 # Header 1
@@ -57,17 +61,17 @@ This is the content of the note.
       };
 
       const result = renderNoteToMarkdown(note);
-
-      const expected = `## Note [[Structured Note]]
-### Note metadata
+      const expected = `# Structured Note
+## Metadata
 \`\`\`yaml
-path: one/two/three/Structured Note.md
+path: one/two/three/Structured Note
 bidirectional_links:
 links:
 backlinks:
+tags:
 \`\`\`
 
-### Structure
+## Structure
 \`\`\`
 # Header 1
 ## Header 2
@@ -80,6 +84,7 @@ backlinks:
       const note: Note = {
         filename: "Empty Note",
         path: "Deep/Path/To/Empty Note.md",
+        parentPath: "Deep/Path/To",
         content: "Empty",
         links: [],
         backlinks: [],
@@ -88,15 +93,16 @@ backlinks:
       };
 
       const result = renderNoteToMarkdown(note);
-      const expected = `## Note [[Empty Note]]
-### Note metadata
+      const expected = `# Empty Note
+## Metadata
 \`\`\`yaml
-path: Deep/Path/To/Empty Note.md
+path: Deep/Path/To/Empty Note
 bidirectional_links:
 links:
 backlinks:
+tags:
 \`\`\`
-### Content
+## Content
 \`\`\`
 Empty
 \`\`\`
@@ -108,6 +114,7 @@ Empty
       const note: Note = {
         filename: "Meta Only Note",
         path: "Meta Only Note.md",
+        parentPath: "/",
         content: null,
         structure: null,
         links: [],
@@ -117,20 +124,57 @@ Empty
       };
 
       const result = renderNoteToMarkdown(note);
-      const expected = `## Note [[Meta Only Note]]
-### Note metadata
+      const expected = `# Meta Only Note
+## Metadata
 \`\`\`yaml
-path: Meta Only Note.md
+path: Meta Only Note
 bidirectional_links:
 links:
 backlinks:
+tags:
 \`\`\`
 
 Only note metadata is available. Use tools to read the note text or note structure.
 `;
       expect(result).toBe(expected);
     });
+
+    it("should render frontmatter properties in metadata", () => {
+      const note: Note = {
+        filename: "FM Note",
+        path: "FM Note.md",
+        parentPath: "/",
+        content: "Hello",
+        links: [],
+        backlinks: [],
+        tags: ["#test"],
+        frontmatter: { status: "draft", priority: 1 },
+        folderSiblings: [],
+      };
+
+      const result = renderNoteToMarkdown(note);
+      const expected = `# FM Note
+## Metadata
+\`\`\`yaml
+path: FM Note
+bidirectional_links:
+links:
+backlinks:
+tags:
+  - #test
+properties:
+  status: "draft"
+  priority: 1
+\`\`\`
+## Content
+\`\`\`
+Hello
+\`\`\`
+`;
+      expect(result).toBe(expected);
+    });
   });
+
   describe("renderDiscoveredStructure", () => {
     it("should return a message when no paths are provided", () => {
       expect(renderDiscoveredStructure([])).toBe(
@@ -142,12 +186,10 @@ Only note metadata is available. Use tools to read the note text or note structu
       const paths = ["folder/sub/note1.md", "folder/sub/note2.md"];
       const result = renderDiscoveredStructure(paths);
       expect(result).toBe(
-        `
-- 📁 folder
+        `- 📁 folder
   - 📁 sub
     - 📄 note1.md
-    - 📄 note2.md
-`.trim(),
+    - 📄 note2.md`,
       );
     });
 
@@ -175,12 +217,10 @@ Only note metadata is available. Use tools to read the note text or note structu
       const paths = ["b.md", "a.md", "c/d.md"];
       const result = renderDiscoveredStructure(paths);
       expect(result).toBe(
-        `
-- 📄 a.md
+        `- 📄 a.md
 - 📄 b.md
 - 📁 c
-  - 📄 d.md
-`.trim(),
+  - 📄 d.md`,
       );
     });
   });

@@ -90,18 +90,18 @@ export function renderDiscoveredStructure(paths: readonly string[]): string {
  * (LLM-facing) rather than note manipulation.
  */
 export function renderNoteToMarkdown(note: Note): string {
-  let noteHeader = `[[${note.filename}]]`;
+  let noteHeader = note.filename;
   if (
     note.state?.originalFilename &&
     note.state.originalFilename !== note.filename
   ) {
     noteHeader = `${note.filename} (renamed from ${note.state.originalFilename})`;
   }
-  let noteMd = `## Note ${noteHeader}\n`;
+  let noteMd = `# ${noteHeader}\n`;
 
-  noteMd += "### Note metadata\n";
+  noteMd += "## Metadata\n";
   noteMd += "```yaml\n";
-  noteMd += `path: ${note.path}\n`;
+  noteMd += `path: ${note.path.replace(/\.md$/, "")}\n`;
   const links = note.links || [];
   const backlinks = note.backlinks || [];
 
@@ -113,24 +113,38 @@ export function renderNoteToMarkdown(note: Note): string {
 
   noteMd += "bidirectional_links:\n";
   for (const l of bidirectionalLinks) {
-    noteMd += `  - [[${l}]]\n`;
+    noteMd += `  - ${l}\n`;
   }
 
   noteMd += "links:\n";
   for (const l of uniqueLinks) {
-    noteMd += `  - [[${l}]]\n`;
+    noteMd += `  - ${l}\n`;
   }
 
   noteMd += "backlinks:\n";
   for (const b of uniqueBacklinks) {
-    noteMd += `  - [[${b}]]\n`;
+    noteMd += `  - ${b}\n`;
   }
+
+  const tags = note.tags || [];
+  noteMd += "tags:\n";
+  for (const t of tags) {
+    noteMd += `  - ${t}\n`;
+  }
+
+  if (note.frontmatter && Object.keys(note.frontmatter).length > 0) {
+    noteMd += "properties:\n";
+    for (const [key, value] of Object.entries(note.frontmatter)) {
+      noteMd += `  ${key}: ${JSON.stringify(value)}\n`;
+    }
+  }
+
   noteMd += "```\n";
 
   const highlight = note.state?.highlight;
   if (highlight && highlight.trim().length > 0) {
     noteMd +=
-      "### Highlighted text (subset of the note)\n" +
+      "## Highlighted text (subset of the note)\n" +
       "The user highlighted this exact excerpt. Prefer acting on this section; any edits/suggestions should apply within it.\n" +
       "```\n";
     noteMd += highlight.trim();
@@ -138,11 +152,11 @@ export function renderNoteToMarkdown(note: Note): string {
   }
 
   if (note.content) {
-    noteMd += "### Content\n```\n";
+    noteMd += "## Content\n```\n";
     noteMd += note.content.trim();
     noteMd += "\n```\n";
   } else if (note.structure) {
-    noteMd += "\n### Structure\n```\n";
+    noteMd += "\n## Structure\n```\n";
     noteMd += note.structure.trim();
     noteMd += "\n```\n";
   } else {
