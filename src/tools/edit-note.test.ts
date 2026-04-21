@@ -1,7 +1,8 @@
 import type { App } from "obsidian";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AgentState, type Note } from "../types";
 import type { Logger } from "../utils/logger";
+import * as readNoteModule from "../utils/read-note";
 import { EditNoteTool } from "./edit-note";
 
 function buildState(note: Note): AgentState {
@@ -280,5 +281,51 @@ describe("SuggestEditTool", () => {
 
     const updated = newState.notes.get("Empty note");
     expect(updated?.content).toBe("first line");
+  });
+
+  it("loads note from vault if not in context", async () => {
+    const noteContent = "content in vault";
+    const filename = "NoteInVault";
+    const path = "NoteInVault.md";
+
+    const mockFile = { basename: filename, path: path };
+    const mockApp = {
+      metadataCache: {
+        getFirstLinkpathDest: vi.fn().mockReturnValue(mockFile),
+      },
+    } as unknown as App;
+
+    const mockLogger = {
+      warn: vi.fn(),
+    } as unknown as Logger;
+
+    const readNoteSpy = vi.spyOn(readNoteModule, "readNote").mockResolvedValue({
+      filename,
+      path,
+      content: noteContent,
+      links: [],
+      backlinks: [],
+      tags: [],
+    } as Note);
+
+    const state = new AgentState([], new Map());
+    const tool = new EditNoteTool(mockApp, mockLogger);
+
+    const [newState, result] = await tool.execute(state, {
+      suggestions: [
+        {
+          note: filename,
+          textToReplace: "content",
+          replacement: "new content",
+        },
+      ],
+    });
+
+    expect(result.isError()).toBe(false);
+    const updated = newState.notes.get(filename);
+    expect(updated?.content).toBe("new content in vault");
+    expect(readNoteSpy).toHaveBeenCalledWith(mockApp, mockFile, "text");
+
+    readNoteSpy.mockRestore();
   });
 });
