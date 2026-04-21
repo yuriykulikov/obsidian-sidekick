@@ -243,6 +243,7 @@ export interface Note {
   links: string[];
   backlinks: string[];
   tags: string[];
+  frontmatter?: Record<string, unknown> | null;
   parentPath?: string;
   folderSiblings?: string[] | null;
   state?: {

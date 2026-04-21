@@ -19,7 +19,17 @@ export async function readNote(
   const cache = app.metadataCache.getFileCache(file);
   if (cache?.links) {
     for (const link of cache.links) {
-      links.push(link.link);
+      const dest = app.metadataCache.getFirstLinkpathDest(link.link, file.path);
+      if (dest) {
+        const parentPath = dest.parent?.path;
+        const displayPath =
+          parentPath && parentPath !== "/" && parentPath !== ""
+            ? `${parentPath}/${dest.basename}`
+            : dest.basename;
+        links.push(displayPath);
+      } else {
+        links.push(link.link);
+      }
     }
   }
 
@@ -51,7 +61,12 @@ export async function readNote(
     if (targets[file.path]) {
       const sourceFile = app.vault.getAbstractFileByPath(sourcePath);
       if (sourceFile instanceof TFile) {
-        backlinks.push(sourceFile.basename);
+        const parentPath = sourceFile.parent?.path;
+        const displayPath =
+          parentPath && parentPath !== "/" && parentPath !== ""
+            ? `${parentPath}/${sourceFile.basename}`
+            : sourceFile.basename;
+        backlinks.push(displayPath);
       }
     }
   }
@@ -88,6 +103,15 @@ export async function readNote(
       .map((child) => (child as TFile).basename);
   }
 
+  // Extract frontmatter properties (excluding internal keys and tags, which are handled separately)
+  let frontmatter: Record<string, unknown> | null = null;
+  if (cache?.frontmatter) {
+    const { position, tags: _tags, ...rest } = cache.frontmatter;
+    if (Object.keys(rest).length > 0) {
+      frontmatter = rest;
+    }
+  }
+
   const structureOrText = detail === "structure" || detail === "text";
   return {
     filename: filename,
@@ -96,6 +120,7 @@ export async function readNote(
     links: [...new Set(links)],
     backlinks: [...new Set(backlinks)],
     tags: [...new Set(tags)],
+    frontmatter,
     structure: structureOrText ? structure.join("\n") : null,
     parentPath: parentFolder?.path || "/",
     folderSiblings: structureOrText ? folderSiblings : null,
