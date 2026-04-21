@@ -3,6 +3,7 @@ import type { App } from "obsidian";
 import type { AgentState, Note, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
+import { readNote } from "../utils/read-note";
 
 export interface Suggestion {
   note: string;
@@ -20,7 +21,7 @@ export class EditNoteTool implements Tool {
     return {
       name: "edit-note",
       description:
-        "Suggests changes to notes currently in the conversation context. Suggestions update the note content (written to disk). The user can rollback suggested edits from the UI.",
+        "Suggests changes to notes. Suggestions update the note content (written to disk). The user can rollback suggested edits from the UI. The tool can edit notes already in the conversation or any other note in the vault by its path or title.",
       parameters: {
         type: Type.OBJECT,
         properties: {
@@ -63,12 +64,21 @@ export class EditNoteTool implements Tool {
     const appliedEditsByNote = new Map<string, Suggestion[]>();
 
     for (const suggestion of suggestions) {
-      const note = this.resolveNote(modifiedState, suggestion.note);
+      let note = this.resolveNote(modifiedState, suggestion.note);
 
       if (!note) {
-        errors.push(
-          `Note [[${suggestion.note}]] not found in current context. You can only edit notes that are already in the conversation.`,
+        const file = this.app.metadataCache.getFirstLinkpathDest(
+          suggestion.note,
+          "",
         );
+        if (file) {
+          note = await readNote(this.app, file, "text");
+          modifiedState = modifiedState.appendNote(note.filename, note);
+        }
+      }
+
+      if (!note) {
+        errors.push(`Note [[${suggestion.note}]] not found in the vault.`);
         continue;
       }
 
