@@ -21,7 +21,7 @@ export class EditNoteTool implements Tool {
     return {
       name: "edit-note",
       description:
-        "Suggests changes to notes. Suggestions update the note content (written to disk). The user can rollback suggested edits from the UI. The tool can edit notes already in the conversation or any other note in the vault by its path or title.",
+        "Suggests changes to notes. Suggestions update the note content (written to disk). The user can rollback suggested edits from the UI. The tool can edit notes already in the conversation or any other note in the vault by its path or title. When writing wikilinks in note content, always use plain wikilinks (e.g. [[Note Title]]) and never use pipe aliases (e.g. [[Note Title|alias]] is not allowed).",
       parameters: {
         type: Type.OBJECT,
         properties: {
