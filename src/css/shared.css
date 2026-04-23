@@ -1,0 +1,16 @@
+.sidekick-header-button {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: var(--text-muted);
+  padding: 4px;
+  height: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidekick-header-button:hover {
+  color: var(--interactive-accent);
+}

@@ -4,7 +4,9 @@
  * DO NOT modify `styles.css` directly; make changes here or in imported files.
  */
 
+@import "./shared.css";
 @import "./chat-view.css";
 @import "./chat-view-input.css";
 @import "./chat-view-conversation.css";
 @import "./log-view.css";
+@import "./project-view.css";
