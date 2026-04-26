@@ -39,6 +39,11 @@ export class SearchNotesTool implements Tool {
             description:
               "Paging: maximum number of matches to return (default: 30).",
           },
+          path_prefix: {
+            type: Type.STRING,
+            description:
+              "Optional path prefix to narrow down the search to specific directories (e.g., 'Projects/').",
+          },
         },
         required: ["query"],
       },
@@ -53,6 +58,7 @@ export class SearchNotesTool implements Tool {
     const scopeParam = params.scope;
     const scope: SearchNotesScope =
       scopeParam === "basename" || scopeParam === "path" ? scopeParam : "path";
+    const pathPrefix = params.path_prefix as string | undefined;
 
     const defaultOffset = 0;
     const defaultLimit = 30;
@@ -69,6 +75,7 @@ export class SearchNotesTool implements Tool {
       (file): file is TFile =>
         file instanceof TFile &&
         file.extension === "md" &&
+        (!pathPrefix || file.path.startsWith(pathPrefix)) &&
         (scope === "path"
           ? file.path.toLowerCase().includes(query)
           : file.basename.toLowerCase().includes(query)),
