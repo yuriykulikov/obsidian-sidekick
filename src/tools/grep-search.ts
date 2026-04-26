@@ -47,6 +47,11 @@ export class GrepSearchTool implements Tool {
             description:
               "Paging: maximum number of result files to return (default: 30).",
           },
+          path_prefix: {
+            type: Type.STRING,
+            description:
+              "Optional path prefix to narrow down the search to specific directories (e.g., 'Projects/').",
+          },
         },
         required: ["query"],
       },
@@ -61,6 +66,7 @@ export class GrepSearchTool implements Tool {
     const regex = (params.regex as boolean) ?? false;
     const regexExplanation = params.regexExplanation as string | undefined;
     const contextLines = (params.contextLines as number) ?? 1;
+    const pathPrefix = params.path_prefix as string | undefined;
 
     const defaultOffset = 0;
     const defaultLimit = 30;
@@ -91,7 +97,12 @@ export class GrepSearchTool implements Tool {
       searchFn = (text: string) => text.includes(query);
     }
 
-    const markdownFiles = this.app.vault.getMarkdownFiles();
+    const markdownFiles = this.app.vault.getMarkdownFiles().filter((file) => {
+      if (pathPrefix && !file.path.startsWith(pathPrefix)) {
+        return false;
+      }
+      return true;
+    });
     const results: { path: string; matches: string[] }[] = [];
 
     for (const file of markdownFiles) {
