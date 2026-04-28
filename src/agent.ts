@@ -324,7 +324,7 @@ export class SidekickAgent {
       postfix = `\n\nMax iterations (${maxIterations}) reached. Breaking loop.`;
     }
 
-    await persistSuggestedEdits(this.app, this.logger, this.state.notes);
+    await persistSuggestedEdits(this.app, this.logger, this.state.notes, true);
     this.setState(
       this.state
         .appendHistoryEntry({
@@ -424,6 +424,12 @@ export class SidekickAgent {
           result: result,
           collapsed: true,
         }),
+      );
+      await persistSuggestedEdits(
+        this.app,
+        this.logger,
+        this.state.notes,
+        false,
       );
     }
 

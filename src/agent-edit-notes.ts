@@ -14,10 +14,13 @@ export async function persistSuggestedEdits(
   app: App,
   logger: Logger,
   notes: ReadonlyMap<string, Note>,
+  persistDeletion = false,
 ): Promise<void> {
   for (const [, note] of notes) {
     if (note.state?.deleted) {
-      await deleteNoteFromDisk(app, logger, note);
+      if (persistDeletion) {
+        await deleteNoteFromDisk(app, logger, note);
+      }
       continue;
     }
     if (!note.state?.hasSuggestions) continue;
