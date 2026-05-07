@@ -23,7 +23,12 @@ export class ListDirectoryTool implements Tool {
             description:
               "The path relative to the vault root (e.g., '/', 'Work/Projects'). Defaults to '/'.",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are listing this directory.",
+          },
         },
+        required: ["reason"],
       },
     };
   }

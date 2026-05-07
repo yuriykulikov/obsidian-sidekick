@@ -397,18 +397,19 @@ export class SidekickAgent {
       name: string;
       id: string | undefined;
       result: ToolResult;
+      reason: string | undefined;
     }[] = [];
     for (const call of functionCalls) {
       if (!call.name) continue;
-      const result = await this.executeTool(
-        call.name,
-        (call.args as Record<string, unknown>) ?? {},
-      );
+      const args = (call.args as Record<string, unknown>) ?? {};
+      const reason = args.reason as string | undefined;
+      const result = await this.executeTool(call.name, args);
 
       results.push({
         name: call.name,
         id: call.id,
         result,
+        reason,
       });
 
       // Add this function call and its result to history immediately
@@ -419,7 +420,7 @@ export class SidekickAgent {
           role: "model",
           call: {
             name: call.name,
-            args: call.args as Record<string, unknown>,
+            args: args,
           },
           result: result,
           collapsed: true,
@@ -468,7 +469,7 @@ export class SidekickAgent {
   ): Promise<ToolResult> {
     const tool = this.tools.find((t) => t.getDeclaration().name === name);
     let result: ToolResult;
-    const startTime = Date.now();
+    const reason = args.reason as string | undefined;
     if (tool) {
       const [newState, res] = await tool.execute(this.state, args);
       result = res;
@@ -478,9 +479,8 @@ export class SidekickAgent {
       const message = `Tool ${name} not found.`;
       result = ToolResult.createError(message, message);
     }
-    const duration = Date.now() - startTime;
     this.logger.markdown(
-      `${result.summary} (${duration}ms)`,
+      `${result.summary} to ${reason}`,
       result.llmOutputString(),
       result.isError() ? LogLevel.ERROR : LogLevel.TOOL,
     );

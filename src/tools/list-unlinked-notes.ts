@@ -24,7 +24,13 @@ export class ListUnlinkedNotesTool implements Tool {
         "Lists markdown notes that have no backlinks (no inbound links from other notes). This is a rare consistency tool to find orphan notes to connect.",
       parameters: {
         type: Type.OBJECT,
-        properties: {},
+        properties: {
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are listing unlinked notes.",
+          },
+        },
+        required: ["reason"],
       },
     };
   }

@@ -31,8 +31,12 @@ export class CreateNoteTool implements Tool {
             type: Type.STRING,
             description: "The text content of the note.",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are creating this note.",
+          },
         },
-        required: ["name", "content"],
+        required: ["name", "content", "reason"],
       },
     };
   }

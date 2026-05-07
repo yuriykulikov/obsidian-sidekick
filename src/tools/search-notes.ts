@@ -44,8 +44,12 @@ export class SearchNotesTool implements Tool {
             description:
               "Optional path prefix to narrow down the search to specific directories (e.g., 'Projects/').",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are searching for these notes.",
+          },
         },
-        required: ["query"],
+        required: ["query", "reason"],
       },
     };
   }

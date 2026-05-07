@@ -17,8 +17,13 @@ export class ListTagsTool implements Tool {
         "Lists all unique tags used across the vault (from Obsidian metadata cache). Useful for discovery and for choosing tags for other operations.",
       parameters: {
         type: Type.OBJECT,
-        properties: {},
-        required: [],
+        properties: {
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are listing all tags.",
+          },
+        },
+        required: ["reason"],
       },
     };
   }

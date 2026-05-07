@@ -25,8 +25,12 @@ export class ReadNoteMetadataTool implements Tool {
             description:
               "The path or title of the note to read metadata for (e.g., 'Project Alpha' or 'Work/Projects/Project Alpha').",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are reading this note's metadata.",
+          },
         },
-        required: ["path"],
+        required: ["path", "reason"],
       },
     };
   }

@@ -52,8 +52,12 @@ export class GrepSearchTool implements Tool {
             description:
               "Optional path prefix to narrow down the search to specific directories (e.g., 'Projects/').",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are performing this grep search.",
+          },
         },
-        required: ["query"],
+        required: ["query", "reason"],
       },
     };
   }

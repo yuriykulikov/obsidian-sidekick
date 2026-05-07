@@ -25,8 +25,12 @@ export class ReadNoteTool implements Tool {
             description:
               "The path or title of the note to read (e.g., 'Work/Projects/Project Alpha' or 'Project Alpha').",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you need to read this note.",
+          },
         },
-        required: ["path"],
+        required: ["path", "reason"],
       },
     };
   }

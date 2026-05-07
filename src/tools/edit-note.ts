@@ -48,8 +48,12 @@ export class EditNoteTool implements Tool {
               required: ["note", "replacement"],
             },
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are suggesting these edits.",
+          },
         },
-        required: ["suggestions"],
+        required: ["suggestions", "reason"],
       },
     };
   }
