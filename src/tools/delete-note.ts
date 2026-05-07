@@ -25,8 +25,12 @@ export class DeleteNoteTool implements Tool {
               type: Type.STRING,
             },
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are deleting these notes.",
+          },
         },
-        required: ["notes"],
+        required: ["notes", "reason"],
       },
     };
   }

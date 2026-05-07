@@ -25,8 +25,13 @@ export class ReadNoteStructureTool implements Tool {
             description:
               "The path or title of the note to fetch (e.g., 'Work/Projects/Project Alpha' or 'Project Alpha').",
           },
+          reason: {
+            type: Type.STRING,
+            description:
+              "The reason why you are reading this note's structure.",
+          },
         },
-        required: ["path"],
+        required: ["path", "reason"],
       },
     };
   }

@@ -32,8 +32,12 @@ export class SearchByTagTool implements Tool {
             description:
               "Paging: maximum number of matches to return (default: 30).",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are searching by this tag.",
+          },
         },
-        required: ["tag"],
+        required: ["tag", "reason"],
       },
     };
   }

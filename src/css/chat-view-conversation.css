@@ -64,9 +64,21 @@
   background-color: var(--background-secondary-alt);
 }
 
+.sidekick-tool-result-summary-container {
+  display: flex;
+  flex-direction: column;
+}
+
 .sidekick-tool-result-summary {
   font-family: var(--font-monospace);
   color: var(--text-success);
+  font-weight: bold;
+}
+
+.sidekick-tool-result-reason {
+  font-size: 1em;
+  color: var(--text-muted);
+  opacity: 0.8;
 }
 
 .tool-message.sidekick-tool-modify .sidekick-tool-result-summary {

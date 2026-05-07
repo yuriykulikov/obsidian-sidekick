@@ -299,8 +299,21 @@ export class ChatView extends ItemView {
     if (msg.result.isError()) {
       toolMsg.addClass("sidekick-tool-error");
     }
+    const reason = msg.call.args.reason as string | undefined;
     const summary = msg.result.summary;
-    toolMsg.createSpan({ text: summary, cls: "sidekick-tool-result-summary" });
+    const summaryContainer = toolMsg.createDiv({
+      cls: "sidekick-tool-result-summary-container",
+    });
+    summaryContainer.createSpan({
+      text: summary,
+      cls: "sidekick-tool-result-summary",
+    });
+    if (reason) {
+      summaryContainer.createDiv({
+        text: reason,
+        cls: "sidekick-tool-result-reason",
+      });
+    }
     const verboseElement = toolMsg.createDiv({
       cls: "sidekick-tool-result-details",
     });

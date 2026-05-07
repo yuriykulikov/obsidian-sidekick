@@ -29,8 +29,12 @@ export class MoveRenameNoteTool implements Tool {
             description:
               "The new path for the note (e.g., 'NewFolder/RenamedNote.md').",
           },
+          reason: {
+            type: Type.STRING,
+            description: "The reason why you are moving or renaming this note.",
+          },
         },
-        required: ["oldPath", "newPath"],
+        required: ["oldPath", "newPath", "reason"],
       },
     };
   }
