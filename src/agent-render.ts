@@ -91,17 +91,23 @@ export function renderDiscoveredStructure(paths: readonly string[]): string {
  */
 export function renderNoteToMarkdown(note: Note): string {
   let noteHeader = note.filename;
+  if (note.state?.active) {
+    noteHeader = `${note.filename} (currently open in the editor; visible to the user)`;
+  }
   if (
     note.state?.originalFilename &&
     note.state.originalFilename !== note.filename
   ) {
-    noteHeader = `${note.filename} (renamed from ${note.state.originalFilename})`;
+    noteHeader = `${note.filename} (renamed from ${note.state.originalFilename}${note.state?.active ? ", currently open in the editor; visible to the user" : ""})`;
   }
   let noteMd = `# ${noteHeader}\n`;
 
   noteMd += "## Metadata\n";
   noteMd += "```yaml\n";
   noteMd += `path: ${note.path.replace(/\.md$/, "")}\n`;
+  if (note.state?.active) {
+    noteMd += "is_open_in_editor: true\n";
+  }
   const links = note.links || [];
   const backlinks = note.backlinks || [];
 
