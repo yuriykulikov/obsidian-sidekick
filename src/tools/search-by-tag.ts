@@ -3,6 +3,7 @@ import { type App, getAllTags, type TFile } from "obsidian";
 import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
+import { Pagination } from "../utils/pagination";
 
 export class SearchByTagTool implements Tool {
   constructor(
@@ -51,16 +52,6 @@ export class SearchByTagTool implements Tool {
       tag = `#${tag}`;
     }
 
-    const defaultOffset = 0;
-    const defaultLimit = 30;
-
-    const offset = Number.isFinite(params.offset as number)
-      ? Math.max(0, Math.floor(params.offset as number))
-      : defaultOffset;
-    const limit = Number.isFinite(params.limit as number)
-      ? Math.max(1, Math.floor(params.limit as number))
-      : defaultLimit;
-
     const matches: TFile[] = [];
     const allFiles = this.app.vault.getMarkdownFiles();
 
@@ -84,34 +75,21 @@ export class SearchByTagTool implements Tool {
       ];
     }
 
-    const total = matches.length;
-    const page = matches.slice(offset, offset + limit);
-    const shownStart = Math.min(offset, total);
-    const shownEndExclusive = Math.min(offset + limit, total);
-    const omitted = total - shownEndExclusive;
+    const pagination = new Pagination(params, 30);
+    const page = pagination.paginate(matches);
+    const newState = state.appendDiscoveredStructure(
+      page.items.map((m) => m.path),
+    );
 
-    const newState = state.appendDiscoveredStructure(page.map((m) => m.path));
-
-    let output = `Found ${total} notes with tag "${tag}".\n`;
-    output += `Showing ${shownStart}..${shownEndExclusive - 1} (${page.length} notes).\n`;
-    if (omitted > 0) {
-      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
-    }
+    let output = `Found ${page.total} notes with tag "${tag}".\n`;
+    output += page.header();
     output += "\n";
-    output += `${page.map((m) => `- [[${m.path}]]`).join("\n")}\n`;
+    output += `${page.items.map((m) => `- [[${m.path}]]`).join("\n")}\n`;
 
     return [
       newState,
       ToolResult.createOk(
-        (() => {
-          const isDefaultPaging =
-            offset === defaultOffset && limit === defaultLimit;
-          const pagingSuffix = !isDefaultPaging
-            ? ` (offset=${offset}, limit=${limit})`
-            : "";
-          const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
-          return `Search by tag: found ${total} matches for "${tag}"${pagingSuffix}${omittedSuffix}`;
-        })(),
+        `Search by tag: found ${page.total} matches for "${tag}"${page.suffix()}`,
         output.trim(),
       ),
     ];
