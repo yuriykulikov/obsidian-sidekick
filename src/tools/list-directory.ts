@@ -97,16 +97,12 @@ export class ListDirectoryTool implements Tool {
         ? `List directory: empty folder ${folderPath}`
         : `List directory: ${folderPath} (${totalItems} items)`;
 
-    const newState = state.appendDiscoveredStructure([
-      folder.path,
-      ...folder.children.map((c) => c.path),
-    ]);
+    const newState = state;
 
-    const discoveredCount = totalItems + 1;
     const shortOutput =
       totalItems === 0
-        ? `Listed directory ${folderPath}. Added ${folderPath} to the discovered vault structure in context.`
-        : `Listed directory ${folderPath}. Added this folder and its ${totalItems} child item${totalItems === 1 ? "" : "s"} (${discoveredCount} paths total) to the discovered vault structure in context.`;
+        ? `Listed directory ${folderPath}.`
+        : `Listed directory ${folderPath} (${totalItems} item${totalItems === 1 ? "" : "s"}).`;
 
     return [newState, ToolResult.createOkShort(summary, output, shortOutput)];
   }

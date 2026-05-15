@@ -153,8 +153,7 @@ export class GrepSearchTool implements Tool {
     }
 
     const page = pagination.paginate(results);
-    const matchingPaths = page.items.map((r) => r.path);
-    const newState = state.appendDiscoveredStructure(matchingPaths);
+    const newState = state;
 
     let output = `Found matches for "${query}" in ${page.total} notes.\n`;
     output += page.header();

@@ -40,13 +40,13 @@ export async function setActiveNote(
     const file = app.metadataCache.getFirstLinkpathDest(basename, "");
     if (file) {
       current = await readNote(app, file, "text");
-      discoveredStructure = Array.from(
-        new Set([...discoveredStructure, file.path]),
-      );
     }
   }
 
   if (current) {
+    discoveredStructure = Array.from(
+      new Set([...discoveredStructure, current.path]),
+    );
     notesCopy.set(basename, {
       ...current,
       state: {
