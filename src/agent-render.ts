@@ -179,7 +179,7 @@ export function renderDiscoveredNoteStructureSection(
     LogLevel.CONTEXT,
   );
 
-  return `# Discovered Vault Structure\n\n\`\`\`\n${rendered}\n\`\`\`\n---\n`;
+  return `# Discovered Vault Structure\n\nThis structure shows notes paths which are loaded in the context and is a subset of all notes in the vault.\n\n\`\`\`\n${rendered}\n\`\`\`\n---\n`;
 }
 
 /**

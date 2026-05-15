@@ -76,8 +76,8 @@ describe("ListUnlinkedNotesTool", () => {
     expect(result.llmOutputString()).toContain("[[a.md]]");
     expect(result.llmOutputString()).toContain("[[c.md]]");
 
-    // discoveredStructure includes returned page
-    expect(newState.discoveredStructure).toEqual(["a.md", "c.md"]);
+    // discoveredStructure should no longer include returned page from this tool
+    expect(newState.discoveredStructure).toEqual([]);
   });
 
   it("returns results in stable sorted order", async () => {
@@ -100,7 +100,7 @@ describe("ListUnlinkedNotesTool", () => {
     expect(result1.llmOutputString()).toContain("[[a.md]]");
     expect(result1.llmOutputString()).toContain("[[m.md]]");
     expect(result1.llmOutputString()).toContain("[[z.md]]");
-    expect(state1.discoveredStructure).toEqual(["a.md", "m.md", "z.md"]);
+    expect(state1.discoveredStructure).toEqual([]);
   });
 
   it("excludes notes which have tags", async () => {

@@ -88,9 +88,7 @@ export class SearchNotesTool implements Tool {
 
     const pagination = new Pagination(params, 30);
     const page = pagination.paginate(matches);
-    const newState = state.appendDiscoveredStructure(
-      page.items.map((m) => m.path),
-    );
+    const newState = state;
 
     let output = `Found ${page.total} notes for "${query}" (${scope}).\n`;
     output += page.header();

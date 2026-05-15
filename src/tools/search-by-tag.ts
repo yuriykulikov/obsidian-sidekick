@@ -77,9 +77,7 @@ export class SearchByTagTool implements Tool {
 
     const pagination = new Pagination(params, 30);
     const page = pagination.paginate(matches);
-    const newState = state.appendDiscoveredStructure(
-      page.items.map((m) => m.path),
-    );
+    const newState = state;
 
     let output = `Found ${page.total} notes with tag "${tag}".\n`;
     output += page.header();

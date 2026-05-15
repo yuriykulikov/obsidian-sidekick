@@ -85,14 +85,12 @@ export class ListUnlinkedNotesTool implements Tool {
     output += "\n### Notes\n";
     output += `${page.items.map((f) => `- [[${f.path}]]`).join("\n")}\n`;
 
-    const newState = state.appendDiscoveredStructure(
-      page.items.map((f) => f.path),
-    );
+    const newState = state;
 
     const shortOutput =
       page.items.length === 1
-        ? `Found 1 unlinked note. Added it to discovered vault structure in context.`
-        : `Found ${page.total} unlinked notes, showing ${page.items.length}${page.omitted > 0 ? ` (${page.omitted} omitted)` : ""}. Added them to discovered vault structure in context.`;
+        ? `Found 1 unlinked note.`
+        : `Found ${page.total} unlinked notes, showing ${page.items.length}${page.omitted > 0 ? ` (${page.omitted} omitted)` : ""}.`;
 
     return [
       newState,
