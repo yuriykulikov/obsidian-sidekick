@@ -109,7 +109,7 @@ export class GrepSearchTool implements Tool {
     });
     const results: { path: string; matches: string[] }[] = [];
 
-    for (const file of markdownFiles) {
+    const searchFile = async (file: (typeof markdownFiles)[number]) => {
       try {
         const content = await this.app.vault.cachedRead(file);
         const lines = content.split("\n");
@@ -122,10 +122,10 @@ export class GrepSearchTool implements Tool {
             const end = Math.min(lines.length - 1, i + contextLines);
             const contextMatch = lines
               .slice(start, end + 1)
-              .map((line, idx) => {
+              .map((l, idx) => {
                 const lineNum = start + idx + 1;
                 const isMatch = lineNum === i + 1;
-                return `${lineNum}: ${isMatch ? "**" : ""}${line}${isMatch ? "**" : ""}`;
+                return `${lineNum}: ${isMatch ? "**" : ""}${l}${isMatch ? "**" : ""}`;
               })
               .join("\n");
             matches.push(contextMatch);
@@ -138,6 +138,12 @@ export class GrepSearchTool implements Tool {
       } catch (error) {
         this.logger.error(`Error reading file ${file.path}: ${error}`);
       }
+    };
+
+    // Process files in parallel chunks to avoid blocking on large vaults
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < markdownFiles.length; i += CHUNK_SIZE) {
+      await Promise.all(markdownFiles.slice(i, i + CHUNK_SIZE).map(searchFile));
     }
 
     results.sort((a, b) => a.path.localeCompare(b.path));
