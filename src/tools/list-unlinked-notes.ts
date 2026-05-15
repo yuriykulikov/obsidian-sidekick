@@ -25,6 +25,16 @@ export class ListUnlinkedNotesTool implements Tool {
       parameters: {
         type: Type.OBJECT,
         properties: {
+          offset: {
+            type: Type.NUMBER,
+            description:
+              "Paging: number of results to skip before returning (default: 0).",
+          },
+          limit: {
+            type: Type.NUMBER,
+            description:
+              "Paging: maximum number of results to return (default: 50).",
+          },
           reason: {
             type: Type.STRING,
             description: "The reason why you are listing unlinked notes.",
@@ -37,8 +47,18 @@ export class ListUnlinkedNotesTool implements Tool {
 
   async execute(
     state: AgentState,
-    _params: Record<string, unknown>,
+    params: Record<string, unknown>,
   ): Promise<[AgentState, ToolResult]> {
+    const defaultOffset = 0;
+    const defaultLimit = 50;
+
+    const offset = Number.isFinite(params.offset as number)
+      ? Math.max(0, Math.floor(params.offset as number))
+      : defaultOffset;
+    const limit = Number.isFinite(params.limit as number)
+      ? Math.max(1, Math.floor(params.limit as number))
+      : defaultLimit;
+
     const inboundCounts = this.getInboundLinkCounts();
 
     const allFiles = this.app.vault.getAllLoadedFiles();
@@ -65,23 +85,38 @@ export class ListUnlinkedNotesTool implements Tool {
       ];
     }
 
+    const page = matches.slice(offset, offset + limit);
+    const shownEndExclusive = Math.min(offset + limit, total);
+    const omitted = total - shownEndExclusive;
+
     let output = `Found ${total} unlinked note(s) (zero backlinks).\n`;
+    output += `Showing ${Math.min(offset, total)}..${shownEndExclusive - 1} (${page.length} notes).\n`;
+    if (omitted > 0) {
+      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
+    }
     output += "\n### Notes\n";
-    output += `${matches.map((f) => `- [[${f.path}]]`).join("\n")}\n`;
+    output += `${page.map((f) => `- [[${f.path}]]`).join("\n")}\n`;
 
     const newState = state.appendDiscoveredStructure(
-      matches.map((f) => f.path),
+      page.map((f) => f.path),
     );
 
+    const isDefaultPaging =
+      offset === defaultOffset && limit === defaultLimit;
+    const pagingSuffix = !isDefaultPaging
+      ? ` (offset=${offset}, limit=${limit})`
+      : "";
+    const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
+
     const shortOutput =
-      matches.length === 1
+      page.length === 1
         ? `Found 1 unlinked note. Added it to discovered vault structure in context.`
-        : `Found ${total} unlinked notes. Added them to discovered vault structure in context.`;
+        : `Found ${total} unlinked notes, showing ${page.length}${omittedSuffix}. Added them to discovered vault structure in context.`;
 
     return [
       newState,
       ToolResult.createOkShort(
-        `List unlinked notes: found ${total}`,
+        `List unlinked notes: found ${total}${pagingSuffix}${omittedSuffix}`,
         output.trim(),
         shortOutput,
       ),
