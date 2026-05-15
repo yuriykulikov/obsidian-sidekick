@@ -3,6 +3,7 @@ import type { App } from "obsidian";
 import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
+import { Pagination } from "../utils/pagination";
 
 export class GrepSearchTool implements Tool {
   constructor(
@@ -72,15 +73,7 @@ export class GrepSearchTool implements Tool {
     const contextLines = (params.contextLines as number) ?? 1;
     const pathPrefix = params.path_prefix as string | undefined;
 
-    const defaultOffset = 0;
-    const defaultLimit = 30;
-
-    const offset = Number.isFinite(params.offset as number)
-      ? Math.max(0, Math.floor(params.offset as number))
-      : defaultOffset;
-    const limit = Number.isFinite(params.limit as number)
-      ? Math.max(1, Math.floor(params.limit as number))
-      : defaultLimit;
+    const pagination = new Pagination(params, 30);
 
     let searchFn: (text: string) => boolean;
     if (regex) {
@@ -159,23 +152,15 @@ export class GrepSearchTool implements Tool {
       ];
     }
 
-    const total = results.length;
-    const page = results.slice(offset, offset + limit);
-    const shownStart = Math.min(offset, total);
-    const shownEndExclusive = Math.min(offset + limit, total);
-    const omitted = total - shownEndExclusive;
-
-    const matchingPaths = page.map((r) => r.path);
+    const page = pagination.paginate(results);
+    const matchingPaths = page.items.map((r) => r.path);
     const newState = state.appendDiscoveredStructure(matchingPaths);
 
-    let output = `Found matches for "${query}" in ${total} notes.\n`;
-    output += `Showing ${shownStart}..${shownEndExclusive - 1} (${page.length} notes).\n`;
-    if (omitted > 0) {
-      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
-    }
+    let output = `Found matches for "${query}" in ${page.total} notes.\n`;
+    output += page.header();
     output += "\n";
 
-    for (const res of page) {
+    for (const res of page.items) {
       output += `### [[${res.path}]]\n`;
       for (const match of res.matches) {
         output += "```text\n";
@@ -185,21 +170,11 @@ export class GrepSearchTool implements Tool {
       output += "\n";
     }
 
+    const explanationSuffix = regexExplanation ? ` (${regexExplanation})` : "";
     return [
       newState,
       ToolResult.createOk(
-        (() => {
-          const explanationSuffix = regexExplanation
-            ? ` (${regexExplanation})`
-            : "";
-          const isDefaultPaging =
-            offset === defaultOffset && limit === defaultLimit;
-          const pagingSuffix = !isDefaultPaging
-            ? ` (offset=${offset}, limit=${limit})`
-            : "";
-          const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
-          return `Grep search: found matches for "${query}" in ${total} notes${explanationSuffix}${pagingSuffix}${omittedSuffix}`;
-        })(),
+        `Grep search: found matches for "${query}" in ${page.total} notes${explanationSuffix}${page.suffix()}`,
         output.trim(),
       ),
     ];

@@ -3,6 +3,7 @@ import { type App, TFile } from "obsidian";
 import type { AgentState, Tool } from "../types";
 import { ToolResult } from "../types";
 import type { Logger } from "../utils/logger";
+import { Pagination } from "../utils/pagination";
 
 type SearchNotesScope = "path" | "basename";
 
@@ -64,16 +65,6 @@ export class SearchNotesTool implements Tool {
       scopeParam === "basename" || scopeParam === "path" ? scopeParam : "path";
     const pathPrefix = params.path_prefix as string | undefined;
 
-    const defaultOffset = 0;
-    const defaultLimit = 30;
-
-    const offset = Number.isFinite(params.offset as number)
-      ? Math.max(0, Math.floor(params.offset as number))
-      : defaultOffset;
-    const limit = Number.isFinite(params.limit as number)
-      ? Math.max(1, Math.floor(params.limit as number))
-      : defaultLimit;
-
     const allFiles = this.app.vault.getAllLoadedFiles();
     const matches = allFiles.filter(
       (file): file is TFile =>
@@ -95,34 +86,21 @@ export class SearchNotesTool implements Tool {
       ];
     }
 
-    const total = matches.length;
-    const page = matches.slice(offset, offset + limit);
-    const shownStart = total === 0 ? 0 : Math.min(offset, total);
-    const shownEndExclusive = Math.min(offset + limit, total);
-    const omitted = total - shownEndExclusive;
+    const pagination = new Pagination(params, 30);
+    const page = pagination.paginate(matches);
+    const newState = state.appendDiscoveredStructure(
+      page.items.map((m) => m.path),
+    );
 
-    const newState = state.appendDiscoveredStructure(page.map((m) => m.path));
-
-    let output = `Found ${total} notes for "${query}" (${scope}).\n`;
-    output += `Showing ${shownStart}..${shownEndExclusive - 1} (${page.length} notes).\n`;
-    if (omitted > 0) {
-      output += `Note: ${omitted} more result(s) omitted. Call again with offset=${shownEndExclusive} limit=${limit}.\n`;
-    }
+    let output = `Found ${page.total} notes for "${query}" (${scope}).\n`;
+    output += page.header();
     output += `\n### Notes\n`;
-    output += `${page.map((m) => `- [[${m.path}]]`).join("\n")}\n\n`;
+    output += `${page.items.map((m) => `- [[${m.path}]]`).join("\n")}\n\n`;
 
     return [
       newState,
       ToolResult.createOk(
-        (() => {
-          const isDefaultPaging =
-            offset === defaultOffset && limit === defaultLimit;
-          const pagingSuffix = !isDefaultPaging
-            ? ` (offset=${offset}, limit=${limit})`
-            : "";
-          const omittedSuffix = omitted > 0 ? ` (${omitted} omitted)` : "";
-          return `Search notes: found ${total} matches for "${query}"${pagingSuffix}${omittedSuffix}`;
-        })(),
+        `Search notes: found ${page.total} matches for "${query}"${page.suffix()}`,
         output.trim(),
       ),
     ];
