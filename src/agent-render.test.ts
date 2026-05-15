@@ -139,6 +139,47 @@ Only note metadata is available. Use tools to read the note text or note structu
       expect(result).toBe(expected);
     });
 
+    it("should render open in editor status correctly", () => {
+      const note: Note = {
+        filename: "Active Note",
+        path: "Active Note.md",
+        content: "Active content",
+        links: [],
+        backlinks: [],
+        tags: [],
+        state: {
+          active: true,
+        },
+      };
+
+      const result = renderNoteToMarkdown(note);
+      expect(result).toContain(
+        "# Active Note (currently open in the editor; visible to the user)",
+      );
+      expect(result).toContain("is_open_in_editor: true");
+    });
+
+    it("should render renamed and open in editor status correctly", () => {
+      const note: Note = {
+        filename: "New Name",
+        path: "New Name.md",
+        content: "Content",
+        links: [],
+        backlinks: [],
+        tags: [],
+        state: {
+          active: true,
+          originalFilename: "Old Name",
+        },
+      };
+
+      const result = renderNoteToMarkdown(note);
+      expect(result).toContain(
+        "# New Name (renamed from Old Name, currently open in the editor; visible to the user)",
+      );
+      expect(result).toContain("is_open_in_editor: true");
+    });
+
     it("should render frontmatter properties in metadata", () => {
       const note: Note = {
         filename: "FM Note",
