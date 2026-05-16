@@ -186,6 +186,15 @@
   background-color: var(--background-modifier-hover);
 }
 
+.sidekick-project-card.is-dragging {
+  opacity: 0.5;
+}
+
+.sidekick-project-swimlane-cards-area-column.is-drag-over {
+  background-color: var(--background-modifier-hover);
+  border-radius: 4px;
+}
+
 .sidekick-project-card-title {
   display: flex;
   justify-content: space-between;
