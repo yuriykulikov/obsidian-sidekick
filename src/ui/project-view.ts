@@ -3,7 +3,7 @@ import {
   Menu,
   normalizePath,
   setIcon,
-  type TFile,
+  TFile,
   type WorkspaceLeaf,
 } from "obsidian";
 import type { Logger } from "../utils/logger";
@@ -293,22 +293,69 @@ export class ProjectView extends ItemView {
     group: string,
   ) {
     const isCollapsed = this.collapsedColumns.has(status);
-    const column = row.createDiv({
+    const column: HTMLDivElement = row.createDiv({
       cls: `sidekick-project-swimlane-cards-area-column ${isCollapsed ? "is-collapsed" : ""}`,
     });
 
     if (isCollapsed) {
       return;
     }
+    this.addDragAndDropToCard(column, group, status);
 
     for (const file of files) {
-      this.renderCard(column, file, statuses, status);
+      this.renderCard(column, file, statuses, status, group);
     }
 
     const columnFooter = column.createDiv({
       cls: "sidekick-project-swimlane-cards-area-column-footer",
     });
     this.addPlusButtonToFooter(columnFooter, status, group);
+  }
+
+  private addDragAndDropToCard(
+    column: HTMLDivElement,
+    group: string,
+    status: string,
+  ) {
+    // Add drag and drop listeners to column
+    column.addEventListener("dragover", (e: DragEvent) => {
+      e.preventDefault();
+      const swimlane = e.dataTransfer?.getData("swimlane");
+      if (swimlane === group) {
+        column.addClass("is-drag-over");
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = "move";
+        }
+      }
+    });
+
+    column.addEventListener("dragleave", () => {
+      column.removeClass("is-drag-over");
+    });
+
+    column.addEventListener("drop", async (e: DragEvent) => {
+      e.preventDefault();
+      column.removeClass("is-drag-over");
+
+      const filePath = e.dataTransfer?.getData("text/plain");
+      const sourceStatus = e.dataTransfer?.getData("status");
+      const swimlane = e.dataTransfer?.getData("swimlane");
+
+      if (filePath && swimlane === group && sourceStatus !== status) {
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file instanceof TFile) {
+          await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+            frontmatter.status = status;
+          });
+
+          // Wait a bit for metadata cache to update
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          // Refresh the view
+          this.renderProjectArea();
+        }
+      }
+    });
   }
 
   /**
@@ -367,8 +414,24 @@ status: "${status}"
     file: TFile,
     statuses: string[],
     status: string,
+    group: string,
   ) {
     const card = column.createDiv({ cls: "sidekick-project-card" });
+    card.setAttribute("draggable", "true");
+
+    card.addEventListener("dragstart", (e: DragEvent) => {
+      if (e.dataTransfer) {
+        e.dataTransfer.setData("text/plain", file.path);
+        e.dataTransfer.setData("status", status);
+        e.dataTransfer.setData("swimlane", group);
+        e.dataTransfer.effectAllowed = "move";
+      }
+      card.addClass("is-dragging");
+    });
+
+    card.addEventListener("dragend", () => {
+      card.removeClass("is-dragging");
+    });
 
     const cardHeader = card.createEl("a", {
       cls: "sidekick-project-card-title",
