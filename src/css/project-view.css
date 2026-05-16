@@ -43,6 +43,25 @@
   padding: 5px 20px;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 2px solid transparent;
+}
+
+.sidekick-project-status-bar-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.sidekick-project-status-bar-item.is-collapsed {
+  flex: 0 0 40px;
+  padding: 5px 0;
+  justify-content: center;
+  border-bottom: 2px solid var(--interactive-accent);
+}
+
+.sidekick-project-status-bar-item.is-collapsed
+  .sidekick-project-status-bar-title {
+  display: none;
 }
 
 /* Scrollable container for swimlanes and cards. */
@@ -98,6 +117,12 @@
   text-align: right;
 }
 
+.sidekick-project-swimlane-header-counters-row-item.is-collapsed {
+  flex: 0 0 40px;
+  padding: 5px 0;
+  text-align: center;
+}
+
 .sidekick-project-swimlane-cards-area {
   display: flex;
   flex-direction: row;
@@ -112,6 +137,14 @@
   height: 100%;
   padding: 10px;
   gap: 10px;
+  min-width: 0;
+}
+
+.sidekick-project-swimlane-cards-area-column.is-collapsed {
+  flex: 0 0 40px;
+  padding: 10px 0;
+  border-right: 1px solid var(--background-modifier-border);
+  background-color: var(--background-secondary-alt);
 }
 
 .sidekick-project-swimlane-cards-area-column-footer {

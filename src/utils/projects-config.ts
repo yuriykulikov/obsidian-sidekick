@@ -2,6 +2,7 @@ import { type App, TFile } from "obsidian";
 
 const CONFIG_FILE = "Projects.md";
 const COLLAPSED_SECTION_HEADER = "# Collapsed";
+const COLLAPSED_COLUMNS_SECTION_HEADER = "# Collapsed Columns";
 const SORTING_SECTION_HEADER = "# Sorting";
 
 export async function readSorting(app: App): Promise<string[]> {
@@ -64,9 +65,40 @@ export async function readCollapsedSwimlanes(app: App): Promise<Set<string>> {
   return collapsed;
 }
 
+export async function readCollapsedColumns(app: App): Promise<Set<string>> {
+  const file = app.vault.getAbstractFileByPath(CONFIG_FILE);
+  if (!file || !(file instanceof TFile)) {
+    return new Set();
+  }
+
+  const content = await app.vault.read(file);
+  const lines = content.split("\n");
+  const collapsed = new Set<string>();
+  let inSection = false;
+
+  for (const line of lines) {
+    if (line.trim() === COLLAPSED_COLUMNS_SECTION_HEADER) {
+      inSection = true;
+      continue;
+    }
+    if (inSection) {
+      if (line.startsWith("#")) {
+        break;
+      }
+      const match = line.match(/^[-*+]\s+(.+)$/);
+      if (match?.[1]) {
+        collapsed.add(match[1].trim());
+      }
+    }
+  }
+
+  return collapsed;
+}
+
 export async function writeProjectConfig(
   app: App,
   collapsed: Set<string>,
+  collapsedColumns: Set<string>,
   sorting: string[],
 ): Promise<void> {
   const file = app.vault.getAbstractFileByPath(CONFIG_FILE);
@@ -78,13 +110,16 @@ export async function writeProjectConfig(
   const lines = content.split("\n");
   const newLines: string[] = [];
   let inSection = false;
-  const _collapsedFound = false;
-  const _sortingFound = false;
 
   const sectionsToProcess = [
     {
       header: COLLAPSED_SECTION_HEADER,
       items: Array.from(collapsed).sort(),
+      found: false,
+    },
+    {
+      header: COLLAPSED_COLUMNS_SECTION_HEADER,
+      items: Array.from(collapsedColumns).sort(),
       found: false,
     },
     {
@@ -175,5 +210,15 @@ export async function writeCollapsedSwimlanes(
   collapsed: Set<string>,
 ): Promise<void> {
   const sorting = await readSorting(app);
-  await writeProjectConfig(app, collapsed, sorting);
+  const collapsedColumns = await readCollapsedColumns(app);
+  await writeProjectConfig(app, collapsed, collapsedColumns, sorting);
+}
+
+export async function writeCollapsedColumns(
+  app: App,
+  collapsedColumns: Set<string>,
+): Promise<void> {
+  const sorting = await readSorting(app);
+  const collapsedSwimlanes = await readCollapsedSwimlanes(app);
+  await writeProjectConfig(app, collapsedSwimlanes, collapsedColumns, sorting);
 }

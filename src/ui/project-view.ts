@@ -8,8 +8,11 @@ import {
 } from "obsidian";
 import type { Logger } from "../utils/logger";
 import {
+  readCollapsedColumns,
   readCollapsedSwimlanes,
   readSorting,
+  writeCollapsedColumns,
+  writeCollapsedSwimlanes,
   writeProjectConfig,
 } from "../utils/projects-config";
 
@@ -18,6 +21,7 @@ export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
 export class ProjectView extends ItemView {
   private projectAreaEl: HTMLElement;
   private collapsedSwimlanes: Set<string> = new Set();
+  private collapsedColumns: Set<string> = new Set();
 
   constructor(leaf: WorkspaceLeaf, _logger: Logger) {
     super(leaf);
@@ -67,6 +71,7 @@ export class ProjectView extends ItemView {
 
     // Load state from Projects.md
     this.collapsedSwimlanes = await readCollapsedSwimlanes(this.app);
+    this.collapsedColumns = await readCollapsedColumns(this.app);
     let statuses = await readSorting(this.app);
 
     const projectFiles = this.getProjectFiles();
@@ -82,7 +87,12 @@ export class ProjectView extends ItemView {
 
       // If sorting was empty, we save the current columns for next time
       if (statuses.length > 0) {
-        await writeProjectConfig(this.app, this.collapsedSwimlanes, statuses);
+        await writeProjectConfig(
+          this.app,
+          this.collapsedSwimlanes,
+          this.collapsedColumns,
+          statuses,
+        );
       }
     }
 
@@ -126,8 +136,9 @@ export class ProjectView extends ItemView {
     }
 
     for (const status of statuses) {
+      const isCollapsed = this.collapsedColumns.has(status);
       const item = statusBar.createDiv({
-        cls: "sidekick-project-status-bar-item",
+        cls: `sidekick-project-status-bar-item ${isCollapsed ? "is-collapsed" : ""}`,
       });
       item.createDiv({
         cls: "sidekick-project-status-bar-title",
@@ -136,6 +147,16 @@ export class ProjectView extends ItemView {
       item.createDiv({
         cls: "sidekick-project-status-bar-counter",
         text: (totalCounts[status] || 0).toString(),
+      });
+
+      item.addEventListener("click", async () => {
+        if (this.collapsedColumns.has(status)) {
+          this.collapsedColumns.delete(status);
+        } else {
+          this.collapsedColumns.add(status);
+        }
+        await writeCollapsedColumns(this.app, this.collapsedColumns);
+        this.renderProjectArea();
       });
     }
   }
@@ -171,8 +192,9 @@ export class ProjectView extends ItemView {
 
     for (const status of statuses) {
       const files = statusGroups[status] || [];
+      const colCollapsed = this.collapsedColumns.has(status);
       countersRow.createDiv({
-        cls: "sidekick-project-swimlane-header-counters-row-item",
+        cls: `sidekick-project-swimlane-header-counters-row-item ${colCollapsed ? "is-collapsed" : ""}`,
         text: files.length.toString(),
       });
     }
@@ -198,8 +220,7 @@ export class ProjectView extends ItemView {
         swimlane.addClass("is-collapsed");
       }
 
-      const sorting = await readSorting(this.app);
-      await writeProjectConfig(this.app, this.collapsedSwimlanes, sorting);
+      await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
     });
 
     for (const status of statuses) {
@@ -218,9 +239,14 @@ export class ProjectView extends ItemView {
     statuses: string[],
     group: string,
   ) {
+    const isCollapsed = this.collapsedColumns.has(status);
     const column = row.createDiv({
-      cls: "sidekick-project-swimlane-cards-area-column",
+      cls: `sidekick-project-swimlane-cards-area-column ${isCollapsed ? "is-collapsed" : ""}`,
     });
+
+    if (isCollapsed) {
+      return;
+    }
 
     for (const file of files) {
       this.renderCard(column, file, statuses, status);
