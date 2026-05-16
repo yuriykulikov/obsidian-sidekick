@@ -12,6 +12,8 @@
   align-items: center;
   gap: 15px;
   background-color: var(--background-primary);
+  padding: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
 /* Container with a sticky status bar and scrollable div with swimlanes. */
