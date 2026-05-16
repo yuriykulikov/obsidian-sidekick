@@ -50,19 +50,72 @@ export class ProjectView extends ItemView {
     container.addClass("sidekick-project-container");
 
     const header = container.createDiv({ cls: "sidekick-project-top-bar" });
+    this.addTopBarButtons(header);
+    this.projectAreaEl = container.createDiv({ cls: "sidekick-project-area" });
+    await this.renderProjectArea();
+  }
 
-    const reloadButton = header.createEl("button", {
+  private addTopBarButtons(header: HTMLDivElement) {
+    const expandSwimlanesButton = header.createEl("button", {
       cls: "sidekick-header-button",
-      title: "Reload projects",
+      text: "Expand swimlanes",
     });
-    setIcon(reloadButton, "refresh-cw");
-    reloadButton.addEventListener("click", () => {
+    expandSwimlanesButton.addEventListener("click", async () => {
+      this.collapsedSwimlanes.clear();
+      await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
       this.renderProjectArea();
     });
 
-    this.projectAreaEl = container.createDiv({ cls: "sidekick-project-area" });
+    const collapseSwimlanesButton = header.createEl("button", {
+      cls: "sidekick-header-button",
+      text: "Collapse swimlanes",
+    });
+    collapseSwimlanesButton.addEventListener("click", async () => {
+      const projectFiles = this.getProjectFiles();
+      const statuses = await readSorting(this.app);
+      const groupedProjects = this.groupProjectsByPath(projectFiles, statuses);
+      for (const group of Object.keys(groupedProjects)) {
+        this.collapsedSwimlanes.add(group);
+      }
+      await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
+      this.renderProjectArea();
+    });
 
-    await this.renderProjectArea();
+    const expandColumnsButton = header.createEl("button", {
+      cls: "sidekick-header-button",
+      text: "Expand columns",
+    });
+    expandColumnsButton.addEventListener("click", async () => {
+      this.collapsedColumns.clear();
+      await writeCollapsedColumns(this.app, this.collapsedColumns);
+      this.renderProjectArea();
+    });
+
+    const collapseColumnsButton = header.createEl("button", {
+      cls: "sidekick-header-button",
+      text: "Collapse columns",
+    });
+    collapseColumnsButton.addEventListener("click", async () => {
+      const projectFiles = this.getProjectFiles();
+      let statuses = await readSorting(this.app);
+      if (statuses.length === 0) {
+        statuses = this.getUniqueStatuses(projectFiles);
+      }
+      for (const status of statuses) {
+        this.collapsedColumns.add(status);
+      }
+      await writeCollapsedColumns(this.app, this.collapsedColumns);
+      this.renderProjectArea();
+    });
+
+    const reloadButton = header.createEl("button", {
+      cls: "sidekick-header-button",
+      text: "Refresh",
+      title: "Reload projects",
+    });
+    reloadButton.addEventListener("click", () => {
+      this.renderProjectArea();
+    });
   }
 
   private async renderProjectArea() {
