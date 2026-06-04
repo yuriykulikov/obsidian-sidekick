@@ -80,6 +80,12 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 - **Use clear module boundaries**: Each file should have a single, well-defined responsibility.
 - Prefer `async/await` over promise chains; handle errors gracefully.
 
+## Sub-module Guidelines
+
+For specific areas of the project, refer to the following local instructions:
+
+- **UI Development**: See [src/ui/UI-GUIDELINES.md](src/ui/UI-GUIDELINES.md) for Component Decomposition and CSS rules.
+
 ## Agent do/don't
 
 **Do**
