@@ -1,99 +1,44 @@
 # Obsidian community plugin
 
-Sidekick is an AI agent for [Obsidian](https://obsidian.md), designed to be your companion in managing and growing your
-knowledge base. Much like a coding agent for your vault, Sidekick treats Markdown as structured text and focuses on the
-unique relationships within your Obsidian vault.
+Sidekick is an AI agent for [Obsidian](https://obsidian.md).
+Much like a coding agent, Sidekick treats Markdown as structured text and focuses on the relationships within the
+Obsidian vault.
 
-## Design Philosophy
+## Progressive disclosure
 
-For more information, see the [Design Document](docs/design-doc.md).
+Documentation in this repository is progressively disclosed. Pull in files into the context when deemed necessary.
+Check for Markdown files when planning using tree command (`tree -P "*.md" --prune -I node_modules`)
 
-- **Structure-Based Context**: Sidekick treats Markdown as structured text. Instead of relying on embeddings or vector
-  databases, it builds context through the natural architecture of your vault: links, backlinks, tags, tasks, and
-  directory hierarchy.
-- **Obsidian Native**: Sidekick uses the Obsidian API and vault structure, navigating your notes like a developer
-  navigates a codebase.
-- **Simple UI/UX**: Simple task-based interface.
+- **Core Architecture & Design**: See [docs/design-doc.md](docs/design-doc.md) and linked files for the Factory pattern,
+  transducer loop, and design principles.
+- **UI Development**: See [src/ui/UI-GUIDELINES.md](src/ui/UI-GUIDELINES.md) for Component Decomposition and CSS rules.
 
-### Environment & tooling
-
-- Node.js: current LTS (Node 18+).
-- **Package manager: npm** (required for `package.json` scripts).
-- **Bundler: esbuild** (defined in `esbuild.config.mjs`).
-- Types: `obsidian` type definitions.
-
-## Architecture & Dependency Injection
-
-Sidekick uses a **Factory Pattern** for dependency injection, ensuring clear separation between the AI logic and
-Obsidian's UI/lifecycle:
-
-- **`AgentFactory` (`src/agent-factory.ts`)**: The central place where the agent's runtime environment is constructed.
-  It instantiates the tools, prepares the system prompt, and initializes the LLM chat session.
-- **`SidekickAgent` (`src/agent.ts`)**: The core engine that executes the transducer loop. It receives all dependencies
-  via its constructor, making it agnostic of the plugin's specific setup.
-- **Tool Catalog**: The set of available tools is defined and injected into the agent by the `AgentFactory`.
-
-## File & folder conventions
-
-Source lives in `src/`:
+## Repository structure
 
   ```
-  src/
-    main.ts           # Plugin entry point, lifecycle management
-    agent.ts          # AI Agent logic and tool integration
-    settings.ts       # Settings interface and defaults
-    css/              # CSS source files (compiled to styles.css)
-      main.css        # Main CSS entry point
+  docs/              # Design documentation
+  src/               
+    main.ts          # Plugin entry point, lifecycle management
+    agent.ts         # AI Agent logic and tool integration
+    settings.ts      # Settings interface and defaults
+    css/             # CSS source files (compiled to styles.css)
     tools/           # AI tool implementations (note operations, etc.)
-      read-note.ts
-      search-notes.ts
-    ui/              # UI components, modals, views
-      chat-view.ts
-      log-view.ts
-      note-suggestion-modal.ts
+    ui/              # UI components, modals, views. Make sure to load [src/ui/UI-GUIDELINES.md](src/ui/UI-GUIDELINES.md) when working here
     utils/           # Utility functions, helpers
-      logger.ts
-      notes.ts
     types.ts         # TypeScript interfaces and types
   ```
 
-## Security, privacy, and compliance
-
-Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particular:
-
-- Default to local/offline operation. Only make network requests when essential to the feature.
-- No hidden telemetry. If you collect optional analytics or call third-party services, require explicit opt-in and
-  document clearly in `README.md` and in settings.
-- Never execute remote code, fetch and eval scripts, or auto-update plugin code outside of normal releases.
-- Minimize scope: read/write only what's necessary inside the vault. Do not access files outside the vault.
-- Clearly disclose any external services used, data sent, and risks.
-- Respect user privacy. Do not collect vault contents, filenames, or personal information unless absolutely necessary
-  and explicitly consented.
-- Avoid deceptive patterns, ads, or spammy notifications.
-- Register and clean up all DOM, app, and interval listeners using the provided `register*` helpers so the plugin
-  unloads safely.
-
 ## Coding conventions
 
-- TypeScript with `"strict": true` preferred.
-- **Split large files**: If any file exceeds ~200-300 lines, consider breaking it into smaller, focused modules.
-- **Use clear module boundaries**: Each file should have a single, well-defined responsibility.
 - Prefer `async/await` over promise chains; handle errors gracefully.
 
-## Sub-module Guidelines
-
-For specific areas of the project, refer to the following local instructions:
-
-- **UI Development**: See [src/ui/UI-GUIDELINES.md](src/ui/UI-GUIDELINES.md) for Component Decomposition and CSS rules.
-
-## Agent do/don't
-
-**Do**
+## Agent DOs
 
 - Use `this.register*` helpers for everything that needs cleanup.
+  See [HOW_TO_REGISTER_LISTENERS_SAFELY.md](src/HOW_TO_REGISTER_LISTENERS_SAFELY.md)
 - Use `this.logger` for debugging and informational messages to ensure they are visible in the plugin's log view.
 
-**Don't**
+## Agent DON'Ts
 
 - **Do not modify `main.js` or `styles.css` directly**: These are compiled/bundled files. Always make changes in the
   `src/` directory.
@@ -101,29 +46,7 @@ For specific areas of the project, refer to the following local instructions:
 	- CSS changes should be made in `src/css/*.css`.
 - **Do not use Notice** except for errors.
 
-**Before finishing a task**
+## Before finishing a task
 
 - **Verify changes locally**: Run `npm run lint:fix && npm run test && npm run build` to ensure formatting/linting,
   tests, and bundling all succeed.
-
-## Common tasks
-
-### Register listeners safely
-
-```ts
-this.registerEvent(this.app.workspace.on("file-open", f => { /* ... */
-}));
-this.registerDomEvent(window, "resize", () => { /* ... */
-});
-this.registerInterval(window.setInterval(() => { /* ... */
-}, 1000));
-```
-
-## References
-
-- Obsidian sample plugin: https://github.com/obsidianmd/obsidian-sample-plugin
-- API documentation: https://docs.obsidian.md
-- Developer policies: https://docs.obsidian.md/Developer+policies
-- Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
-- Style guide: https://help.obsidian.md/style-guide
-- Gemini API documentation: https://ai.google.dev/api
