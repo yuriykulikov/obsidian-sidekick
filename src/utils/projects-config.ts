@@ -4,6 +4,7 @@ const CONFIG_FILE = "Projects.md";
 const COLLAPSED_SECTION_HEADER = "# Collapsed";
 const COLLAPSED_COLUMNS_SECTION_HEADER = "# Collapsed Columns";
 const SORTING_SECTION_HEADER = "# Sorting";
+const SEARCH_QUERY_SECTION_HEADER = "# Search";
 
 export async function readSorting(app: App): Promise<string[]> {
   const file = app.vault.getAbstractFileByPath(CONFIG_FILE);
@@ -65,6 +66,38 @@ export async function readCollapsedSwimlanes(app: App): Promise<Set<string>> {
   return collapsed;
 }
 
+export async function readSearchQuery(app: App): Promise<string> {
+  const file = app.vault.getAbstractFileByPath(CONFIG_FILE);
+  if (!file || !(file instanceof TFile)) {
+    return "";
+  }
+
+  const content = await app.vault.read(file);
+  const lines = content.split("\n");
+  let inSearchSection = false;
+
+  for (const line of lines) {
+    if (line.trim() === SEARCH_QUERY_SECTION_HEADER) {
+      inSearchSection = true;
+      continue;
+    }
+    if (inSearchSection) {
+      if (line.startsWith("#")) {
+        break;
+      }
+      const match = line.match(/^[-*+]\s+(.+)$/);
+      if (match?.[1]) {
+        return match[1].trim();
+      }
+      if (line.trim() !== "") {
+        return line.trim();
+      }
+    }
+  }
+
+  return "";
+}
+
 export async function readCollapsedColumns(app: App): Promise<Set<string>> {
   const file = app.vault.getAbstractFileByPath(CONFIG_FILE);
   if (!file || !(file instanceof TFile)) {
@@ -100,6 +133,7 @@ export async function writeProjectConfig(
   collapsed: Set<string>,
   collapsedColumns: Set<string>,
   sorting: string[],
+  searchQuery?: string,
 ): Promise<void> {
   const file = app.vault.getAbstractFileByPath(CONFIG_FILE);
   let content = "";
@@ -125,6 +159,11 @@ export async function writeProjectConfig(
     {
       header: SORTING_SECTION_HEADER,
       items: sorting,
+      found: false,
+    },
+    {
+      header: SEARCH_QUERY_SECTION_HEADER,
+      items: searchQuery ? [searchQuery] : [],
       found: false,
     },
   ];
@@ -211,7 +250,14 @@ export async function writeCollapsedSwimlanes(
 ): Promise<void> {
   const sorting = await readSorting(app);
   const collapsedColumns = await readCollapsedColumns(app);
-  await writeProjectConfig(app, collapsed, collapsedColumns, sorting);
+  const searchQuery = await readSearchQuery(app);
+  await writeProjectConfig(
+    app,
+    collapsed,
+    collapsedColumns,
+    sorting,
+    searchQuery,
+  );
 }
 
 export async function writeCollapsedColumns(
@@ -220,5 +266,28 @@ export async function writeCollapsedColumns(
 ): Promise<void> {
   const sorting = await readSorting(app);
   const collapsedSwimlanes = await readCollapsedSwimlanes(app);
-  await writeProjectConfig(app, collapsedSwimlanes, collapsedColumns, sorting);
+  const searchQuery = await readSearchQuery(app);
+  await writeProjectConfig(
+    app,
+    collapsedSwimlanes,
+    collapsedColumns,
+    sorting,
+    searchQuery,
+  );
+}
+
+export async function writeSearchQuery(
+  app: App,
+  searchQuery: string,
+): Promise<void> {
+  const sorting = await readSorting(app);
+  const collapsedSwimlanes = await readCollapsedSwimlanes(app);
+  const collapsedColumns = await readCollapsedColumns(app);
+  await writeProjectConfig(
+    app,
+    collapsedSwimlanes,
+    collapsedColumns,
+    sorting,
+    searchQuery,
+  );
 }
