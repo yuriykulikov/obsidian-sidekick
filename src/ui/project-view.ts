@@ -1,7 +1,10 @@
 import {
+  debounce,
+  getAllTags,
   ItemView,
   Menu,
   normalizePath,
+  SearchComponent,
   setIcon,
   TFile,
   type WorkspaceLeaf,
@@ -10,11 +13,14 @@ import type { Logger } from "../utils/logger";
 import {
   readCollapsedColumns,
   readCollapsedSwimlanes,
+  readSearchQuery,
   readSorting,
   writeCollapsedColumns,
   writeCollapsedSwimlanes,
   writeProjectConfig,
+  writeSearchQuery,
 } from "../utils/projects-config";
+import { matchesQuery as matchesSearchQuery } from "../utils/search";
 
 export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
 
@@ -22,6 +28,7 @@ export class ProjectView extends ItemView {
   private projectAreaEl: HTMLElement;
   private collapsedSwimlanes: Set<string> = new Set();
   private collapsedColumns: Set<string> = new Set();
+  private searchQuery = "";
 
   constructor(leaf: WorkspaceLeaf, _logger: Logger) {
     super(leaf);
@@ -39,6 +46,7 @@ export class ProjectView extends ItemView {
   }
 
   async onOpen() {
+    this.searchQuery = await readSearchQuery(this.app);
     this.render();
   }
 
@@ -50,9 +58,26 @@ export class ProjectView extends ItemView {
     container.addClass("sidekick-project-container");
 
     const header = container.createDiv({ cls: "sidekick-project-top-bar" });
+    this.addSearchBar(header);
     this.addTopBarButtons(header);
     this.projectAreaEl = container.createDiv({ cls: "sidekick-project-area" });
     await this.renderProjectArea();
+  }
+
+  private addSearchBar(header: HTMLElement) {
+    const searchContainer = header.createDiv({
+      cls: "sidekick-project-search-container",
+    });
+    new SearchComponent(searchContainer)
+      .setPlaceholder("Filter (name:, tag:, path:)...")
+      .setValue(this.searchQuery)
+      .onChange(
+        debounce(async (value: string) => {
+          this.searchQuery = value;
+          await writeSearchQuery(this.app, value);
+          await this.renderProjectArea();
+        }, 250),
+      );
   }
 
   private addTopBarButtons(header: HTMLDivElement) {
@@ -129,11 +154,6 @@ export class ProjectView extends ItemView {
 
     const projectFiles = this.getProjectFiles();
 
-    if (projectFiles.length === 0) {
-      container.createEl("p", { text: "No notes in Projects folder found." });
-      return;
-    }
-
     // 1. Build an inventory of all possible statuses
     if (statuses.length === 0) {
       statuses = this.getUniqueStatuses(projectFiles);
@@ -145,12 +165,31 @@ export class ProjectView extends ItemView {
           this.collapsedSwimlanes,
           this.collapsedColumns,
           statuses,
+          this.searchQuery,
         );
       }
     }
 
-    // 2. Group all projects based on the path
-    const groupedProjects = this.groupProjectsByPath(projectFiles, statuses);
+    const filteredProjects: TFile[] = [];
+    for (const file of projectFiles) {
+      const status = this.getFileStatus(file, statuses);
+      if (this.collapsedColumns.has(status)) continue;
+      if (await this.matchesQuery(file, this.searchQuery)) {
+        filteredProjects.push(file);
+      }
+    }
+
+    // Check if we have anything at all in the vault
+    if (projectFiles.length === 0) {
+      container.createEl("p", { text: "No notes in Projects folder found." });
+      return;
+    }
+
+    // PHASE 3: Group projects (automatically hides empty swimlanes)
+    const groupedProjects = this.groupProjectsByPath(
+      filteredProjects,
+      statuses,
+    );
 
     const board = container.createDiv({ cls: "sidekick-project-board" });
 
@@ -177,14 +216,8 @@ export class ProjectView extends ItemView {
       totalCounts[status] = 0;
     }
 
-    const defaultStatus = statuses[0] || "No Status";
-
     for (const file of projectFiles) {
-      const cache = this.app.metadataCache.getFileCache(file);
-      let status = cache?.frontmatter?.status;
-      if (!status || !statuses.includes(status)) {
-        status = defaultStatus;
-      }
+      const status = this.getFileStatus(file, statuses);
       totalCounts[status] = (totalCounts[status] || 0) + 1;
     }
 
@@ -552,16 +585,8 @@ status: "${status}"
   ): Record<string, Record<string, TFile[]>> {
     const grouped: Record<string, Record<string, TFile[]>> = {};
 
-    const defaultStatus = availableStatuses[0] || "No Status";
-
     for (const file of files) {
-      const cache = this.app.metadataCache.getFileCache(file);
-      const frontmatter = cache?.frontmatter;
-      let status = frontmatter?.status;
-
-      if (!status || !availableStatuses.includes(status)) {
-        status = defaultStatus;
-      }
+      const status = this.getFileStatus(file, availableStatuses);
 
       // Projects/Subfolder/Note.md -> Subfolder
       // Projects/Note.md -> General
@@ -613,5 +638,43 @@ status: "${status}"
     });
     const _end = performance.now();
     return result;
+  }
+
+  private getFileStatus(file: TFile, availableStatuses: string[]): string {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    let status = frontmatter?.status;
+    const defaultStatus = availableStatuses[0] || "No Status";
+
+    if (!status || !availableStatuses.includes(status)) {
+      status = defaultStatus;
+    }
+    return status;
+  }
+
+  /**
+   * Checks if a file matches the search query using a simple pseudo-language.
+   * Supports:
+   * - `name:filename` - Matches filename (basename)
+   * - `tag:tagname` - Matches tags in metadata
+   * - `path:folder/file` - Matches full file path
+   * - `text` - Default full-text search in name, path, tags, and note content.
+   * - `-term` - Negates the match for the term (e.g., `-tag:todo`, `-name:exclude`)
+   * Multiple terms are combined using logical AND.
+   * Case-insensitive.
+   */
+  private async matchesQuery(file: TFile, query: string): Promise<boolean> {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const tags = (cache ? getAllTags(cache) : []) || [];
+
+    return matchesSearchQuery(
+      {
+        basename: file.basename,
+        path: file.path,
+        tags: tags,
+        getContent: () => this.app.vault.cachedRead(file),
+      },
+      query,
+    );
   }
 }

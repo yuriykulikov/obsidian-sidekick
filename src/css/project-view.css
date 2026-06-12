@@ -16,6 +16,17 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
+.sidekick-project-search-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.sidekick-project-search-container .search-input {
+  width: 100%;
+  max-width: 300px;
+}
+
 /* Container with a sticky status bar and scrollable div with swimlanes. */
 .sidekick-project-area {
   flex: 1;
@@ -59,11 +70,26 @@
   padding: 5px 0;
   justify-content: center;
   border-bottom: 2px solid var(--interactive-accent);
+  border-left: 1px solid var(--background-modifier-border);
+  border-right: 1px solid var(--background-modifier-border);
+  background-color: var(--background-secondary-alt);
+  margin-left: -1px;
+}
+
+.sidekick-project-status-bar-item.is-collapsed
+  .sidekick-project-status-bar-counter {
+  display: none;
 }
 
 .sidekick-project-status-bar-item.is-collapsed
   .sidekick-project-status-bar-title {
-  display: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 0 2px;
+  text-align: center;
 }
 
 /* Scrollable container for swimlanes and cards. */
@@ -123,6 +149,7 @@
   flex: 0 0 40px;
   padding: 5px 0;
   text-align: center;
+  visibility: hidden;
 }
 
 .sidekick-project-swimlane-cards-area {
@@ -145,8 +172,7 @@
 .sidekick-project-swimlane-cards-area-column.is-collapsed {
   flex: 0 0 40px;
   padding: 10px 0;
-  border-right: 1px solid var(--background-modifier-border);
-  background-color: var(--background-secondary-alt);
+  border: none;
 }
 
 .sidekick-project-swimlane-cards-area-column-footer {
