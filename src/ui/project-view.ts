@@ -26,6 +26,7 @@ export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
 
 export class ProjectView extends ItemView {
   private projectAreaEl: HTMLElement;
+  private tagListEl: HTMLElement;
   private collapsedSwimlanes: Set<string> = new Set();
   private collapsedColumns: Set<string> = new Set();
   private searchQuery = "";
@@ -59,7 +60,8 @@ export class ProjectView extends ItemView {
 
     const header = container.createDiv({ cls: "sidekick-project-top-bar" });
     this.addSearchBar(header);
-    this.addTopBarButtons(header);
+    this.tagListEl = header.createDiv({ cls: "sidekick-project-tag-list" });
+    this.addTopBar(header);
     this.projectAreaEl = container.createDiv({ cls: "sidekick-project-area" });
     await this.renderProjectArea();
   }
@@ -80,7 +82,7 @@ export class ProjectView extends ItemView {
       );
   }
 
-  private addTopBarButtons(header: HTMLDivElement) {
+  private addTopBar(header: HTMLDivElement) {
     const expandSwimlanesButton = header.createEl("button", {
       cls: "sidekick-header-button",
       text: "Expand swimlanes",
@@ -143,6 +145,18 @@ export class ProjectView extends ItemView {
     });
   }
 
+  private renderTopBarTags(tags: string[]) {
+    this.tagListEl.empty();
+    if (tags.length === 0) return;
+
+    for (const tag of tags) {
+      this.tagListEl.createDiv({
+        cls: "sidekick-project-tag",
+        text: tag,
+      });
+    }
+  }
+
   private async renderProjectArea() {
     const container = this.projectAreaEl;
     container.empty();
@@ -171,13 +185,23 @@ export class ProjectView extends ItemView {
     }
 
     const filteredProjects: TFile[] = [];
+    const allTags = new Set<string>();
     for (const file of projectFiles) {
       const status = this.getFileStatus(file, statuses);
       if (this.collapsedColumns.has(status)) continue;
       if (await this.matchesQuery(file, this.searchQuery)) {
         filteredProjects.push(file);
+        const cache = this.app.metadataCache.getFileCache(file);
+        const tags = (cache ? getAllTags(cache) : []) || [];
+        for (const tag of tags) {
+          if (!tag.startsWith("#project")) {
+            allTags.add(tag);
+          }
+        }
       }
     }
+
+    this.renderTopBarTags(Array.from(allTags).sort());
 
     // Check if we have anything at all in the vault
     if (projectFiles.length === 0) {
@@ -477,7 +501,27 @@ status: "${status}"
     });
 
     this.addCardStatusMenu(cardHeader, statuses, status, file);
+    this.addCardTags(file, card);
     this.addProgressBar(file, card);
+  }
+
+  private addCardTags(file: TFile, card: HTMLDivElement) {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const tags = ((cache ? getAllTags(cache) : []) || []).filter(
+      (tag) => !tag.startsWith("#project"),
+    );
+
+    if (tags.length > 0) {
+      const tagsContainer = card.createDiv({
+        cls: "sidekick-project-card-tags",
+      });
+      for (const tag of tags) {
+        tagsContainer.createDiv({
+          cls: "sidekick-project-card-tag",
+          text: tag,
+        });
+      }
+    }
   }
 
   /**
