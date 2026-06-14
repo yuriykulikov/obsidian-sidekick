@@ -8,7 +8,7 @@
 /* Top bar with refresh button. */
 .sidekick-project-top-bar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
   gap: 15px;
   background-color: var(--background-primary);
@@ -17,7 +17,6 @@
 }
 
 .sidekick-project-search-container {
-  flex: 1;
   display: flex;
   align-items: center;
 }
@@ -25,6 +24,26 @@
 .sidekick-project-search-container .search-input {
   width: 100%;
   max-width: 300px;
+}
+
+.sidekick-project-tag-list {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+  overflow: hidden;
+  max-height: 40px;
+}
+
+.sidekick-project-tag {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  white-space: nowrap;
 }
 
 /* Container with a sticky status bar and scrollable div with swimlanes. */
@@ -235,6 +254,23 @@
 
 .sidekick-project-card-title:hover {
   text-decoration: underline;
+}
+
+.sidekick-project-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.sidekick-project-card-tag {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.65em;
+  white-space: nowrap;
 }
 
 .sidekick-project-card-status-button {
