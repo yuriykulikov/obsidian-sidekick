@@ -85,8 +85,9 @@ export class ProjectView extends ItemView {
   private addTopBar(header: HTMLDivElement) {
     const expandSwimlanesButton = header.createEl("button", {
       cls: "sidekick-header-button",
-      text: "Expand swimlanes",
+      title: "Expand swimlanes",
     });
+    setIcon(expandSwimlanesButton, "unfold-vertical");
     expandSwimlanesButton.addEventListener("click", async () => {
       this.collapsedSwimlanes.clear();
       await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
@@ -95,8 +96,9 @@ export class ProjectView extends ItemView {
 
     const collapseSwimlanesButton = header.createEl("button", {
       cls: "sidekick-header-button",
-      text: "Collapse swimlanes",
+      title: "Collapse swimlanes",
     });
+    setIcon(collapseSwimlanesButton, "fold-vertical");
     collapseSwimlanesButton.addEventListener("click", async () => {
       const projectFiles = this.getProjectFiles();
       const statuses = await readSorting(this.app);
@@ -110,8 +112,9 @@ export class ProjectView extends ItemView {
 
     const expandColumnsButton = header.createEl("button", {
       cls: "sidekick-header-button",
-      text: "Expand columns",
+      title: "Expand columns",
     });
+    setIcon(expandColumnsButton, "unfold-horizontal");
     expandColumnsButton.addEventListener("click", async () => {
       this.collapsedColumns.clear();
       await writeCollapsedColumns(this.app, this.collapsedColumns);
@@ -120,8 +123,9 @@ export class ProjectView extends ItemView {
 
     const collapseColumnsButton = header.createEl("button", {
       cls: "sidekick-header-button",
-      text: "Collapse columns",
+      title: "Collapse columns",
     });
+    setIcon(collapseColumnsButton, "fold-horizontal");
     collapseColumnsButton.addEventListener("click", async () => {
       const projectFiles = this.getProjectFiles();
       let statuses = await readSorting(this.app);
@@ -137,9 +141,9 @@ export class ProjectView extends ItemView {
 
     const reloadButton = header.createEl("button", {
       cls: "sidekick-header-button",
-      text: "Refresh",
-      title: "Reload projects",
+      title: "Refresh projects",
     });
+    setIcon(reloadButton, "refresh-cw");
     reloadButton.addEventListener("click", () => {
       this.renderProjectArea();
     });
