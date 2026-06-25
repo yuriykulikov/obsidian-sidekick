@@ -10,16 +10,7 @@ import {
   type WorkspaceLeaf,
 } from "obsidian";
 import type { Logger } from "../utils/logger";
-import {
-  readCollapsedColumns,
-  readCollapsedSwimlanes,
-  readSearchQuery,
-  readSorting,
-  writeCollapsedColumns,
-  writeCollapsedSwimlanes,
-  writeProjectConfig,
-  writeSearchQuery,
-} from "../utils/projects-config";
+import { ProjectConfig } from "../utils/projects-config";
 import { matchesQuery as matchesSearchQuery } from "../utils/search";
 
 export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
@@ -34,6 +25,10 @@ export class ProjectView extends ItemView {
   constructor(leaf: WorkspaceLeaf, _logger: Logger) {
     super(leaf);
   }
+
+  private get projectConfig() {
+    return new ProjectConfig(this.app, "Projects.md");
+  }
   getViewType(): string {
     return VIEW_TYPE_PROJECTS;
   }
@@ -47,7 +42,7 @@ export class ProjectView extends ItemView {
   }
 
   async onOpen() {
-    this.searchQuery = await readSearchQuery(this.app);
+    this.searchQuery = await this.projectConfig.readSearchQuery();
     this.render();
   }
 
@@ -76,7 +71,7 @@ export class ProjectView extends ItemView {
       .onChange(
         debounce(async (value: string) => {
           this.searchQuery = value;
-          await writeSearchQuery(this.app, value);
+          await this.projectConfig.writeSearchQuery(value);
           await this.renderProjectArea();
         }, 250),
       );
@@ -90,7 +85,7 @@ export class ProjectView extends ItemView {
     setIcon(expandSwimlanesButton, "unfold-vertical");
     expandSwimlanesButton.addEventListener("click", async () => {
       this.collapsedSwimlanes.clear();
-      await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
+      await this.projectConfig.writeCollapsedSwimlanes(this.collapsedSwimlanes);
       this.renderProjectArea();
     });
 
@@ -100,13 +95,13 @@ export class ProjectView extends ItemView {
     });
     setIcon(collapseSwimlanesButton, "fold-vertical");
     collapseSwimlanesButton.addEventListener("click", async () => {
-      const projectFiles = this.getProjectFiles();
-      const statuses = await readSorting(this.app);
+      const projectFiles = this.projectConfig.getProjectFiles();
+      const statuses = await this.projectConfig.readSorting();
       const groupedProjects = this.groupProjectsByPath(projectFiles, statuses);
       for (const group of Object.keys(groupedProjects)) {
         this.collapsedSwimlanes.add(group);
       }
-      await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
+      await this.projectConfig.writeCollapsedSwimlanes(this.collapsedSwimlanes);
       this.renderProjectArea();
     });
 
@@ -117,7 +112,7 @@ export class ProjectView extends ItemView {
     setIcon(expandColumnsButton, "unfold-horizontal");
     expandColumnsButton.addEventListener("click", async () => {
       this.collapsedColumns.clear();
-      await writeCollapsedColumns(this.app, this.collapsedColumns);
+      await this.projectConfig.writeCollapsedColumns(this.collapsedColumns);
       this.renderProjectArea();
     });
 
@@ -127,15 +122,15 @@ export class ProjectView extends ItemView {
     });
     setIcon(collapseColumnsButton, "fold-horizontal");
     collapseColumnsButton.addEventListener("click", async () => {
-      const projectFiles = this.getProjectFiles();
-      let statuses = await readSorting(this.app);
+      const projectFiles = this.projectConfig.getProjectFiles();
+      let statuses = await this.projectConfig.readSorting();
       if (statuses.length === 0) {
         statuses = this.getUniqueStatuses(projectFiles);
       }
       for (const status of statuses) {
         this.collapsedColumns.add(status);
       }
-      await writeCollapsedColumns(this.app, this.collapsedColumns);
+      await this.projectConfig.writeCollapsedColumns(this.collapsedColumns);
       this.renderProjectArea();
     });
 
@@ -166,11 +161,11 @@ export class ProjectView extends ItemView {
     container.empty();
 
     // Load state from Projects.md
-    this.collapsedSwimlanes = await readCollapsedSwimlanes(this.app);
-    this.collapsedColumns = await readCollapsedColumns(this.app);
-    let statuses = await readSorting(this.app);
+    this.collapsedSwimlanes = await this.projectConfig.readCollapsedSwimlanes();
+    this.collapsedColumns = await this.projectConfig.readCollapsedColumns();
+    let statuses = await this.projectConfig.readSorting();
 
-    const projectFiles = this.getProjectFiles();
+    const projectFiles = this.projectConfig.getProjectFiles();
 
     // 1. Build an inventory of all possible statuses
     if (statuses.length === 0) {
@@ -178,8 +173,7 @@ export class ProjectView extends ItemView {
 
       // If sorting was empty, we save the current columns for next time
       if (statuses.length > 0) {
-        await writeProjectConfig(
-          this.app,
+        await this.projectConfig.writeProjectConfig(
           this.collapsedSwimlanes,
           this.collapsedColumns,
           statuses,
@@ -269,7 +263,7 @@ export class ProjectView extends ItemView {
         } else {
           this.collapsedColumns.add(status);
         }
-        await writeCollapsedColumns(this.app, this.collapsedColumns);
+        await this.projectConfig.writeCollapsedColumns(this.collapsedColumns);
         this.renderProjectArea();
       });
     }
@@ -334,7 +328,7 @@ export class ProjectView extends ItemView {
         swimlane.addClass("is-collapsed");
       }
 
-      await writeCollapsedSwimlanes(this.app, this.collapsedSwimlanes);
+      await this.projectConfig.writeCollapsedSwimlanes(this.collapsedSwimlanes);
     });
 
     for (const status of statuses) {
@@ -667,25 +661,6 @@ status: "${status}"
     }
 
     return sortedGrouped;
-  }
-
-  /** Returns a list of all files in the Projects folder */
-  private getProjectFiles(): TFile[] {
-    const _start = performance.now();
-    const files = this.app.vault.getMarkdownFiles();
-    const result = files.filter((file) => {
-      // Must be in Projects folder
-      if (!file.path.startsWith("Projects/")) {
-        return false;
-      }
-      // Filter out Kanban notes
-      if (file.name.includes("Kanban")) {
-        return false;
-      }
-      return true;
-    });
-    const _end = performance.now();
-    return result;
   }
 
   private getFileStatus(file: TFile, availableStatuses: string[]): string {
