@@ -9,6 +9,7 @@ export class ProjectConfig {
   constructor(
     private app: App,
     private configFilePath: string,
+    public readonly projectsFolderPath: string,
   ) {}
 
   /** Returns a list of all files in the Projects folder */
@@ -16,14 +17,7 @@ export class ProjectConfig {
     const files = this.app.vault.getMarkdownFiles();
     return files.filter((file) => {
       // Must be in Projects folder
-      if (!file.path.startsWith("Projects/")) {
-        return false;
-      }
-      // Filter out Kanban notes
-      if (file.name.includes("Kanban")) {
-        return false;
-      }
-      return true;
+      return file.path.startsWith(`${this.projectsFolderPath}/`);
     });
   }
 

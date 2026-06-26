@@ -9,6 +9,7 @@ import { ChatView, VIEW_TYPE_SIDEKICK } from "./ui/chat-view";
 import { SidekickLogView, VIEW_TYPE_SIDEKICK_LOG } from "./ui/log-view";
 import { ProjectView, VIEW_TYPE_PROJECTS } from "./ui/project-view";
 import { Logger } from "./utils/logger";
+import { ProjectConfig } from "./utils/projects-config";
 import { getCurrentSelectionFromMostRecentLeaf } from "./utils/selection";
 
 /**
@@ -51,7 +52,12 @@ export default class SidekickPlugin extends Plugin {
 
     this.registerView(
       VIEW_TYPE_PROJECTS,
-      (leaf) => new ProjectView(leaf, this.logger),
+      (leaf) =>
+        new ProjectView(
+          leaf,
+          this.logger,
+          new ProjectConfig(this.app, `Projects.md`, "Projects"),
+        ),
     );
 
     this.addRibbonIcon("bot", "Sidekick", (_evt: MouseEvent) => {
