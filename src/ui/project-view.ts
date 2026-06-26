@@ -14,6 +14,7 @@ import type { ProjectConfig } from "../utils/projects-config";
 import { matchesQuery as matchesSearchQuery } from "../utils/search";
 
 export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
+export const VIEW_TYPE_WORK_PROJECTS = "sidekick-work-projects-view";
 
 export class ProjectView extends ItemView {
   private projectAreaEl: HTMLElement;
@@ -26,15 +27,17 @@ export class ProjectView extends ItemView {
     leaf: WorkspaceLeaf,
     _logger: Logger,
     private projectConfig: ProjectConfig,
+    private viewType: string = VIEW_TYPE_PROJECTS,
+    private displayText: string = "Projects",
   ) {
     super(leaf);
   }
   getViewType(): string {
-    return VIEW_TYPE_PROJECTS;
+    return this.viewType;
   }
 
   getDisplayText(): string {
-    return "Projects";
+    return this.displayText;
   }
 
   getIcon(): string {
