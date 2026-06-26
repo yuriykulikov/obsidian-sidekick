@@ -7,7 +7,11 @@ import {
 } from "./settings";
 import { ChatView, VIEW_TYPE_SIDEKICK } from "./ui/chat-view";
 import { SidekickLogView, VIEW_TYPE_SIDEKICK_LOG } from "./ui/log-view";
-import { ProjectView, VIEW_TYPE_PROJECTS } from "./ui/project-view";
+import {
+  ProjectView,
+  VIEW_TYPE_PROJECTS,
+  VIEW_TYPE_WORK_PROJECTS,
+} from "./ui/project-view";
 import { Logger } from "./utils/logger";
 import { ProjectConfig } from "./utils/projects-config";
 import { getCurrentSelectionFromMostRecentLeaf } from "./utils/selection";
@@ -57,6 +61,20 @@ export default class SidekickPlugin extends Plugin {
           leaf,
           this.logger,
           new ProjectConfig(this.app, `Projects.md`, "Projects"),
+          VIEW_TYPE_PROJECTS,
+          "Projects",
+        ),
+    );
+
+    this.registerView(
+      VIEW_TYPE_WORK_PROJECTS,
+      (leaf) =>
+        new ProjectView(
+          leaf,
+          this.logger,
+          new ProjectConfig(this.app, `WorkProjects.md`, "Work/Projects"),
+          VIEW_TYPE_WORK_PROJECTS,
+          "Work Projects",
         ),
     );
 
@@ -74,6 +92,12 @@ export default class SidekickPlugin extends Plugin {
       id: "open-sidekick-projects",
       name: "Open project list",
       callback: () => this.activateProjectsView(),
+    });
+
+    this.addCommand({
+      id: "open-sidekick-work-projects",
+      name: "Open work project list",
+      callback: () => this.activateWorkProjectsView(),
     });
 
     this.addCommand({
@@ -165,5 +189,12 @@ export default class SidekickPlugin extends Plugin {
    */
   async activateProjectsView() {
     await this.activateViewByType(VIEW_TYPE_PROJECTS);
+  }
+
+  /**
+   * Opens or reveals the Sidekick Work Projects view in the workspace.
+   */
+  async activateWorkProjectsView() {
+    await this.activateViewByType(VIEW_TYPE_WORK_PROJECTS);
   }
 }
