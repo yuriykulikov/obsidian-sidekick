@@ -10,7 +10,7 @@ import {
   type WorkspaceLeaf,
 } from "obsidian";
 import type { Logger } from "../utils/logger";
-import { ProjectConfig } from "../utils/projects-config";
+import type { ProjectConfig } from "../utils/projects-config";
 import { matchesQuery as matchesSearchQuery } from "../utils/search";
 
 export const VIEW_TYPE_PROJECTS = "sidekick-projects-view";
@@ -22,12 +22,12 @@ export class ProjectView extends ItemView {
   private collapsedColumns: Set<string> = new Set();
   private searchQuery = "";
 
-  constructor(leaf: WorkspaceLeaf, _logger: Logger) {
+  constructor(
+    leaf: WorkspaceLeaf,
+    _logger: Logger,
+    private projectConfig: ProjectConfig,
+  ) {
     super(leaf);
-  }
-
-  private get projectConfig() {
-    return new ProjectConfig(this.app, "Projects.md");
   }
   getViewType(): string {
     return VIEW_TYPE_PROJECTS;
@@ -160,7 +160,7 @@ export class ProjectView extends ItemView {
     const container = this.projectAreaEl;
     container.empty();
 
-    // Load state from Projects.md
+    // Load state from config file
     this.collapsedSwimlanes = await this.projectConfig.readCollapsedSwimlanes();
     this.collapsedColumns = await this.projectConfig.readCollapsedColumns();
     let statuses = await this.projectConfig.readSorting();
@@ -203,7 +203,9 @@ export class ProjectView extends ItemView {
 
     // Check if we have anything at all in the vault
     if (projectFiles.length === 0) {
-      container.createEl("p", { text: "No notes in Projects folder found." });
+      container.createEl("p", {
+        text: `No notes in ${this.projectConfig.projectsFolderPath} folder found.`,
+      });
       return;
     }
 
@@ -428,7 +430,10 @@ export class ProjectView extends ItemView {
     setIcon(addButton, "plus");
 
     addButton.addEventListener("click", async () => {
-      const folderPath = group === "General" ? "Projects" : `Projects/${group}`;
+      const folderPath =
+        group === "General"
+          ? this.projectConfig.projectsFolderPath
+          : `${this.projectConfig.projectsFolderPath}/${group}`;
 
       // Ensure folder exists
       if (!(await this.app.vault.adapter.exists(folderPath))) {
@@ -630,12 +635,14 @@ status: "${status}"
     for (const file of files) {
       const status = this.getFileStatus(file, availableStatuses);
 
-      // Projects/Subfolder/Note.md -> Subfolder
-      // Projects/Note.md -> General
+      // ${this.projectConfig.projectsFolderPath}/Subfolder/Note.md -> Subfolder
+      // ${this.projectConfig.projectsFolderPath}/Note.md -> General
       const pathParts = file.path.split("/");
       let group = "General";
-      if (pathParts.length > 2) {
-        group = pathParts[1] ?? "General";
+      const folderDepth =
+        this.projectConfig.projectsFolderPath.split("/").length;
+      if (pathParts.length > folderDepth + 1) {
+        group = pathParts[folderDepth] ?? "General";
       }
 
       if (!grouped[group]) grouped[group] = {};
