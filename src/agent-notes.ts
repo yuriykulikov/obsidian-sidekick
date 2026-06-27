@@ -15,7 +15,6 @@ export async function setActiveNote(
 ): Promise<AgentState> {
   const hasPrompts = state.history.some((entry) => entry.role === "user");
   const notesCopy = new Map<string, Note>(state.notes);
-  let discoveredStructure = [...state.discoveredStructure];
 
   // Deactivate or remove other active notes
   for (const [name, note] of notesCopy) {
@@ -44,9 +43,6 @@ export async function setActiveNote(
   }
 
   if (current) {
-    discoveredStructure = Array.from(
-      new Set([...discoveredStructure, current.path]),
-    );
     notesCopy.set(basename, {
       ...current,
       state: {
@@ -56,9 +52,7 @@ export async function setActiveNote(
     });
   }
 
-  return state
-    .replaceNotes(notesCopy)
-    .appendDiscoveredStructure(discoveredStructure);
+  return state.replaceNotes(notesCopy);
 }
 
 /**
@@ -80,9 +74,7 @@ export async function addNote(
 
   const newNote = await readNote(app, file, "text");
 
-  return state
-    .appendNote(basename, newNote)
-    .appendDiscoveredStructure([file.path]);
+  return state.appendNote(basename, newNote);
 }
 
 /**
@@ -93,7 +85,6 @@ export async function refreshNotes(
   state: AgentState,
 ): Promise<AgentState> {
   const newNotes = new Map<string, Note>();
-  const currentDiscoveredStructure = new Set(state.discoveredStructure);
 
   for (const [basename, note] of state.notes) {
     const file = app.vault.getAbstractFileByPath(note.path);
@@ -108,15 +99,8 @@ export async function refreshNotes(
         // keep the state
         state: note.state,
       });
-    } else {
-      // If file is gone, remove it from context
-      currentDiscoveredStructure.delete(note.path);
     }
   }
 
-  return new AgentState(
-    state.history,
-    newNotes,
-    Array.from(currentDiscoveredStructure),
-  );
+  return new AgentState(state.history, newNotes, state.isThinking);
 }

@@ -54,9 +54,7 @@ export class ReadNoteTool implements Tool {
     // when re-reading the note from disk.
     newNote.state = state.notes.get(filename)?.state;
 
-    const newState = state
-      .appendNote(filename, newNote)
-      .appendDiscoveredStructure([file.path]);
+    const newState = state.appendNote(filename, newNote);
 
     return [
       newState,

@@ -12,7 +12,6 @@ import type { Logger } from "./utils/logger";
 export type AgentStateJson = {
   history: readonly HistoryEntryJson[];
   notes: readonly Note[];
-  discoveredStructure: readonly string[];
   isThinking: boolean;
 };
 
@@ -76,7 +75,6 @@ function serializeAgentState(state: AgentState): AgentStateJson {
     }),
     // Persist notes as a plain array; reconstruct the Map by filename on load.
     notes: Array.from(state.notes.values()),
-    discoveredStructure: state.discoveredStructure,
     isThinking: state.isThinking,
   };
 }
@@ -90,7 +88,6 @@ export function serializeAgentStateForTest(state: AgentState): AgentStateJson {
 function deserializeAgentState(json: {
   history?: readonly HistoryEntryJson[];
   notes?: readonly Note[];
-  discoveredStructure?: readonly string[];
   isThinking?: boolean;
 }): AgentState {
   const history = (json.history ?? []).map((entry) => {
@@ -112,16 +109,14 @@ function deserializeAgentState(json: {
       notes.set(key, note);
     }
   }
-  const discoveredStructure = json.discoveredStructure ?? [];
   const isThinking = json.isThinking ?? false;
 
-  return new AgentState(history, notes, discoveredStructure, isThinking);
+  return new AgentState(history, notes, isThinking);
 }
 
 export function deserializeAgentStateForTest(json: {
   history?: readonly HistoryEntryJson[];
   notes?: readonly Note[];
-  discoveredStructure?: readonly string[];
   isThinking?: boolean;
 }): AgentState {
   return deserializeAgentState(json);

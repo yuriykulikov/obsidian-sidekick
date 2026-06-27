@@ -37,12 +37,7 @@ describe("AgentState serialization", () => {
       },
     ];
 
-    const state = new AgentState(
-      history,
-      new Map([["a.md", note]]),
-      ["folder/a.md", "folder/b.md"],
-      true,
-    );
+    const state = new AgentState(history, new Map([["a.md", note]]), true);
 
     const json: AgentStateJson = serializeAgentStateForTest(state);
 
