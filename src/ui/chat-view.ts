@@ -381,6 +381,12 @@ export class ChatView extends ItemView {
       if (note.state?.deleted) {
         noteTag.addClass("sidekick-note-deleted");
       }
+      if (note.isInstruction) {
+        noteTag.addClass("sidekick-note-instruction");
+        if (note.state?.hasSuggestions) {
+          noteTag.addClass("sidekick-note-instruction-edited");
+        }
+      }
       if (note.state?.active) {
         noteTag.addClass("sidekick-note-active");
       }

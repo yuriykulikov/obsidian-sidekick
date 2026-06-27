@@ -31,6 +31,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -67,6 +68,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
     const noteB: Note = {
       filename: "Note B",
@@ -75,6 +77,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const state = new AgentState(
@@ -118,6 +121,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -147,6 +151,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -178,6 +183,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -208,6 +214,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -237,6 +244,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -264,6 +272,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
 
     const tool = new EditNoteTool(
@@ -306,6 +315,7 @@ describe("SuggestEditTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     } as Note);
 
     const state = new AgentState([], new Map());

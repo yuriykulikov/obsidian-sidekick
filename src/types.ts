@@ -212,6 +212,7 @@ export interface Note {
   frontmatter?: Record<string, unknown> | null;
   parentPath?: string;
   folderSiblings?: string[] | null;
+  isInstruction: boolean;
   state?: {
     active?: boolean;
     hasSuggestions?: boolean;

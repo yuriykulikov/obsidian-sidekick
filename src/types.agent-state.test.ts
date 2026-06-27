@@ -17,6 +17,7 @@ describe("AgentState serialization", () => {
       links: ["b.md"],
       backlinks: [],
       tags: ["#tag"],
+      isInstruction: false,
       state: {
         active: true,
         hasSuggestions: true,

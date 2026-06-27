@@ -1,25 +1,68 @@
-import type { AgentState, Note, TextHistoryEntry } from "./types";
+import type { AgentState, Note } from "./types";
 import { type Logger, LogLevel } from "./utils/logger";
-
-export type AgentPromptSections = {
-  structureStr: string;
-  contextStr: string;
-  activityLogStr: string;
-};
 
 export function renderPromptSections(
   state: AgentState,
   logger: Logger,
-): AgentPromptSections {
+  agentsContent?: string,
+): string {
+  const agentsSection = renderAgentsMdSection(logger, agentsContent);
   const structureStr = renderDiscoveredNoteStructureSection(state, logger);
   const contextStr = renderNotesSection(state, logger);
   const activityLogStr = renderConversationAndActivityLog(state, logger);
+  const prompt = getLastUserPrompt(state);
 
-  return {
+  const sections = [
+    agentsSection,
     structureStr,
     contextStr,
     activityLogStr,
-  };
+  ].filter((s) => s.length > 0);
+  return `${sections.join("\n")}\n\n# User Question\n${prompt}`;
+}
+
+export function renderAgentsMdSection(
+  logger: Logger,
+  agentsContent?: string,
+): string {
+  if (!agentsContent) {
+    agentsContent = `
+AGENTS.md is missing from the vault root.
+Having an AGENTS.md file helps you stay aligned with the user's long-term objectives and project-specific conventions.
+You should suggest to the user that they create one, or offer to initialize it for them with some initial content based on your current understanding of the vault.
+`;
+  }
+  const instructionsSection = `# AGENTS.md
+You have access **AGENTS.md**: The primary instruction file in the vault root. Its content is automatically included in your session prompt.
+[!IMPORTANT]
+> This content is already pre-loaded into your context. There is no need to use \`read_note\` to read AGENTS.md.
+
+## Progressive disclosure of instructions
+
+You can follow links from this file to access additional instruction files:
+- If a task relates to a topic mentioned in AGENTS.md, follow that link.
+- Only load linked files when directly relevant to the user's request.
+
+## Modifying Instructions (AGENTS.md & linked files)
+
+You are encouraged to evolve your instructions to stay aligned with the user's workflow.
+
+- **Explicit Command**: If the user asks you to remember something or change your instructions/guidelines, use \`edit-note\` to modify AGENTS.md immediately.
+- **Task Notes**: For other edits (task-related notes), use \`edit-note\` on the target note.
+- **Discovery**: If you discover latent guidelines, structures, or workflows (e.g., via \`read-note\`) that are not yet documented, **ask the user** if you should add them to your instructions.
+- **Organization**: Keep AGENTS.md concise and high-level. Suggest moving detailed instructions to new or existing linked files to avoid context bloat.
+
+## Content of AGENTS.md
+\`\`\`
+${agentsContent}
+\`\`\`
+
+---
+`;
+
+  logger.markdown("AGENTS.md", instructionsSection, LogLevel.CONTEXT);
+
+  return instructionsSection;
 }
 
 export function renderNotesSection(state: AgentState, logger: Logger): string {
@@ -37,7 +80,7 @@ export function renderNotesSection(state: AgentState, logger: Logger): string {
     })
     .join("\n");
 
-  return `# Notes\n\n${notesMd}\n---\n`;
+  return `# Notes\n\n${notesMd}\n\n---`;
 }
 
 /**
@@ -185,7 +228,7 @@ export function renderDiscoveredNoteStructureSection(
     LogLevel.CONTEXT,
   );
 
-  return `# Discovered Vault Structure\n\nThis structure shows notes paths which are loaded in the context and is a subset of all notes in the vault.\n\n\`\`\`\n${rendered}\n\`\`\`\n---\n`;
+  return `# Discovered Vault Structure\n\nThis structure shows notes paths which are loaded in the context and is a subset of all notes in the vault.\n\n\`\`\`\n${rendered}\n\`\`\`\n\n---`;
 }
 
 /**
@@ -246,15 +289,16 @@ export function renderConversationAndActivityLog(
     })
     .join("\n");
 
-  const logStr = `# Conversation & Activity Log\n${rendered}\n---\n`;
+  const logStr = `# Conversation & Activity Log\n${rendered}\n\n---`;
   logger.markdown("Conversation & activity log", logStr, LogLevel.CONTEXT);
 
   return logStr;
 }
 
-export function getLastUserPrompt(state: AgentState): string {
+function getLastUserPrompt(state: AgentState): string {
   const userEntries = state.history.filter(
-    (h): h is TextHistoryEntry => h.type === "text" && h.role === "user",
+    (h): h is import("./types").TextHistoryEntry =>
+      h.type === "text" && h.role === "user",
   );
   const lastUserEntry = userEntries[userEntries.length - 1];
   return lastUserEntry ? lastUserEntry.content : "";

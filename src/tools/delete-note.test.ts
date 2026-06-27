@@ -34,6 +34,7 @@ describe("DeleteNoteTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
     const state = buildState(note);
     const app = buildApp("Test Note.md", "Test Note");
@@ -71,6 +72,7 @@ describe("DeleteNoteTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
     const note2: Note = {
       filename: "Note 2",
@@ -79,6 +81,7 @@ describe("DeleteNoteTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     };
     const notes = new Map<string, Note>();
     notes.set(note1.filename, note1);

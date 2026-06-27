@@ -33,6 +33,7 @@ describe("EditNoteTool - load from vault", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     } as Note);
 
     const state = new AgentState([], new Map());
