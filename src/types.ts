@@ -6,59 +6,40 @@ export class AgentState {
    */
   public readonly history: readonly HistoryEntry[];
   public readonly notes: ReadonlyMap<string, Note>;
-  public readonly discoveredStructure: readonly string[];
   public readonly isThinking: boolean;
 
   constructor(
     history: readonly HistoryEntry[] = [],
     notes: ReadonlyMap<string, Note> = new Map<string, Note>(),
-    discoveredStructure: readonly string[] = [],
     isThinking: boolean = false,
   ) {
     this.history = history;
     this.notes = notes;
-    this.discoveredStructure = discoveredStructure;
     this.isThinking = isThinking;
   }
 
+  public get discoveredStructure(): readonly string[] {
+    return Array.from(this.notes.values()).map((note) => note.path);
+  }
+
   public appendHistoryEntry(item: HistoryEntry): AgentState {
-    return new AgentState(
-      [...this.history, item],
-      this.notes,
-      this.discoveredStructure,
-      this.isThinking,
-    );
+    return new AgentState([...this.history, item], this.notes, this.isThinking);
   }
 
   public replaceNotes(notes: ReadonlyMap<string, Note>): AgentState {
-    return new AgentState(
-      this.history,
-      notes,
-      this.discoveredStructure,
-      this.isThinking,
-    );
+    return new AgentState(this.history, notes, this.isThinking);
   }
 
   public appendNote(filename: string, note: Note): AgentState {
     const mergedNotes = new Map(this.notes);
     mergedNotes.set(filename, note);
-    return new AgentState(
-      this.history,
-      mergedNotes,
-      this.discoveredStructure,
-      this.isThinking,
-    );
+    return new AgentState(this.history, mergedNotes, this.isThinking);
   }
 
   public removeNote(filename: string): AgentState {
     const mergedNotes = new Map(this.notes);
     mergedNotes.delete(filename);
-    return new AgentState(
-      this.history,
-      mergedNotes,
-      this.discoveredStructure,
-      this.isThinking,
-    );
+    return new AgentState(this.history, mergedNotes, this.isThinking);
   }
 
   public setHistoryEntryCollapsed(id: string, collapsed: boolean): AgentState {
@@ -70,27 +51,12 @@ export class AgentState {
         return entry;
       }),
       this.notes,
-      this.discoveredStructure,
-      this.isThinking,
-    );
-  }
-
-  public appendDiscoveredStructure(newPaths: readonly string[]): AgentState {
-    return new AgentState(
-      this.history,
-      this.notes,
-      Array.from(new Set([...this.discoveredStructure, ...newPaths])),
       this.isThinking,
     );
   }
 
   public setThinking(isThinking: boolean): AgentState {
-    return new AgentState(
-      this.history,
-      this.notes,
-      this.discoveredStructure,
-      isThinking,
-    );
+    return new AgentState(this.history, this.notes, isThinking);
   }
 }
 

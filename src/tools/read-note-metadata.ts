@@ -80,9 +80,7 @@ export class ReadNoteMetadataTool implements Tool {
       newNote.state = existingState;
     }
 
-    const newState = state
-      .appendNote(filename, newNote)
-      .appendDiscoveredStructure([file.path]);
+    const newState = state.appendNote(filename, newNote);
 
     return [
       newState,

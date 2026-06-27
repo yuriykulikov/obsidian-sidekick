@@ -94,12 +94,6 @@ export class MoveRenameNoteTool implements Tool {
       // 4. Add the new note to context
       newState = newState.appendNote(updatedNote.filename, updatedNote);
 
-      // 5. Update discovered structure: remove old, add new
-      const newDiscovered = state.discoveredStructure
-        .filter((p) => p !== oldFullPath)
-        .concat(newPath);
-      newState = newState.appendDiscoveredStructure(newDiscovered);
-
       const summary = `Renamed [[${oldFilename}]] to [[${updatedNote.filename}]]`;
       const output = `Successfully moved and renamed note from '${oldPath}' to '${newPath}'. All links to this note have been updated.`;
 
