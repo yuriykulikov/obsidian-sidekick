@@ -1,11 +1,186 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   renderDiscoveredStructure,
   renderNoteToMarkdown,
+  renderPromptSections,
 } from "./agent-render";
-import type { Note } from "./types";
+import { AgentState, type Note } from "./types";
+import type { Logger } from "./utils/logger";
 
 describe("agent-render", () => {
+  const mockLogger = {
+    markdown: vi.fn(),
+    log: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    user: vi.fn(),
+    loop: vi.fn(),
+    tool: vi.fn(),
+    getLogs: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    clear: vi.fn(),
+  } as unknown as Logger;
+
+  describe("renderPromptSections", () => {
+    it("should render full prompt with all sections", () => {
+      const state = new AgentState(
+        [
+          { type: "text", role: "user", content: "Hello agent" },
+          { type: "text", role: "model", content: "Hello user" },
+          { type: "text", role: "user", content: "Latest question" },
+        ],
+        new Map([
+          [
+            "test.md",
+            {
+              filename: "test",
+              path: "test.md",
+              content: "Note content",
+              links: [],
+              backlinks: [],
+              tags: [],
+              isInstruction: false,
+            } as Note,
+          ],
+        ]),
+        false,
+      );
+
+      const agentsContent = "Custom agent instructions";
+      const result = renderPromptSections(state, mockLogger, agentsContent);
+
+      const expected = `# AGENTS.md
+You have access **AGENTS.md**: The primary instruction file in the vault root. Its content is automatically included in your session prompt.
+[!IMPORTANT]
+> This content is already pre-loaded into your context. There is no need to use \`read_note\` to read AGENTS.md.
+
+## Progressive disclosure of instructions
+
+You can follow links from this file to access additional instruction files:
+- If a task relates to a topic mentioned in AGENTS.md, follow that link.
+- Only load linked files when directly relevant to the user's request.
+
+## Modifying Instructions (AGENTS.md & linked files)
+
+You are encouraged to evolve your instructions to stay aligned with the user's workflow.
+
+- **Explicit Command**: If the user asks you to remember something or change your instructions/guidelines, use \`edit-note\` to modify AGENTS.md immediately.
+- **Task Notes**: For other edits (task-related notes), use \`edit-note\` on the target note.
+- **Discovery**: If you discover latent guidelines, structures, or workflows (e.g., via \`read-note\`) that are not yet documented, **ask the user** if you should add them to your instructions.
+- **Organization**: Keep AGENTS.md concise and high-level. Suggest moving detailed instructions to new or existing linked files to avoid context bloat.
+
+## Content of AGENTS.md
+\`\`\`
+Custom agent instructions
+\`\`\`
+
+---
+
+# Discovered Vault Structure
+
+This structure shows notes paths which are loaded in the context and is a subset of all notes in the vault.
+
+\`\`\`
+- 📄 test.md
+\`\`\`
+
+---
+# Notes
+
+# test
+## Metadata
+\`\`\`yaml
+path: test
+bidirectional_links:
+links:
+backlinks:
+tags:
+\`\`\`
+## Content
+\`\`\`
+Note content
+\`\`\`
+
+
+---
+# Conversation & Activity Log
+## User prompt
+Hello agent
+## Agent response
+Hello user
+
+---
+
+# User Question
+Latest question`;
+
+      expect(result).toBe(expected);
+      expect(mockLogger.markdown).toHaveBeenCalledWith(
+        "AGENTS.md",
+        expect.stringContaining("# AGENTS.md"),
+        "CONTEXT",
+      );
+
+      // Verify "Latest question" is NOT in the Conversation Log because it's the last user prompt
+      const conversationLogPart = result.split("# User Question")[0];
+      expect(conversationLogPart).not.toContain("Latest question");
+    });
+
+    it("should handle missing agentsContent", () => {
+      const state = new AgentState(
+        [{ type: "text", role: "user", content: "Only question" }],
+        new Map(),
+        false,
+      );
+
+      const result = renderPromptSections(state, mockLogger);
+
+      const expected = `# AGENTS.md
+You have access **AGENTS.md**: The primary instruction file in the vault root. Its content is automatically included in your session prompt.
+[!IMPORTANT]
+> This content is already pre-loaded into your context. There is no need to use \`read_note\` to read AGENTS.md.
+
+## Progressive disclosure of instructions
+
+You can follow links from this file to access additional instruction files:
+- If a task relates to a topic mentioned in AGENTS.md, follow that link.
+- Only load linked files when directly relevant to the user's request.
+
+## Modifying Instructions (AGENTS.md & linked files)
+
+You are encouraged to evolve your instructions to stay aligned with the user's workflow.
+
+- **Explicit Command**: If the user asks you to remember something or change your instructions/guidelines, use \`edit-note\` to modify AGENTS.md immediately.
+- **Task Notes**: For other edits (task-related notes), use \`edit-note\` on the target note.
+- **Discovery**: If you discover latent guidelines, structures, or workflows (e.g., via \`read-note\`) that are not yet documented, **ask the user** if you should add them to your instructions.
+- **Organization**: Keep AGENTS.md concise and high-level. Suggest moving detailed instructions to new or existing linked files to avoid context bloat.
+
+## Content of AGENTS.md
+\`\`\`
+
+AGENTS.md is missing from the vault root.
+Having an AGENTS.md file helps you stay aligned with the user's long-term objectives and project-specific conventions.
+You should suggest to the user that they create one, or offer to initialize it for them with some initial content based on your current understanding of the vault.
+
+\`\`\`
+
+---
+
+# Conversation & Activity Log
+
+
+---
+
+# User Question
+Only question`;
+
+      expect(result).toBe(expected);
+    });
+  });
+
   describe("renderNoteToMarkdown", () => {
     it("should render a note with content correctly", () => {
       const note: Note = {
@@ -16,6 +191,7 @@ describe("agent-render", () => {
         links: ["other/Link1", "one/two/Link2", "one/two/Bidirectional"],
         backlinks: ["one/two/Backlink1", "one/two/Bidirectional"],
         tags: ["#tag1", "#tag2"],
+        isInstruction: false,
         folderSiblings: ["Sibling1"],
       };
 
@@ -57,6 +233,7 @@ This is the content of the note.
         links: [],
         backlinks: [],
         tags: [],
+        isInstruction: false,
         folderSiblings: [],
       };
 
@@ -89,6 +266,7 @@ tags:
         links: [],
         backlinks: [],
         tags: [],
+        isInstruction: false,
         folderSiblings: [],
       };
 
@@ -120,6 +298,7 @@ Empty
         links: [],
         backlinks: [],
         tags: [],
+        isInstruction: false,
         folderSiblings: [],
       };
 
@@ -147,6 +326,7 @@ Only note metadata is available. Use tools to read the note text or note structu
         links: [],
         backlinks: [],
         tags: [],
+        isInstruction: false,
         state: {
           active: true,
         },
@@ -167,6 +347,7 @@ Only note metadata is available. Use tools to read the note text or note structu
         links: [],
         backlinks: [],
         tags: [],
+        isInstruction: false,
         state: {
           active: true,
           originalFilename: "Old Name",
@@ -189,6 +370,7 @@ Only note metadata is available. Use tools to read the note text or note structu
         links: [],
         backlinks: [],
         tags: ["#test"],
+        isInstruction: false,
         frontmatter: { status: "draft", priority: 1 },
         folderSiblings: [],
       };

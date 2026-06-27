@@ -75,9 +75,9 @@ export class ReadNoteMetadataTool implements Tool {
 
     // Preserve in-memory note state (active flag, suggestion state, etc.)
     // when re-reading the note from disk.
-    const existingState = state.notes.get(filename)?.state;
-    if (existingState) {
-      newNote.state = existingState;
+    const oldState = state.notes.get(filename)?.state;
+    if (oldState) {
+      newNote.state = { ...newNote.state, ...oldState };
     }
 
     const newState = state.appendNote(filename, newNote);

@@ -3,13 +3,13 @@ import type {
   FunctionResponse,
   GenerateContentResponse,
 } from "@google/genai";
-import type { App } from "obsidian";
+import { type App, TFile } from "obsidian";
 import {
   persistSuggestedEdits,
   rollbackSuggestedEdits,
 } from "./agent-edit-notes";
 import { addNote, refreshNotes, setActiveNote } from "./agent-notes";
-import { getLastUserPrompt, renderPromptSections } from "./agent-render";
+import { renderPromptSections } from "./agent-render";
 import type { Agents } from "./agents";
 import type { AgentState, Note, Tool } from "./types";
 import { ToolResult } from "./types";
@@ -346,16 +346,14 @@ export class SidekickAgent {
    * @returns A promise that resolves to the LLM response.
    */
   private async promptLLM(): Promise<GenerateContentResponse> {
-    // Find the last user prompt in history (used as the current question at the end)
-    const prompt = getLastUserPrompt(this.state);
+    const agentsContent = await this.getAgentsContent();
 
     // Prepare context for the prompt from notes
-    const { structureStr, contextStr, activityLogStr } = renderPromptSections(
+    const message = renderPromptSections(
       this.state,
       this.logger,
+      agentsContent,
     );
-
-    const message = `${structureStr}${contextStr}${activityLogStr}\n# User Question\n${prompt}`;
 
     if (!this.chatSession) {
       throw new Error(this.initError || "Chat session not initialized");
@@ -485,6 +483,22 @@ export class SidekickAgent {
       result.isError() ? LogLevel.ERROR : LogLevel.TOOL,
     );
     return result;
+  }
+
+  /**
+   * Reads the content of AGENTS.md on-the-fly to be included in the prompt.
+   */
+  private async getAgentsContent(): Promise<string | undefined> {
+    try {
+      const agentsFile = this.app.vault.getAbstractFileByPath("AGENTS.md");
+      if (agentsFile instanceof TFile) {
+        return await this.app.vault.read(agentsFile);
+      }
+      return "IMPORTANT: AGENTS.md was not found in the vault root. You should inform the user about this and suggest creating one if persistent project-specific instructions are needed.";
+    } catch (error) {
+      this.logger.error(`Failed to read AGENTS.md: ${error}`);
+      return undefined;
+    }
   }
 
   /**

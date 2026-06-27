@@ -48,6 +48,7 @@ describe("CreateNoteTool", () => {
       links: [],
       backlinks: [],
       tags: [],
+      isInstruction: false,
     });
 
     const [newState, result] = await tool.execute(prevState, {

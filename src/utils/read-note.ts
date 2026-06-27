@@ -112,6 +112,12 @@ export async function readNote(
     }
   }
 
+  const isInstruction =
+    file.path === "AGENTS.md" ||
+    (frontmatter?.name !== undefined &&
+      frontmatter?.description !== undefined) ||
+    backlinks.some((bl) => bl === "AGENTS" || bl.endsWith("/AGENTS"));
+
   const structureOrText = detail === "structure" || detail === "text";
   return {
     filename: filename,
@@ -124,6 +130,8 @@ export async function readNote(
     structure: structureOrText ? structure.join("\n") : null,
     parentPath: parentFolder?.path || "/",
     folderSiblings: structureOrText ? folderSiblings : null,
+    isInstruction,
+    state: {},
   };
 }
 
